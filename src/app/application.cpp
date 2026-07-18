@@ -806,7 +806,7 @@ void Application::user_update()
 
 void Application::timeout()
 {
-    for (int i = 0; i < ARRAY_SIZE(events); i++)
+    for (int i = 0; i < events.size(); i++)
     {
         if (events[i].active)
         {
