@@ -91,11 +91,11 @@ public:
     Input input = {};
     AssetCatalog catalog = {};
 
-    DArray<UiState> ui = {};
+    DArray<UiState> uiStates = {};
 	
     cobot::Color clear_color = DEFAULT_BACKGROUND_COLOR;
 
-    TimeInfo time = {};
+    TimeInfo timeInfo = {};
 
     DArray<Event_Timeout> events = {};
 

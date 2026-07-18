@@ -53,7 +53,7 @@ bool Application::initialize()
         // minimum aspect ratio of 1 and maximum aspect ratio of 2 default 1.6
         SDL_SetWindowAspectRatio(window, 1.0, 2.0);
 
-        m_window = { window };
+        window = { window };
 
         if (!init_render())
         {
@@ -63,7 +63,7 @@ bool Application::initialize()
         SDL_ShowWindow(window);
     }
 
-    if (!m_audio_player.initialize())
+    if (!audio_player.initialize())
     {
         return false;
     }
@@ -78,10 +78,10 @@ bool Application::initialize()
             return false;
         }
 
-        m_input.mouse.cursor.normal = normal;
-        m_input.mouse.cursor.text = text;
-        m_input.mouse.cursor.resize_ew = resize_ew;
-        m_input.mouse.cursor.resize_ns = resize_ns;
+        input.mouse.cursor.normal = normal;
+        input.mouse.cursor.text = text;
+        input.mouse.cursor.resize_ew = resize_ew;
+        input.mouse.cursor.resize_ns = resize_ns;
     }
 
     if (!load_assets())
@@ -92,14 +92,14 @@ bool Application::initialize()
     for (auto& cam : cameras)
     {
         cam.zoom = 1;
-        cam.offset = m_render.get_center();
+        cam.offset = render.get_center();
     }
 
     {
         int num_keys = 0;
-        m_input.keyboard.keys = SDL_GetKeyboardState(&num_keys);
-        m_input.keyboard.num_keys = num_keys;
-        m_input.keyboard.do_input = true;
+        input.keyboard.keys = SDL_GetKeyboardState(&num_keys);
+        input.keyboard.num_keys = num_keys;
+        input.keyboard.do_input = true;
     }
 
 	if (!load_default_font())
@@ -122,10 +122,10 @@ bool Application::initialize()
 
 bool Application::load_default_font()
 {
-	m_font = get_asset(String("FiraSans"), m_catalog);
-	m_editor_font = get_asset(String("FiraCode"), m_catalog);
+	this->font = get_asset(String("FiraSans"), this->catalog);
+	editor_font = get_asset(String("FiraCode"), this->catalog);
 
-	return m_font.is_valid() && m_editor_font.is_valid();
+	return this->font.is_valid() && editor_font.is_valid();
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
@@ -133,19 +133,19 @@ bool Application::read_asset_catalog(String_Builder& path)
 	// @todo let the user rename or provide a static string for this
     const char* desc_name = "run_tree.txt";
     path.append(make_string(desc_name));
-    bool parse_description = parse_assets(path.c_string(), m_catalog);
+    bool parse_description = parse_assets(path.c_string(), catalog);
 
-    m_catalog.load_context.render = &m_render;
-    m_catalog.load_context.audio = &m_audio_player;
+    catalog.load_context.render = &render;
+    catalog.load_context.audio = &audio_player;
 
     return parse_description;
 }
 
 bool Application::reload_assets()
 {
-    for (int i = 0; i < m_catalog.catalogEntryCount; i++)
+    for (int i = 0; i < catalog.catalogEntryCount; i++)
     {
-        if (!m_catalog.reload_asset_at_index(i))
+        if (!catalog.reload_asset_at_index(i))
         {
             return false;
         }
@@ -159,8 +159,8 @@ bool Application::reload_assets()
 // literally reinitialize everything that touches any asset
 bool Application::update_assets()
 {
-    AssetId fontId = get_asset(String("FiraSans"), m_catalog);
-    AssetId editorFontId = get_asset(String("FiraSans"), m_catalog);
+    AssetId fontId = get_asset(String("FiraSans"), catalog);
+    AssetId editorFontId = get_asset(String("FiraCode"), catalog);
     return true;
 }
 
@@ -168,17 +168,17 @@ bool Application::load_assets()
 {
     // the size can actually change when we are trying to load assets since folder references will expand and include arbitrary amount of files
     // so save the amount we need to iterate
-    int count = m_catalog.assets.count();
+    int count = catalog.assets.count();
     for (int i = 0; i < count; i++)
     {
-        if (!(m_catalog.assets[i].flags & ASSET_IS_LAZY))
+        if (!(catalog.assets[i].flags & ASSET_IS_LAZY))
         {
-            AssetId id = get_asset_at_index(i, m_catalog);
+            AssetId id = get_asset_at_index(i, catalog);
             if (!id.is_valid())
             {
-                auto asset_name = m_catalog.get_asset_name_at_index(i);
+                auto asset_name = catalog.get_asset_name_at_index(i);
                 SCOPE_STRING(asset_name, name);
-                if (!(m_catalog.assets[i].flags & ASSET_IS_OPTIONAL)) {
+                if (!(catalog.assets[i].flags & ASSET_IS_OPTIONAL)) {
                     log_error("Couldn't load asset %s", name);
                     return false;
                 }
@@ -189,7 +189,7 @@ bool Application::load_assets()
         }
     }
 
-    m_catalog.path.free_buffer();
+    catalog.path.free_buffer();
 
     return true;
 }
@@ -241,8 +241,8 @@ void Application::handle_events()
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
                 SDL_MouseButtonEvent mouse = e.button;
-                m_input.mouse.down = true;
-                m_input.mouse.buttonFlags = SDL_GetMouseState(&m_input.mouse.pos.x, &m_input.mouse.pos.y);
+                input.mouse.down = true;
+                input.mouse.buttonFlags = SDL_GetMouseState(&input.mouse.pos.x, &input.mouse.pos.y);
 
                 on_mouse_down();
 
@@ -252,8 +252,8 @@ void Application::handle_events()
             {
                 SDL_MouseButtonEvent mouse = e.button;
 
-                m_input.mouse.down = false;
-                m_input.mouse.buttonFlags = SDL_GetMouseState(&m_input.mouse.pos.x, &m_input.mouse.pos.y);
+                input.mouse.down = false;
+                input.mouse.buttonFlags = SDL_GetMouseState(&input.mouse.pos.x, &input.mouse.pos.y);
 
                 on_mouse_up(mouse.button);
 
@@ -261,7 +261,7 @@ void Application::handle_events()
             }
             case SDL_EVENT_MOUSE_MOTION:
             {
-                m_input.mouse.buttonFlags = SDL_GetMouseState(&m_input.mouse.pos.x, &m_input.mouse.pos.y);
+                input.mouse.buttonFlags = SDL_GetMouseState(&input.mouse.pos.x, &input.mouse.pos.y);
                 on_mouse_move();
                 break;
             }
@@ -281,8 +281,8 @@ void Application::handle_events()
             case SDL_EVENT_WINDOW_RESIZED:
             {
                 int render_size_x, render_size_y;
-                SDL_GetRenderOutputSize(m_render.renderer, &render_size_x, &render_size_y);
-                m_render.render_size = cobot::vec2(render_size_x, render_size_y);
+                SDL_GetRenderOutputSize(render.renderer, &render_size_x, &render_size_y);
+                render.render_size = cobot::vec2(render_size_x, render_size_y);
                 for (auto& c : cameras)
                 {
                     c.offset = cobot::vec2(render_size_x / 2, render_size_y / 2);
@@ -301,10 +301,10 @@ void Application::handle_events()
                 Text_Field* text_field = ui->get_selected_text_field();
                 if (text_field)
                 {
-                    Font font = m_catalog.get_font(m_editor_font);
+                    Font editorFont = catalog.get_font(editor_font);
 
                     text_field->append_string(input_text);
-                    text_field->update_text(m_render.renderer, font, true);
+                    text_field->update_text(render.renderer, editorFont, true);
                 }
                 break;
             }
@@ -325,7 +325,7 @@ void Application::handle_events()
 
 void Application::mouse_move_ui(UiState& ui)
 {
-    cobot::vec2 mouse_pos = m_input.mouse.pos;
+    cobot::vec2 mouse_pos = input.mouse.pos;
 
     for (auto& editor : ui.editor)
     {
@@ -354,15 +354,15 @@ void Application::mouse_move_ui(UiState& ui)
             cobot::Direction dir = panel.area.on_edge(mouse_pos, 3);
             if (cobot::direction_is_horizontal(dir))
             {
-                SDL_SetCursor(m_input.mouse.cursor.resize_ew);
+                SDL_SetCursor(input.mouse.cursor.resize_ew);
             }
             else if (cobot::direction_is_vertical(dir))
             {
-                SDL_SetCursor(m_input.mouse.cursor.resize_ns);
+                SDL_SetCursor(input.mouse.cursor.resize_ns);
             }
             else
             {
-                SDL_SetCursor(m_input.mouse.cursor.normal);
+                SDL_SetCursor(input.mouse.cursor.normal);
             }
         }
     }
@@ -370,24 +370,24 @@ void Application::mouse_move_ui(UiState& ui)
 
 void Application::set_text_editor_cursor(cobot::Rectangle text_area, cobot::Direction dir)
 {
-    cobot::vec2 mouse_pos = m_input.mouse.pos;
+    cobot::vec2 mouse_pos = input.mouse.pos;
 
     if (dir) {
         if (direction_is_vertical(dir))
         {
-            SDL_SetCursor(m_input.mouse.cursor.resize_ns);
+            SDL_SetCursor(input.mouse.cursor.resize_ns);
         }
         else if (direction_is_horizontal(dir))
         {
-            SDL_SetCursor(m_input.mouse.cursor.resize_ew);
+            SDL_SetCursor(input.mouse.cursor.resize_ew);
         }
     }
     else if (text_area.contains_centered(mouse_pos)) {
-        SDL_SetCursor(m_input.mouse.cursor.text);
+        SDL_SetCursor(input.mouse.cursor.text);
     }
     else {
         // SDL checks wheter the cursor set is different so no unnecessary redraws here
-        SDL_SetCursor(m_input.mouse.cursor.normal);
+        SDL_SetCursor(input.mouse.cursor.normal);
     }
 }
 
@@ -412,7 +412,7 @@ bool Application::keyboard_input_down(SDL_KeyboardEvent keyboard)
     }
     else
     {
-		if (!m_input.keyboard.do_input)
+		if (!input.keyboard.do_input)
 		{
 			return false;
 		}
@@ -486,8 +486,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                         field->delete_text();
                     }
 
-                    Font font = m_catalog.get_font(m_editor_font);
-                    field->update_text(m_render.renderer, m_catalog.get_font(field->fontId), true);
+                    field->update_text(render.renderer, catalog.get_font(field->fontId), true);
                 }
             }
             return true;
@@ -507,7 +506,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     {
                         field->delete_text();
                     }
-                    field->update_text(m_render.renderer, m_catalog.get_font(field->fontId), true);
+                    field->update_text(render.renderer, catalog.get_font(field->fontId), true);
                 }
                 return true;
             }
@@ -523,8 +522,8 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_cursor = 0;
                     field->m_selection_point = 0;
 
-                    Font font = m_catalog.get_font(field->fontId);
-                    field->update_text(m_render.renderer, font, true);
+                    Font f = catalog.get_font(field->fontId);
+                    field->update_text(render.renderer, f, true);
                 }
                 return true;
             }
@@ -540,8 +539,8 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_cursor = field->m_buffer.length;
                     field->m_selection_point = field->m_buffer.length;
 
-                    Font font = m_catalog.get_font(field->fontId);
-                    field->update_text(m_render.renderer, font, true);
+                    Font f = catalog.get_font(field->fontId);
+                    field->update_text(render.renderer, f, true);
                 }
                 return true;
             }
@@ -558,10 +557,10 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     int selectionPos = field->m_selection_point;
                     field->m_cursor = MAX(0, field->m_cursor - step);
 
-                    Font font = m_catalog.get_font(field->fontId);
-                    field->update_text(m_render.renderer, font, true);
+                    Font f = catalog.get_font(field->fontId);
+                    field->update_text(render.renderer, f, true);
 
-                    if (m_input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
+                    if (input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
                     {
                         field->m_selection_point = selectionPos;
                     }
@@ -585,10 +584,10 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     int selectionPos = field->m_selection_point;
                     field->m_cursor = MIN(field->m_cursor + step, field->m_buffer.length);
 
-                    Font font = m_catalog.get_font(field->fontId);
-                    field->update_text(m_render.renderer, font, true);
+                    Font f = catalog.get_font(field->fontId);
+                    field->update_text(render.renderer, f, true);
 
-                    if (m_input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
+                    if (input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
                     {
                         field->m_selection_point = selectionPos;
                     }
@@ -604,7 +603,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_F11:
         {
-            SDL_SetWindowFullscreen(m_window.window, !is_fullscreen());
+            SDL_SetWindowFullscreen(window.window, !is_fullscreen());
             return true;
         }
         case SDL_SCANCODE_F4:
@@ -624,16 +623,16 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
 
 void Application::on_mouse_move()
 {
-    cobot::vec2 mouse_pos = m_input.mouse.pos;
+    cobot::vec2 mouse_pos = input.mouse.pos;
 
-    if (m_input.mouse.drag)
+    if (input.mouse.drag)
     {
         Camera* camera = get_active_camera();
         if (camera)
         {
-            cobot::vec2 move = (m_input.mouse.dragPosition - mouse_pos);
+            cobot::vec2 move = (input.mouse.dragPosition - mouse_pos);
             camera->position += cobot::vec2(move.x, -move.y) / camera->zoom;
-            m_input.mouse.dragPosition = mouse_pos;
+            input.mouse.dragPosition = mouse_pos;
         }
         return;
     }
@@ -654,10 +653,10 @@ bool Application::on_mouse_down()
 		return true;
 	}
 
-    if ((m_input.mouse.buttonFlags & MOUSE_LEFT_MASK) && get_active_camera() && ui && !ui->get_drag_info() && !ui->doing_resize())
+    if ((input.mouse.buttonFlags & MOUSE_LEFT_MASK) && get_active_camera() && ui && !ui->get_drag_info() && !ui->doing_resize())
     {
-        m_input.mouse.dragPosition = m_input.mouse.pos;
-        m_input.mouse.drag = true;
+        input.mouse.dragPosition = input.mouse.pos;
+        input.mouse.drag = true;
         return true;
     }
     else
@@ -701,13 +700,13 @@ void Application::on_mouse_up(int button)
             }
         }
 
-        m_input.mouse.drag = false;
+        input.mouse.drag = false;
     }
 }
 
 bool Application::mouse_input_common()
 {
-	cobot::vec2 mouse_pos = m_input.mouse.pos;
+	cobot::vec2 mouse_pos = input.mouse.pos;
 	UiState* ui = get_active_ui();
 
     if (ui)
@@ -743,8 +742,8 @@ bool Application::mouse_input_common()
                     ui->text_input_target.flags = TEXT_INPUT_TARGET_IS_VALID;
                 }
 
-                Font font = m_catalog.get_font(field.fontId);
-                field.m_cursor = field.calculate_cursor_from_mouse(relative, field.get_string(), font, true);
+                Font f = catalog.get_font(field.fontId);
+                field.m_cursor = field.calculate_cursor_from_mouse(relative, field.get_string(), f, true);
                 field.m_selection_point = field.m_cursor;
 
     			return true;
@@ -757,8 +756,8 @@ bool Application::mouse_input_common()
 
 void Application::update_keyboard_state()
 {
-    m_input.keyboard.keys = SDL_GetKeyboardState(&m_input.keyboard.num_keys);
-    m_input.keyboard.mod_state = SDL_GetModState();
+    input.keyboard.keys = SDL_GetKeyboardState(&input.keyboard.num_keys);
+    input.keyboard.mod_state = SDL_GetModState();
 }
 
 void Application::update()
@@ -766,10 +765,10 @@ void Application::update()
     // update time
     SDL_Time time = SDL_GetTicks();
     double time_sec = (double)time / MILLISECONDS_PER_SECOND;
-    m_time.deltaTime = time - m_time.time;
-    m_time.deltaTimeSeconds = time_sec - m_time.timeSeconds;
-    m_time.time = time;
-    m_time.timeSeconds = time_sec;
+    timeInfo.deltaTime = time - timeInfo.time;
+    timeInfo.deltaTimeSeconds = time_sec - timeInfo.timeSeconds;
+    timeInfo.time = time;
+    timeInfo.timeSeconds = time_sec;
 
     update_ui_pos();
     timeout();
@@ -779,8 +778,6 @@ void Application::update()
 
 void Application::user_update()
 {
-	auto time = m_time;
-
 	if (!user.update_state)
 	{
 		return;
@@ -789,7 +786,7 @@ void Application::user_update()
 	constexpr int maxIterationsPerFrame = 50;
     int iterations = 0;
 	double timeStep = user.update_state->calculateTimeStep();
-    while ((user.update_state->elapsed < time.timeSeconds + time.deltaTimeSeconds) && iterations < maxIterationsPerFrame)
+    while ((user.update_state->elapsed < timeInfo.timeSeconds + timeInfo.deltaTimeSeconds) && iterations < maxIterationsPerFrame)
     {
 		if (user.update_state->fixedUpdate)
 		{
@@ -803,32 +800,32 @@ void Application::user_update()
 
 	if (user.update_state->update)
 	{
-		user.update_state->update(user.userdata, time);
+		user.update_state->update(user.userdata, timeInfo);
 	}
 }
 
 void Application::timeout()
 {
-    for (int i = 0; i < ARRAY_SIZE(m_events); i++)
+    for (int i = 0; i < ARRAY_SIZE(events); i++)
     {
-        if (m_events[i].active)
+        if (events[i].active)
         {
-            if (m_events[i].event < m_time.time)
+            if (events[i].event < timeInfo.time)
             {
-                m_events[i].active = false;
+                events[i].active = false;
             }
         }
     }
 }
 
 void Application::update_ui_state(cobot::vec2 window_size) {
-    for (int i = 0; i < m_ui.size(); i++)
+    for (int i = 0; i < uiStates.size(); i++)
     {
-        cobot::vec2 assumed = m_ui[i].assumed_window_size;
+        cobot::vec2 assumed = uiStates[i].assumed_window_size;
         float x_factor = window_size.x / assumed.x;
         float y_factor = window_size.y / assumed.y;
         if ((fabsf(x_factor - 1.0f) >= 0.1f) || (fabsf(y_factor - 1.0f) >= 0.1f)) {
-            m_ui[i].update_state(window_size, m_render, m_catalog);
+            uiStates[i].update_state(window_size, render, catalog);
         }
     }
 }
@@ -841,7 +838,7 @@ void Application::update_ui_pos()
         return;
     }
 
-    cobot::vec2 mouse_pos = m_input.mouse.pos;
+    cobot::vec2 mouse_pos = input.mouse.pos;
 
     for (auto& editor : ui->editor)
     {
@@ -870,13 +867,13 @@ void Application::update_ui_pos()
 void Application::set_event_active(int event_index, double timeout_seconds)
 {
     s64 timeout = (s64)(timeout_seconds * MILLISECONDS_PER_SECOND);
-    m_events[event_index].active = true;
-    m_events[event_index].event = m_time.time + timeout;
+    events[event_index].active = true;
+    events[event_index].event = timeInfo.time + timeout;
 }
 
 void Application::set_event_deactive(int event_index)
 {
-    m_events[event_index].active = false;
+    events[event_index].active = false;
 }
 
 void Application::cleanup()
@@ -892,7 +889,7 @@ void Application::cleanup()
 
 bool Application::init_render()
 {
-    if (!initialize_render_context(&m_render, m_window.window))
+    if (!initialize_render_context(&render, window.window))
     {
         return false;
     }
@@ -902,15 +899,15 @@ bool Application::init_render()
 
 void Application::draw()
 {
-    SDL_Renderer* renderer = m_render.renderer;
+    SDL_Renderer* renderer = render.renderer;
 
-    if (SDL_GetWindowFlags(m_window.window) & SDL_WINDOW_MINIMIZED) {
+    if (SDL_GetWindowFlags(window.window) & SDL_WINDOW_MINIMIZED) {
         // don't draw anything if the window is minimized
         return;
     }
 
     cobot::Color edit_color = cobot::Color(0x77, 0x55, 0x66);
-    cobot::Color background = doing_text_input ? edit_color : m_clear_color;
+    cobot::Color background = doing_text_input ? edit_color : clear_color;
     SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
     SDL_RenderClear(renderer);
 
@@ -921,31 +918,31 @@ void Application::draw()
 
 bool Application::is_minimized() const
 {
-    SDL_WindowFlags flags = SDL_GetWindowFlags(m_window.window);
+    SDL_WindowFlags flags = SDL_GetWindowFlags(window.window);
     return flags & SDL_WINDOW_MINIMIZED;
 }
 
 bool Application::is_maximized() const
 {
-    SDL_WindowFlags flags = SDL_GetWindowFlags(m_window.window);
+    SDL_WindowFlags flags = SDL_GetWindowFlags(window.window);
     return flags & SDL_WINDOW_MAXIMIZED;
 }
 
 bool Application::is_fullscreen() const
 {
-    SDL_WindowFlags flags = SDL_GetWindowFlags(m_window.window);
+    SDL_WindowFlags flags = SDL_GetWindowFlags(window.window);
     return flags & SDL_WINDOW_FULLSCREEN;
 }
 
 cobot::vec2 Application::get_window_size() const {
     cobot::ivec2 s;
-    SDL_GetWindowSize(m_window.window, &s.x, &s.y);
+    SDL_GetWindowSize(window.window, &s.x, &s.y);
     return cobot::vec2(s.x, s.y);
 }
 
 void Application::draw_ui_state(UiState& state)
 {
-	cobot::vec2 mouse_pos = m_input.mouse.pos;
+	cobot::vec2 mouse_pos = input.mouse.pos;
 
     for (TextEditor& editor : state.editor)
     {
@@ -969,7 +966,7 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(m_render, cobot::Rectangle(button.position, button.scale), button.text.texture, button.background, true);
+            render_textured_rectangle(render, cobot::Rectangle(button.position, button.scale), button.text.texture, button.background, true);
         }
     }
 
@@ -977,13 +974,13 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(m_render, cobot::Rectangle(button.position, button.scale), button.image, button.background, true);
+            render_textured_rectangle(render, cobot::Rectangle(button.position, button.scale), button.image, button.background, true);
         }
     }
 
     for (const Label& label : state.label)
     {
-        render_textured_rectangle(m_render, cobot::Rectangle(label.position, label.scale), label.text.texture, label.background, false);
+        render_textured_rectangle(render, cobot::Rectangle(label.position, label.scale), label.text.texture, label.background, false);
     }
 
     for (const ControlMenu& menu : state.control)
@@ -1016,25 +1013,25 @@ void Application::draw_ui_state(UiState& state)
 
 	float hoverWidth, hoverHeight = 0;
 	SDL_GetTextureSize(state.hoverText.text.texture, &hoverWidth, &hoverHeight);
-	render_textured_rectangle(m_render, cobot::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), state.hoverText.text.texture, state.hoverText.background);
+	render_textured_rectangle(render, cobot::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), state.hoverText.text.texture, state.hoverText.background);
 }
 
 void Application::render_rectangle(cobot::Rectangle rect, cobot::Color color, bool center) const
 {
-    SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(color));
+    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
                     SDL_FRect { rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h } :
                     SDL_FRect { rect.x, rect.y, rect.w, rect.h };
-    SDL_RenderFillRect(m_render.renderer, &area);
+    SDL_RenderFillRect(render.renderer, &area);
 }
 
 void Application::render_rectangle_outline(cobot::Rectangle rect, cobot::Color color, bool center) const
 {
-    SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(color));
+    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
                     SDL_FRect { rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h } :
                     SDL_FRect { rect.x, rect.y, rect.w, rect.h };
-    SDL_RenderRect(m_render.renderer, &area);
+    SDL_RenderRect(render.renderer, &area);
 }
 
 void Application::render_discrete_slider(const DiscreteSlider& slider) const
@@ -1053,7 +1050,7 @@ void Application::render_discrete_slider(const DiscreteSlider& slider) const
 
         if (slider.texture)
         {
-            render_texture_with_tint(m_render, area, slider.texture, color, true);
+            render_texture_with_tint(render, area, slider.texture, color, true);
         }
         else
         {
@@ -1069,21 +1066,21 @@ void Application::render_slider(cobot::Rectangle area, cobot::vec2 knob_scale, f
     float slider_knob_width = area.w * knob_scale.x;
     float slider_knob_height = area.h * knob_scale.y;
 
-    SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(slider_color));
+    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(slider_color));
     SDL_FRect slider = { area.x, area.y, area.w, area.h };
-    SDL_RenderFillRect(m_render.renderer, &slider);
+    SDL_RenderFillRect(render.renderer, &slider);
     float percentage = value;
-    SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(knob_color));
+    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(knob_color));
     SDL_FRect slider_knob = {
         slider.x - (slider_knob_width / 2) + (slider.w * percentage), slider.y + slider.h / 2 - slider_knob_height / 2,
         slider_knob_width, slider_knob_height
     };
-    SDL_RenderFillRect(m_render.renderer, &slider_knob);
+    SDL_RenderFillRect(render.renderer, &slider_knob);
 
     // text
     {
         const int margin = 10;
-        render_text_scale(m_render.renderer, text,
+        render_text_scale(render.renderer, text,
             cobot::vec2(slider.x + slider.w / 2, slider.y + slider.h * 2 + margin), cobot::vec2(0.6, 0.6));
     }
 }
@@ -1099,12 +1096,12 @@ void Application::render_panel(const Panel& panel) const
     const float iconSize = 32;
     for (int i = 0; i < tab.icons.size(); i++) {
         cobot::Rectangle area = panel.get_icon_area(i);
-        render_textured_rectangle(m_render, area, tab.icons.get(i).icon.texture, tab.icons.get(i).icon.background, true, false);
+        render_textured_rectangle(render, area, tab.icons.get(i).icon.texture, tab.icons.get(i).icon.background, true, false);
     }
 
     for (int i = 0; i < panel.tabs.size(); i++) {
         cobot::Rectangle area = panel.get_tab_header_area(i);
-        render_textured_rectangle(m_render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
+        render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
     }
 }
 
@@ -1122,7 +1119,7 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
         text_area.y += height;
         height += text_area.h;
 
-        render_texture(m_render, text_area, value.name.texture, true);
+        render_texture(render, text_area, value.name.texture, true);
 
         cobot::Rectangle area = panel.get_field_area(panel.activeTab, i, &ui);
         area.y += height;
@@ -1175,7 +1172,7 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
     {
         for (int i = 0; i < panel.tabs.size(); i++) {
             cobot::Rectangle area = panel.get_tab_header_area(i);
-            render_textured_rectangle(m_render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
+            render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
         }
     }
 }
@@ -1189,7 +1186,7 @@ void Application::render_button_group(const ButtonGroup& group) const
     int column = 0;
     for (auto& texture : group.buttons)
     {
-        draw_texture(m_render, cobot::Rectangle(top_left + cobot::vec2(column * group.button_scale.x, row * group.button_scale.y) + group.button_scale / 2, group.button_scale), texture);
+        draw_texture(render, cobot::Rectangle(top_left + cobot::vec2(column * group.button_scale.x, row * group.button_scale.y) + group.button_scale / 2, group.button_scale), texture);
         column += 1;
         row = (column == numColumns) ? row + 1 : row;
     }
@@ -1201,13 +1198,13 @@ void Application::render_control_menu(const ControlMenu& menu) const
     {
         if (menu.anchorPosition)
         {
-            draw_segment(m_render, *menu.anchorPosition, menu.position, 2, menu.background);
+            draw_segment(render, *menu.anchorPosition, menu.position, 2, menu.background);
         }
 
         int index = 0;
         for (auto& button : menu.buttons)
         {
-            render_textured_rectangle(m_render, cobot::Rectangle(menu.position + cobot::vec2(0, menu.scale.y * index), menu.scale), button.label.texture, menu.background, true);
+            render_textured_rectangle(render, cobot::Rectangle(menu.position + cobot::vec2(0, menu.scale.y * index), menu.scale), button.label.texture, menu.background, true);
             index += 1;
         }
     }
@@ -1217,16 +1214,16 @@ void Application::render_text_editor(TextEditor& editor) const
 {
     cobot::Rectangle text_area = editor.field.m_area;
     cobot::Rectangle title_area = editor.get_title_area();
-    render_textured_rectangle(m_render, title_area, editor.title_texture, editor.title_bar_color);
+    render_textured_rectangle(render, title_area, editor.title_texture, editor.title_bar_color);
 
     cobot::Rectangle area = editor.get_title_area();
     cobot::vec2 iconPos = area.get_position() + cobot::vec2(area.get_scale().x / 2, 0);
     cobot::vec2 iconScale = cobot::vec2(editor.title_height, editor.title_height);
 
     cobot::Color clicked_background = cobot::Color(0xAA, 0x55, 0x33);
-    render_textured_rectangle(m_render, editor.get_icon1_area(), editor.icon1.texture, (editor.clicked_icon == 1) ? clicked_background : editor.icon1.background, true);
-    render_textured_rectangle(m_render, editor.get_icon2_area(), editor.icon2.texture, (editor.clicked_icon == 2) ? clicked_background : editor.icon2.background, true);
-    render_textured_rectangle(m_render, editor.get_icon3_area(), editor.icon3.texture, (editor.clicked_icon == 3) ? clicked_background : editor.icon3.background, true);
+    render_textured_rectangle(render, editor.get_icon1_area(), editor.icon1.texture, (editor.clicked_icon == 1) ? clicked_background : editor.icon1.background, true);
+    render_textured_rectangle(render, editor.get_icon2_area(), editor.icon2.texture, (editor.clicked_icon == 2) ? clicked_background : editor.icon2.background, true);
+    render_textured_rectangle(render, editor.get_icon3_area(), editor.icon3.texture, (editor.clicked_icon == 3) ? clicked_background : editor.icon3.background, true);
 
     render_text_field(editor.field);
 }
@@ -1238,7 +1235,7 @@ void Application::render_text_field(Text_Field& text_field) const
 
     SDL_Texture* text_texture = text_field.m_texture;
 
-    Font font = m_catalog.get_font(text_field.fontId);
+    Font font = catalog.get_font(text_field.fontId);
 
     if (text_texture)
     {
@@ -1257,11 +1254,11 @@ void Application::render_text_field(Text_Field& text_field) const
             int(area.w),
             int(area.h)
         };
-        SDL_SetRenderClipRect(m_render.renderer, &clip);
+        SDL_SetRenderClipRect(render.renderer, &clip);
 
-        draw_texture(m_render, cobot::Rectangle(top_left, text_scale), text_texture);
+        draw_texture(render, cobot::Rectangle(top_left, text_scale), text_texture);
 
-        SDL_SetRenderClipRect(m_render.renderer, nullptr);
+        SDL_SetRenderClipRect(render.renderer, nullptr);
 
         if (doing_text_input)
         {
@@ -1318,56 +1315,56 @@ void Application::render_text_field(Text_Field& text_field) const
 }
 
 void Application::render_dropdown(const Drop_Down_List& list) const {
-    SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(list.title_color));
+    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(list.title_color));
 
     SDL_FRect header_area = {
         list.pos.x - list.scale.x/2, list.pos.y - list.scale.y / 2,
         list.scale.x, list.scale.y
     };
-    SDL_RenderFillRect(m_render.renderer, &header_area);
+    SDL_RenderFillRect(render.renderer, &header_area);
     Text title_text = list.selected == DROP_DOWN_LIST_SELECTED_SENTINEL ? list.title : list.get_option_text(list.selected);
-    render_text_size(m_render.renderer, title_text,
+    render_text_size(render.renderer, title_text,
         cobot::vec2(header_area.x + header_area.w / 2, header_area.y + header_area.h / 2), cobot::vec2(header_area.w, header_area.h));
 
     if (list.open) {
-        SDL_SetRenderDrawColor(m_render.renderer, COLOR_ARG(list.option_color));
+        SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(list.option_color));
 
         for (int i = 0; i < list.options.size(); i++) {
             SDL_FRect area = header_area;
             area.y += area.h * (i + 1);
-            SDL_RenderFillRect(m_render.renderer, &area);
-            render_text_size(m_render.renderer, list.get_option_text(i),
+            SDL_RenderFillRect(render.renderer, &area);
+            render_text_size(render.renderer, list.get_option_text(i),
                 cobot::vec2(area.x + area.w/2, area.y + area.h/2), cobot::vec2(area.w, area.h));
         }
     }
 }
 
 Icon Application::create_icon(AssetId image, cobot::Color background) {
-    SDL_Texture* texture = m_catalog.get_image(image);
+    SDL_Texture* texture = catalog.get_image(image);
     return Icon(texture, background);
 }
 
 void Application::text_input_stop()
 {
-    SDL_StopTextInput(m_window.window);
+    SDL_StopTextInput(window.window);
     doing_text_input = false;
-    m_input.keyboard.do_input = true;
+    input.keyboard.do_input = true;
 
-    for (int i = 0; i < m_ui.size(); i++)
+    for (int i = 0; i < uiStates.size(); i++)
     {
-        m_ui[i].text_input_target = {};
+        uiStates[i].text_input_target = {};
     }
 
-    m_clear_color = DEFAULT_BACKGROUND_COLOR;
+    clear_color = DEFAULT_BACKGROUND_COLOR;
 }
 
 void Application::text_input_start()
 {
-    SDL_StartTextInput(m_window.window);
+    SDL_StartTextInput(window.window);
     doing_text_input = true;
-    m_input.keyboard.do_input = false;
+    input.keyboard.do_input = false;
 
-    m_clear_color = {0, 0x44, 0x66, 0xff};
+    clear_color = {0, 0x44, 0x66, 0xff};
 }
 
 void Application::toggle_text_input()
