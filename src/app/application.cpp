@@ -6,11 +6,25 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_mixer/SDL_mixer.h>
 
-bool Application::initialize()
+InitConfiguration get_default_init_configuration()
+{
+	InitConfiguration conf;
+	
+	conf.flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
+
+	conf.window_width = 1440;
+	conf.window_height = 810;
+
+	conf.name = "Default Name";
+
+	return conf;
+}
+
+bool Application::initialize(InitConfiguration conf)
 {
     // @todo ask the game what to initialize
 
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+    if (!SDL_Init(conf.flags)) {
         SDL_Log("Failed to init SDL: %s\n", SDL_GetError());
         return false;
     }
@@ -43,7 +57,7 @@ bool Application::initialize()
 
         SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE |
                                 SDL_WINDOW_HIDDEN;  // show the window after the initialization is complete
-        SDL_Window* window = SDL_CreateWindow("cobot", INIT_WINDOW_WIDTH, INIT_WINDOW_HEIGHT, flags);
+        SDL_Window* window = SDL_CreateWindow(conf.name, conf.window_width, conf.window_height, flags);
         if (!window)
         {
             SDL_Log("Failed to create window with SDL: %s\n", SDL_GetError());
@@ -215,7 +229,7 @@ void Application::handle_events()
 		{
 			if (user.event(e, user.userdata, this))
 			{
-				continue;
+				// continue;
 			}
 		}
 		

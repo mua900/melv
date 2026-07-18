@@ -10,9 +10,6 @@
 #include "util/template.hpp"
 #include "util/math_util.hpp"
 
-#define INIT_WINDOW_WIDTH  1440
-#define INIT_WINDOW_HEIGHT 810
-
 #define DEFAULT_BACKGROUND_COLOR cobot::Color{ 0x77, 0x33, 0x55, 0xff }
 
 struct Window {

@@ -79,6 +79,20 @@ struct UserData {
 	MouseCallback mouse = nullptr;
 };
 
+struct InitConfiguration {
+	// 1440, 810
+	int window_width;
+	int window_height;
+
+	// VIDEO | AUDIO
+	SDL_InitFlags flags;
+
+	// Default Name
+	const char* name;
+};
+
+InitConfiguration get_default_init_configuration();
+
 class Application {
 public:
 	// you can directly access everything here
@@ -110,7 +124,7 @@ public:
 	// fill this out
 	UserData user = {};
 
-    bool initialize();
+    bool initialize(InitConfiguration conf);
 
     void handle_events();
     void update();
