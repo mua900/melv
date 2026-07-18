@@ -59,7 +59,7 @@ struct Label {
 struct TextButton {
     UiElementId id = {};
     UiElementInfo info = {};
-    UserData data = {};
+    UiUserData data = {};
     Text text = {};
     cobot::vec2 position = {};
     cobot::vec2 scale = {};
@@ -72,7 +72,7 @@ struct TextButton {
 struct ImageButton {
     UiElementId id = {};
     UiElementInfo info = {};
-    UserData data = {};
+    UiUserData data = {};
     SDL_Texture* image = {};
     cobot::vec2 position = {};
     cobot::vec2 scale = {};
@@ -85,7 +85,7 @@ struct ImageButton {
 struct ButtonGroup {
     UiElementId id = {};
     UiElementInfo info = {};
-    UserData user = {};
+    UiUserData user = {};
     DArray<SDL_Texture*> buttons = {};
     cobot::vec2 button_scale = {};
     cobot::vec2 position = {};
@@ -409,7 +409,7 @@ struct TextEditor {
 
     DragInfo drag = {};
     ResizeInfo resize = {};
-    UserData user = {};
+    UiUserData user = {};
 
     TextEditor() {}
     TextEditor(cobot::Rectangle area, AssetId font, cobot::Color background_color, cobot::Color textColor, cobot::Color titleColor, cobot::Color titleBarColor, String editor_name, float title_height)

@@ -61,7 +61,12 @@ struct MouseState {
     bool drag = false;
 };
 
+// @todo gamepad support
+
 struct Input {
     KeyboardState keyboard;
     MouseState mouse;
 };
+
+typedef void (*KeyboardCallback)(void *userdata, KeyboardState *keyboard);
+typedef void (*MouseCallback)(void *userdata, MouseState *mouse);

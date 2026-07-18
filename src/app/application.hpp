@@ -12,19 +12,56 @@
 #include "util/template.hpp"
 #include "util/math_util.hpp"
 
-#include "game/game.hpp"
+class Application;
 
 struct Event_Timeout {
     s64 event = 0;
     bool active = false;
 };
 
-// about 11 and a half days
 #define EVENT_TIMEOUT_LONG 1000000.0
 
 enum Events {
     EVENT_DUMMY,
     EVENT_COUNT,
+};
+
+typedef bool (*InitCallback)(void *userdata, Application* app);
+typedef void (*EventCallback)(void *userdata, Application* app);
+typedef void (*DrawCallback)(void *userdata, Application* app);
+typedef void (*BeforeCleanupCallback)(void *userdata, Application* app);
+typedef void (*AfterCleanupCallback)(void *userdata, Application* app);
+
+typedef void (*UpdateFunction)(void *userdata, TimeInfo time);
+typedef void (*FixedUpdateFunction)(void *userdata);
+
+struct UpdateState {
+    UpdateFunction update = nullptr;
+    FixedUpdateFunction fixedUpdate = nullptr;
+    s64 ticks = 0;
+    double elapsed = 0;
+    double timeScale = 0;
+	int updateRate = 0;
+
+    double calculateTimeStep() { return 1.0 / updateRate; }
+};
+
+// these callbacks won't be called if they are null
+// user code can set them however it wants
+struct UserData {
+	// passed to every single user function
+	void* userdata = nullptr;
+
+	UpdateState* update_state = {};
+
+	InitCallback init = nullptr;
+	EventCallback event = nullptr;
+	DrawCallback draw = nullptr;
+	BeforeCleanupCallback before_cleanup = nullptr;
+	AfterCleanupCallback after_cleanup = nullptr;
+
+	KeyboardCallback keyboard = nullptr;
+	MouseCallback mouse = nullptr;
 };
 
 class Application {
@@ -46,13 +83,14 @@ public:
 
     DArray<Camera> cameras = {};
 
-    GameState game = {};
-
     AssetId m_font = {};
     AssetId m_editor_font = {};
 
     bool quit = false;
     bool doing_text_input = false;
+
+	// fill this out
+	UserData user = {};
 
     bool initialize();
 
@@ -74,6 +112,8 @@ private:
 
     UiState* get_active_ui();
 
+	void user_update();
+	
     void timeout();
     void update_ui_state(cobot::vec2 window_size);
     void update_ui_pos();

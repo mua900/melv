@@ -110,6 +110,14 @@ bool Application::initialize()
 
 	quit = false;
 
+	if (user.init)
+	{
+		if (!user.init(user.userdata, this))
+		{
+			return false;
+		}
+	}
+	
     return true;
 }
 
@@ -292,6 +300,11 @@ void Application::handle_events()
     }
 
     update_keyboard_state();
+
+	if (user.event)
+	{		
+		user.event(user.userdata, this);
+	}
 }
 
 void Application::mouse_move_ui(UiState& ui)
@@ -745,7 +758,37 @@ void Application::update()
     update_ui_pos();
     timeout();
 
-    game.update(m_time);
+	user_update();
+}
+
+void Application::user_update()
+{
+	auto time = m_time;
+
+	if (!user.update_state)
+	{
+		return;
+	}
+	
+	constexpr int maxIterationsPerFrame = 50;
+    int iterations = 0;
+	double timeStep = user.update_state->calculateTimeStep();
+    while ((user.update_state->elapsed < time.timeSeconds + time.deltaTimeSeconds) && iterations < maxIterationsPerFrame)
+    {
+		if (user.update_state->fixedUpdate)
+		{
+			user.update_state->fixedUpdate(user.userdata);
+		}
+        user.update_state->elapsed += timeStep;
+        user.update_state->ticks += 1;
+
+        iterations += 1;
+    }
+
+	if (user.update_state->update)
+	{
+		user.update_state->update(user.userdata, time);
+	}
 }
 
 void Application::timeout()
@@ -822,9 +865,13 @@ void Application::set_event_deactive(int event_index)
 
 void Application::cleanup()
 {
+	user.before_cleanup(user.userdata, this);
+	
     MIX_Quit();
     SDL_Quit();
     TTF_Quit();
+
+	user.after_cleanup(user.userdata, this);
 }
 
 bool Application::init_render()
@@ -886,8 +933,8 @@ void Application::draw()
     // game graphics
     m_render.space = CoordinateSpace::World;
 
-    // @todo draw game
-
+	user.draw(user.userdata, this);
+	
     // ui
     m_render.space = CoordinateSpace::Screen;
 

@@ -13,7 +13,7 @@ struct Font {
 bool load_font(Font* font, String_Builder& path, String font_folder, String font_file, float size);
 bool load_font_file(Font* font, const char* path, float size);
 
-union UserData {
+union UiUserData {
     s64 number;
     void* ptr;
 };
@@ -53,7 +53,7 @@ struct Icon {
 
 struct IconButton {
     Icon icon = {};
-    UserData data = {};
+    UiUserData data = {};
 
     IconButton() {}
     IconButton(SDL_Texture* tex, cobot::Color background) : icon(tex, background) {}
