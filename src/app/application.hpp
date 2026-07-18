@@ -105,7 +105,9 @@ private:
 
     Camera* get_active_camera();
 
-    bool load_assets();
+	bool load_default_font();
+
+	bool load_assets();
     bool reload_assets();
 
     bool update_assets();

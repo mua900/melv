@@ -102,12 +102,11 @@ bool Application::initialize()
         m_input.keyboard.do_input = true;
     }
 
-    // get default fonts
-    {
-        m_font = get_asset(String("FiraSans"), m_catalog);
-        m_editor_font = get_asset(String("FiraCode"), m_catalog);
-    }
-
+	if (!load_default_font())
+	{
+		return false;
+	}
+	
 	quit = false;
 
 	if (user.init)
@@ -119,6 +118,14 @@ bool Application::initialize()
 	}
 	
     return true;
+}
+
+bool Application::load_default_font()
+{
+	m_font = get_asset(String("FiraSans"), m_catalog);
+	m_editor_font = get_asset(String("FiraCode"), m_catalog);
+
+	return m_font.is_valid() && m_editor_font.is_valid();
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
