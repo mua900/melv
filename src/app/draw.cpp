@@ -1115,14 +1115,3 @@ bool loadShader(RenderContext& context, Shader& shader, const char* path)
 
     return true;
 }
-
-const char* get_render_state_shader_name(RenderStateId state)
-{
-    switch (state)
-    {
-        case RenderStatePlanet:         return "PlanetFrag";
-        case RenderStateStar:           return "StarFrag";
-        case RenderStatePlanetSurface:  return "PlanetSurfaceFrag";
-        default: panic("Unknown render state");
-    }
-}

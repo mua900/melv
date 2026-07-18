@@ -103,7 +103,6 @@ public:
     void cleanup();
 private:
     bool init_render();
-    bool init_shaders();
 
     Camera* get_active_camera();
 

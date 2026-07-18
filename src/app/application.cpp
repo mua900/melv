@@ -130,6 +130,7 @@ bool Application::load_default_font()
 
 bool Application::read_asset_catalog(String_Builder& path)
 {
+	// @todo let the user rename or provide a static string for this
     const char* desc_name = "run_tree.txt";
     path.append(make_string(desc_name));
     bool parse_description = parse_assets(path.c_string(), m_catalog);
@@ -895,37 +896,7 @@ bool Application::init_render()
     {
         return false;
     }
-
-    if (!init_shaders())
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool Application::init_shaders()
-{
-    m_render.render_states.discard_data();
-
-    for (int i = 0; i < RenderStateCount; i++)
-    {
-        AssetId shader = get_asset(String(get_render_state_shader_name(RenderStateId(i))), m_catalog);
-        if (!shader.is_valid())
-        {
-            return false;
-        }
-        SDL_GPURenderStateCreateInfo create_info = {};
-        create_info.fragment_shader = m_catalog.get_shader(shader);
-        SDL_GPURenderState* render_state = SDL_CreateGPURenderState(m_render.renderer, &create_info);
-        if (!render_state)
-        {
-            SDL_Log(SDL_GetError());
-            return false;
-        }
-        m_render.render_states.add(render_state);
-    }
-
+	
     return true;
 }
 

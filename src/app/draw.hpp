@@ -9,18 +9,14 @@
 #include "util/math_util.hpp"
 #include "util/template.hpp"
 
+// for users: there's some noise down here
+// you only need to worry about draw_* or render_* functions
+// the rest is about how it's implemented
+// you can also use your own fragment shaders
+
 #define GRAPHICS_DEBUG 0
 
 static const auto DEBUG_COLOR = cobot::ColorF(0.6, 0.5, 0.4, 1.0);
-
-enum RenderStateId {
-    RenderStatePlanet,
-    RenderStateStar,
-    RenderStatePlanetSurface,
-    RenderStateCount,
-};
-
-const char* get_render_state_shader_name(RenderStateId state);
 
 using Texture = SDL_Texture;
 using Viewport = SDL_GPUViewport;
@@ -88,10 +84,15 @@ struct FrameContext {
     GPUTexture swapchain = {};
 };
 
+// you should set this to the correct value before drawing something
 enum CoordinateSpace
 {
-    World,
+	// top left of the screen is 0, 0. y is down, x is right
     Screen,
+
+	// 0, 0 is at the center of the screen if camera is at 0, 0.
+	// y is up, x is right
+    World,
 };
 
 struct RenderContext {
@@ -102,7 +103,7 @@ struct RenderContext {
     CoordinateSpace space = {};  // what coordinate space input vertices are in
     cobot::vec2 zoomTarget = {};
 	const Camera* camera = {};
-
+	
     // @todo switch to sdl gpu
     // all below belongs to incomplete code
     SDL_Texture* target_texture = nullptr;
