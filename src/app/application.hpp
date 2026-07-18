@@ -55,41 +55,57 @@ struct UserData {
 
 	UpdateState* update_state = {};
 
+	// called once after SDL and everything is initialized
 	InitCallback init = nullptr;
+	// called before application tries to handle events it itself tries to handle like text input
+	// to react to one time events
+	// if this returns true, the application will consider that event consumed and won't process it
 	EventCallback event = nullptr;
+	// called after all events are processed.
+	// you can read a snapshot of the input state as it is recorded in application
 	InputCallback input = nullptr;
+	// called with user data in draw()
 	DrawCallback draw = nullptr;
+	// called before SDL and everything else is quitted
 	BeforeCleanupCallback before_cleanup = nullptr;
+	// called after SDL and everything else is quitted
 	AfterCleanupCallback after_cleanup = nullptr;
 
+	// called with SDL_KeyboardEvent
+	// you can also access this from event callback but this is something more specific
 	KeyboardCallback keyboard = nullptr;
+	// called with SDL_MouseEvent
+	// you can also access this from event callback but this is something more specific
 	MouseCallback mouse = nullptr;
 };
 
 class Application {
 public:
-    Window m_window = {};
-    RenderContext m_render = {};
-    AudioPlayer m_audio_player = {};
-    Input m_input = {};
-    AssetCatalog m_catalog = {};
+	// you can directly access everything here
+	// maybe be careful with doing_text_input
+	// also if you set render context's coordinate space to be world, you need to give it a camera pointer
+	
+    Window window = {};
+    RenderContext render = {};
+    AudioPlayer audio_player = {};
+    Input input = {};
+    AssetCatalog catalog = {};
 
-    DArray<UiState> m_ui = {};
-    DArray<UpdateState> m_update_states = {};
+    DArray<UiState> ui = {};
+	
+    cobot::Color clear_color = DEFAULT_BACKGROUND_COLOR;
 
-    cobot::Color m_clear_color = DEFAULT_BACKGROUND_COLOR;
+    TimeInfo time = {};
 
-    TimeInfo m_time = {};
-
-    Event_Timeout m_events[EVENT_COUNT] = {};
+    DArray<Event_Timeout> events = {};
 
     DArray<Camera> cameras = {};
 
-    AssetId m_font = {};
-    AssetId m_editor_font = {};
+    AssetId font = {};
+    AssetId editor_font = {};
 
     bool quit = false;
-    bool doing_text_input = false;
+    bool doing_text_input = false;  // don't mess with this.
 
 	// fill this out
 	UserData user = {};
