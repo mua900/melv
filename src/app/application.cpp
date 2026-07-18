@@ -210,6 +210,14 @@ void Application::handle_events()
     SDL_Event e = {};
     while (SDL_PollEvent(&e))
     {
+		if (user.event)
+		{
+			if (user.event(e, user.userdata, this))
+			{
+				continue;
+			}
+		}
+		
         switch (e.type)
         {
             case SDL_EVENT_QUIT:
@@ -308,9 +316,9 @@ void Application::handle_events()
 
     update_keyboard_state();
 
-	if (user.event)
+	if (user.input)
 	{		
-		user.event(user.userdata, this);
+		user.input(user.userdata, this);
 	}
 }
 

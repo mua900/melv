@@ -27,7 +27,8 @@ enum Events {
 };
 
 typedef bool (*InitCallback)(void *userdata, Application* app);
-typedef void (*EventCallback)(void *userdata, Application* app);
+typedef bool (*EventCallback)(SDL_Event event, void *userdata, Application* app);
+typedef void (*InputCallback)(void *userdata, Application* app);
 typedef void (*DrawCallback)(void *userdata, Application* app);
 typedef void (*BeforeCleanupCallback)(void *userdata, Application* app);
 typedef void (*AfterCleanupCallback)(void *userdata, Application* app);
@@ -56,6 +57,7 @@ struct UserData {
 
 	InitCallback init = nullptr;
 	EventCallback event = nullptr;
+	InputCallback input = nullptr;
 	DrawCallback draw = nullptr;
 	BeforeCleanupCallback before_cleanup = nullptr;
 	AfterCleanupCallback after_cleanup = nullptr;
