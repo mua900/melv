@@ -35,11 +35,22 @@ add_library(melv
 	src/app/serialize.cpp
 )
 
-target_include_directories(melv PRIVATE src/)
+target_include_directories(melv PUBLIC src/)
 
 add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 
-# turn unused image formats off
+# SDL's helper libraries themselves depend on other libraries like libpng, zlib, freetype, harfbuzz and a ton of different libraries for SDL image etc.
+# SDL's own configuration uses system libraries if it's not targeting windows or android
+# it can silently skip building support for a backend or do some things without telling you
+# it is nice to have this explicitly under control under an option that is easier to control
+option(USE_VENDORED_DEPENDENCIES ON)
+if (USE_VENDORED_DEPENDENCIES)
+	set(SDLIMAGE_VENDORED ON)
+	set(SDLTTF_VENDORED ON)
+	set(SDLMIXER_VENDORED ON)
+endif()
+
+# turn the ones you want formats on
 set(SDLIMAGE_ANI  OFF)
 set(SDLIMAGE_AVIF OFF)
 set(SDLIMAGE_BMP  OFF)
@@ -63,14 +74,14 @@ add_subdirectory(vendor/SDL_image EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/SDL_mixer EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/SDL_ttf EXCLUDE_FROM_ALL)
 
-target_include_directories(melv PRIVATE vendor/SDL/include/)
-target_include_directories(melv PRIVATE vendor/SDL_image/include/)
-target_include_directories(melv PRIVATE vendor/SDL_mixer/include)
-target_include_directories(melv PRIVATE vendor/SDL_ttf/include/)
+target_include_directories(melv PUBLIC vendor/SDL/include/)
+target_include_directories(melv PUBLIC vendor/SDL_image/include/)
+target_include_directories(melv PUBLIC vendor/SDL_mixer/include)
+target_include_directories(melv PUBLIC vendor/SDL_ttf/include/)
 
 target_link_libraries(
 	melv
-	PRIVATE
+	PUBLIC
 	SDL3::SDL3
 	SDL3_image::SDL3_image
 	SDL3_mixer::SDL3_mixer
