@@ -57,24 +57,24 @@ bool Application::initialize(InitConfiguration conf)
 
         SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE |
                                 SDL_WINDOW_HIDDEN;  // show the window after the initialization is complete
-        SDL_Window* window = SDL_CreateWindow(conf.name, conf.window_width, conf.window_height, flags);
-        if (!window)
+        SDL_Window* w = SDL_CreateWindow(conf.name, conf.window_width, conf.window_height, flags);
+        if (!w)
         {
             SDL_Log("Failed to create window with SDL: %s\n", SDL_GetError());
             return false;
         }
 
         // minimum aspect ratio of 1 and maximum aspect ratio of 2 default 1.6
-        SDL_SetWindowAspectRatio(window, 1.0, 2.0);
+        SDL_SetWindowAspectRatio(w, 1.0, 2.0);
 
-        window = { window };
+        window = { w };
 
         if (!init_render())
         {
             return false;
         }
 
-        SDL_ShowWindow(window);
+        SDL_ShowWindow(w);
     }
 
     if (!audio_player.initialize())
