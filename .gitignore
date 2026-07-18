@@ -1,0 +1,13 @@
+build/
+build_*/
+build-*/
+.vs/
+.idea/
+.vscode/
+imgui.ini
+tmp/
+*.pch
+*.gch
+
+run_tree/lib
+run_tree/melv
