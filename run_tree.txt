@@ -1,0 +1,28 @@
+# Example
+# paths are relative to an asset/ folder in the base path (near the executable)
+
+# syntax
+# <kind> <scope optional> <name> <path> [attributes] [optional] [lazy]
+# if you omit scope it is inferred as file
+# attributes are in key value format
+
+# font
+font file FiraSans font/Fira_Sans/FiraSans-Regular.ttf size=32
+font file FiraCode font/Fira_Code/FiraCode-Regular.ttf size=32
+
+# image
+image file MyImage images/image.png
+image file MyVectorImage images/image.svg
+
+# folder
+# get register all the files in the folder and assign their file names for their names
+# doesn't recurse into other folders
+image folder Icons icon
+
+audio file Fantasia audio/music/Fantasia_No3.mp3
+
+# shader
+shader file VertexShader shader/binary/vertex.spv     stage=vertex   nUniforms=1
+shader file FragmentShader shader/binary/fragment.spv stage=fragment
+# shader file VertexShader shader/binary/vertex.dxil      stage=vertex   nUniforms=1
+# shader file FragmentShader shader/binary/fragment.dxil  stage=fragment

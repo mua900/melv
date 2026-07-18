@@ -22,8 +22,6 @@ InitConfiguration get_default_init_configuration()
 
 bool Application::initialize(InitConfiguration conf)
 {
-    // @todo ask the game what to initialize
-
     if (!SDL_Init(conf.flags)) {
         SDL_Log("Failed to init SDL: %s\n", SDL_GetError());
         return false;
@@ -116,11 +114,6 @@ bool Application::initialize(InitConfiguration conf)
         input.keyboard.do_input = true;
     }
 
-	if (!load_default_font())
-	{
-		return false;
-	}
-	
 	quit = false;
 
 	if (user.init)
@@ -132,14 +125,6 @@ bool Application::initialize(InitConfiguration conf)
 	}
 	
     return true;
-}
-
-bool Application::load_default_font()
-{
-	this->font = get_asset(String("FiraSans"), this->catalog);
-	editor_font = get_asset(String("FiraCode"), this->catalog);
-
-	return this->font.is_valid() && editor_font.is_valid();
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
