@@ -914,16 +914,8 @@ void Application::draw()
     SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
     SDL_RenderClear(renderer);
 
-    // SDL_FlushRenderer(m_render.renderer);
-
-    // game graphics
-    m_render.space = CoordinateSpace::World;
-
 	user.draw(user.userdata, this);
 	
-    // ui
-    m_render.space = CoordinateSpace::Screen;
-
     SDL_RenderPresent(renderer);
 }
 
