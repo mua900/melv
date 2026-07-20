@@ -877,13 +877,19 @@ void Application::set_event_deactive(int event_index)
 
 void Application::cleanup()
 {
-	user.before_cleanup(user.userdata, this);
+	if (user.before_cleanup)
+	{
+		user.before_cleanup(user.userdata, this);
+	}
 	
     MIX_Quit();
     SDL_Quit();
     TTF_Quit();
 
-	user.after_cleanup(user.userdata, this);
+	if (user.after_cleanup)
+	{
+		user.after_cleanup(user.userdata, this);
+	}
 }
 
 bool Application::init_render()
