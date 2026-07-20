@@ -21,10 +21,10 @@ union UiUserData {
 struct Text {
     SDL_Texture* texture = NULL;
     String string = {};
-    cobot::Color color = {};
+    melv::Color color = {};
 
     Text() {}
-    Text(SDL_Texture* p_texture, String p_string, cobot::Color col)
+    Text(SDL_Texture* p_texture, String p_string, melv::Color col)
         : texture(p_texture), string(p_string), color(col)
     {}
 
@@ -45,10 +45,10 @@ struct Text {
 
 struct Icon {
     SDL_Texture* texture = nullptr;
-    cobot::Color background = {};
+    melv::Color background = {};
 
     Icon () {}
-    Icon (SDL_Texture* tex, cobot::Color bground) : texture(tex), background(bground) {}
+    Icon (SDL_Texture* tex, melv::Color bground) : texture(tex), background(bground) {}
 };
 
 struct IconButton {
@@ -56,11 +56,11 @@ struct IconButton {
     UiUserData data = {};
 
     IconButton() {}
-    IconButton(SDL_Texture* tex, cobot::Color background) : icon(tex, background) {}
-    IconButton(SDL_Texture* tex, cobot::Color background, s64 n) : icon(tex, background) {
+    IconButton(SDL_Texture* tex, melv::Color background) : icon(tex, background) {}
+    IconButton(SDL_Texture* tex, melv::Color background, s64 n) : icon(tex, background) {
         data.number = n;
     }
-    IconButton(SDL_Texture* tex, cobot::Color background, void* ptr) : icon(tex, background) {
+    IconButton(SDL_Texture* tex, melv::Color background, void* ptr) : icon(tex, background) {
         data.ptr = ptr;
     }
 };

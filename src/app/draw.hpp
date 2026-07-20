@@ -16,7 +16,7 @@
 
 #define GRAPHICS_DEBUG 0
 
-static const auto DEBUG_COLOR = cobot::ColorF(0.6, 0.5, 0.4, 1.0);
+static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
 
 using Texture = SDL_Texture;
 using Viewport = SDL_GPUViewport;
@@ -96,12 +96,12 @@ enum CoordinateSpace
 };
 
 struct RenderContext {
-    cobot::vec2 render_size = {};
+    melv::vec2 render_size = {};
     SDL_Renderer* renderer = nullptr;
     DArray<SDL_GPURenderState*> render_states = {};
 
     CoordinateSpace space = {};  // what coordinate space input vertices are in
-    cobot::vec2 zoomTarget = {};
+    melv::vec2 zoomTarget = {};
 	const Camera* camera = {};
 	
     // @todo switch to sdl gpu
@@ -111,7 +111,7 @@ struct RenderContext {
 
     SDL_GPUDevice* device = nullptr;
 
-    cobot::mat4x4 mvp = {};
+    melv::mat4x4 mvp = {};
 
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
@@ -125,12 +125,12 @@ struct RenderContext {
     DArray<SDL_Vertex> vertex_scratch = {};
     DArray<int> index_scratch = {};
 
-    cobot::vec2 get_center() const { return render_size / 2; }
+    melv::vec2 get_center() const { return render_size / 2; }
 
     // camera transforms
-    cobot::vec2 transformWorld(cobot::vec2 p) const;
-    cobot::vec2 transformScreen(cobot::vec2 p) const;
-    cobot::Rectangle transform_rectangle(cobot::Rectangle r) const;
+    melv::vec2 transformWorld(melv::vec2 p) const;
+    melv::vec2 transformScreen(melv::vec2 p) const;
+    melv::Rectangle transform_rectangle(melv::Rectangle r) const;
     SDL_FPoint transform_sdl_point(SDL_FPoint p) const;
     SDL_FRect transform_sdl_rectangle(SDL_FRect r) const;
     SDL_Vertex transform_sdl_vertex(SDL_Vertex v) const;
@@ -183,36 +183,36 @@ void end_frame(RenderContext& context);
 bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);
 
-void draw_rectangle(const RenderContext& context, cobot::Rectangle area, cobot::ColorF color);
-void draw_segment(const RenderContext& context, cobot::vec2 start, cobot::vec2 end, float thick, cobot::ColorF color);
-void draw_arrow(const RenderContext& context, cobot::vec2 start, cobot::vec2 end, float thick, float head_ratio, cobot::ColorF color);
-void draw_circle(const RenderContext& context, cobot::vec2 position, float radius, cobot::ColorF color);
-void draw_circle_empty(const RenderContext& context, cobot::vec2 position, float radius, float thick, cobot::ColorF color);
-void draw_circle_with_texture(const RenderContext& context, cobot::vec2 position, float radius, SDL_Texture* texture, cobot::ColorF color);
-void draw_circle_segment(const RenderContext& context, cobot::vec2 position, float radius, float start_angle, float angle, cobot::ColorF color);
-void draw_circle_segment_with_texture(const RenderContext& context, cobot::vec2 position, float radius, float start_angle, float angle, SDL_Texture* texture, cobot::ColorF color);
-void draw_arc(const RenderContext& context, cobot::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, cobot::ColorF color);
-void draw_capsule(const RenderContext& context, cobot::vec2 center0, cobot::vec2 center1, float radius, cobot::ColorF color);
-void draw_polygon(RenderContext& context, cobot::vec2 points[], int numPoints, cobot::ColorF color);
-void draw_path(RenderContext& context, cobot::vec2 points[], int numPoints, float thick, cobot::ColorF color);
-void draw_closed_path(RenderContext& context, cobot::vec2 points[], int numPoints, float thick, cobot::ColorF color);
-void draw_quadratic_bezier(const RenderContext& context, cobot::vec2 p0, cobot::vec2 p1, cobot::vec2 p2, float thick, cobot::ColorF color);
-void draw_cubic_bezier(const RenderContext& context, cobot::vec2 p0, cobot::vec2 p1, cobot::vec2 p2, cobot::vec2 p3, float thick, cobot::ColorF color);
-void draw_quad(const RenderContext& context, cobot::Quad quad, cobot::ColorF color);
-void draw_quad_with_texture(const RenderContext& context, cobot::Quad quad, SDL_Texture* texture, cobot::ColorF color);
+void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color);
+void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
+void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, float head_ratio, melv::ColorF color);
+void draw_circle(const RenderContext& context, melv::vec2 position, float radius, melv::ColorF color);
+void draw_circle_empty(const RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color);
+void draw_circle_with_texture(const RenderContext& context, melv::vec2 position, float radius, SDL_Texture* texture, melv::ColorF color);
+void draw_circle_segment(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color);
+void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, SDL_Texture* texture, melv::ColorF color);
+void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color);
+void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color);
+void draw_polygon(RenderContext& context, melv::vec2 points[], int numPoints, melv::ColorF color);
+void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
+void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
+void draw_quadratic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color);
+void draw_cubic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color);
+void draw_quad(const RenderContext& context, melv::Quad quad, melv::ColorF color);
+void draw_quad_with_texture(const RenderContext& context, melv::Quad quad, SDL_Texture* texture, melv::ColorF color);
 
-void draw_texture(const RenderContext& context, cobot::Rectangle area, SDL_Texture* texture);
+void draw_texture(const RenderContext& context, melv::Rectangle area, SDL_Texture* texture);
 
-SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, cobot::Color color);
-Text create_text(SDL_Renderer* renderer, String text, Font font, cobot::Color color);
+SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
+Text create_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
 
-void render_texture(const RenderContext& render, cobot::Rectangle area, Texture* texture, bool strech = false);
-void render_texture_rotate(const RenderContext& render, cobot::Rectangle area, Texture* texture, float angle, Flip flip, bool strech = false);
-void render_textured_rectangle(const RenderContext& render, cobot::Rectangle rect, Texture* texture, cobot::Color color, bool strech = false, bool center = true);
-void render_texture_with_tint(const RenderContext& render, cobot::Rectangle area, Texture* texture, cobot::ColorF tint, bool strech = false);
+void render_texture(const RenderContext& render, melv::Rectangle area, Texture* texture, bool strech = false);
+void render_texture_rotate(const RenderContext& render, melv::Rectangle area, Texture* texture, float angle, Flip flip, bool strech = false);
+void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, Texture* texture, melv::Color color, bool strech = false, bool center = true);
+void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, Texture* texture, melv::ColorF tint, bool strech = false);
 
 
-void render_text_size(SDL_Renderer* renderer, Text text, cobot::vec2 where, cobot::vec2 absolute_scale = cobot::vec2(0, 0));
-void render_text_scale(SDL_Renderer* renderer, Text text, cobot::vec2 where, cobot::vec2 scale_factor = cobot::vec2(0,0));
+void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale = melv::vec2(0, 0));
+void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor = melv::vec2(0,0));
 
 #endif // DRAW_HPP

@@ -107,7 +107,7 @@ public:
 
     DArray<UiState> uiStates = {};
 	
-    cobot::Color clear_color = DEFAULT_BACKGROUND_COLOR;
+    melv::Color clear_color = DEFAULT_BACKGROUND_COLOR;
 
     TimeInfo timeInfo = {};
 
@@ -146,7 +146,7 @@ private:
 	void user_update();
 	
     void timeout();
-    void update_ui_state(cobot::vec2 window_size);
+    void update_ui_state(melv::vec2 window_size);
     void update_ui_pos();
 
     void set_event_active(int event_index, double timeout_seconds);
@@ -159,7 +159,7 @@ private:
     void on_mouse_move();
     void mouse_move_ui(UiState& ui);
 
-    void set_text_editor_cursor(cobot::Rectangle text_area, cobot::Direction dir);
+    void set_text_editor_cursor(melv::Rectangle text_area, melv::Direction dir);
 
 	bool mouse_input_common();
 
@@ -175,12 +175,12 @@ private:
 
     bool read_asset_catalog(String_Builder& path);
 
-    void render_rectangle_outline(cobot::Rectangle rect, cobot::Color color, bool center = true) const;
-    void render_rectangle(cobot::Rectangle rect, cobot::Color color, bool center = true) const;
+    void render_rectangle_outline(melv::Rectangle rect, melv::Color color, bool center = true) const;
+    void render_rectangle(melv::Rectangle rect, melv::Color color, bool center = true) const;
 
-    Icon create_icon(AssetId image, cobot::Color background);
+    Icon create_icon(AssetId image, melv::Color background);
 
-    void render_slider(cobot::Rectangle area, cobot::vec2 knob_scale, float value, cobot::Color slider_color, cobot::Color knob_color, const Text& text) const;
+    void render_slider(melv::Rectangle area, melv::vec2 knob_scale, float value, melv::Color slider_color, melv::Color knob_color, const Text& text) const;
     void render_text_field(Text_Field& text_field) const;
     void render_text_editor(TextEditor& editor) const;
     void render_dropdown(const Drop_Down_List& list) const;
@@ -193,7 +193,7 @@ private:
     bool is_minimized() const;
     bool is_maximized() const;
     bool is_fullscreen() const;
-    cobot::vec2 get_window_size() const;
+    melv::vec2 get_window_size() const;
 };
 
 void get_base_path(String_Builder& builder);

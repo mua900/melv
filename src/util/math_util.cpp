@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include "math_util.hpp"
 
-namespace cobot
+namespace melv
 {
 
 float Complex::magnitude() const
@@ -48,16 +48,16 @@ ColorF::ColorF(const Color& color) {
 ColorF mixColors(ColorF a, ColorF b, float t)
 {
     return ColorF(
-        cobot::lerp(a.r, b.r, t),
-        cobot::lerp(a.g, b.g, t),
-        cobot::lerp(a.b, b.b, t),
-        cobot::lerp(a.a, b.a, t)
+        melv::lerp(a.r, b.r, t),
+        melv::lerp(a.g, b.g, t),
+        melv::lerp(a.b, b.b, t),
+        melv::lerp(a.a, b.a, t)
     );
 }
 
 vec2 lerp2(vec2 a, vec2 b, float t)
 {
-    return vec2(cobot::lerp(a.x, b.x, t), cobot::lerp(a.y, b.y, t));
+    return vec2(melv::lerp(a.x, b.x, t), melv::lerp(a.y, b.y, t));
 }
 
 vec2 reflect2(vec2 incident, vec2 normal)
@@ -212,8 +212,8 @@ Rectangle merge_volumes(Rectangle v1, Rectangle v2)
     vec2 r = vec2(v1.x, v1.y) + vec2(v1.w / 2, v1.h / 2);
     vec2 w = vec2(v2.x, v2.y) + vec2(v2.w / 2, v2.h / 2);
 
-    vec2 min = vec2(cobot::min(p.x, q.x), cobot::min(p.y, q.y));
-    vec2 max = vec2(cobot::max(r.x, w.x), cobot::max(r.y, w.y));
+    vec2 min = vec2(melv::min(p.x, q.x), melv::min(p.y, q.y));
+    vec2 max = vec2(melv::max(r.x, w.x), melv::max(r.y, w.y));
 
     res.x = (min.x + max.x) / 2;
     res.y = (min.y + max.y) / 2;
@@ -262,7 +262,7 @@ float clamp(float a, float b, float x)
 
 float smoothstep(float a, float b, float x)
 {
-    float t = cobot::clamp(0, 1, (x - a) / (b - a));
+    float t = melv::clamp(0, 1, (x - a) / (b - a));
     return t * t * (3.0 - 2.0 * t);
 }
 

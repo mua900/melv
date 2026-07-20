@@ -9,7 +9,7 @@
 #define CONSTANT_E                2.71828182846
 #define CONSTANT_TAU              6.28318530717
 
-namespace cobot {
+namespace melv {
 
 float snap_value(float val, float bound1, float bound2, float threshold);
 

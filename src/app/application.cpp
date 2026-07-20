@@ -273,7 +273,7 @@ void Application::handle_events()
                 if (camera)
                 {
                     camera->zoom += wheel.y * mouseSensitivity;
-                    camera->zoom = cobot::clamp(0.1, 10, camera->zoom);
+                    camera->zoom = melv::clamp(0.1, 10, camera->zoom);
                 }
                 break;
             }
@@ -281,13 +281,13 @@ void Application::handle_events()
             {
                 int render_size_x, render_size_y;
                 SDL_GetRenderOutputSize(render.renderer, &render_size_x, &render_size_y);
-                render.render_size = cobot::vec2(render_size_x, render_size_y);
+                render.render_size = melv::vec2(render_size_x, render_size_y);
                 for (auto& c : cameras)
                 {
-                    c.offset = cobot::vec2(render_size_x / 2, render_size_y / 2);
+                    c.offset = melv::vec2(render_size_x / 2, render_size_y / 2);
                 }
 
-                update_ui_state(cobot::vec2(render_size_x, render_size_y));
+                update_ui_state(melv::vec2(render_size_x, render_size_y));
 
                 break;
             }
@@ -324,12 +324,12 @@ void Application::handle_events()
 
 void Application::mouse_move_ui(UiState& ui)
 {
-    cobot::vec2 mouse_pos = input.mouse.pos;
+    melv::vec2 mouse_pos = input.mouse.pos;
 
     for (auto& editor : ui.editor)
     {
-        cobot::Rectangle text_area = editor.get_text_area();
-        cobot::Rectangle title_area = editor.get_title_area();
+        melv::Rectangle text_area = editor.get_text_area();
+        melv::Rectangle title_area = editor.get_title_area();
 
         if (editor.resize.resize)
         {
@@ -337,7 +337,7 @@ void Application::mouse_move_ui(UiState& ui)
         }
         else
         {
-            cobot::Direction dir = text_area.on_edge(mouse_pos, 3);
+            melv::Direction dir = text_area.on_edge(mouse_pos, 3);
             set_text_editor_cursor(text_area, dir);
         }
     }
@@ -350,12 +350,12 @@ void Application::mouse_move_ui(UiState& ui)
         }
         else
         {
-            cobot::Direction dir = panel.area.on_edge(mouse_pos, 3);
-            if (cobot::direction_is_horizontal(dir))
+            melv::Direction dir = panel.area.on_edge(mouse_pos, 3);
+            if (melv::direction_is_horizontal(dir))
             {
                 SDL_SetCursor(input.mouse.cursor.resize_ew);
             }
-            else if (cobot::direction_is_vertical(dir))
+            else if (melv::direction_is_vertical(dir))
             {
                 SDL_SetCursor(input.mouse.cursor.resize_ns);
             }
@@ -367,9 +367,9 @@ void Application::mouse_move_ui(UiState& ui)
     }
 }
 
-void Application::set_text_editor_cursor(cobot::Rectangle text_area, cobot::Direction dir)
+void Application::set_text_editor_cursor(melv::Rectangle text_area, melv::Direction dir)
 {
-    cobot::vec2 mouse_pos = input.mouse.pos;
+    melv::vec2 mouse_pos = input.mouse.pos;
 
     if (dir) {
         if (direction_is_vertical(dir))
@@ -622,15 +622,15 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
 
 void Application::on_mouse_move()
 {
-    cobot::vec2 mouse_pos = input.mouse.pos;
+    melv::vec2 mouse_pos = input.mouse.pos;
 
     if (input.mouse.drag)
     {
         Camera* camera = get_active_camera();
         if (camera)
         {
-            cobot::vec2 move = (input.mouse.dragPosition - mouse_pos);
-            camera->position += cobot::vec2(move.x, -move.y) / camera->zoom;
+            melv::vec2 move = (input.mouse.dragPosition - mouse_pos);
+            camera->position += melv::vec2(move.x, -move.y) / camera->zoom;
             input.mouse.dragPosition = mouse_pos;
         }
         return;
@@ -705,7 +705,7 @@ void Application::on_mouse_up(int button)
 
 bool Application::mouse_input_common()
 {
-	cobot::vec2 mouse_pos = input.mouse.pos;
+	melv::vec2 mouse_pos = input.mouse.pos;
 	UiState* ui = get_active_ui();
 
     if (ui)
@@ -724,9 +724,9 @@ bool Application::mouse_input_common()
                 continue;
             }
 
-    		cobot::Rectangle area = field.m_area;
+    		melv::Rectangle area = field.m_area;
     		if (area.contains_centered(mouse_pos)) {
-                cobot::vec2 relative = mouse_pos - area.get_top_left();
+                melv::vec2 relative = mouse_pos - area.get_top_left();
                 if (doing_text_input && (ui->text_input_target.flags & TEXT_INPUT_TARGET_IS_VALID) && ui->text_input_target.index == it)
                 {
                     // if we are already doing text input
@@ -817,10 +817,10 @@ void Application::timeout()
     }
 }
 
-void Application::update_ui_state(cobot::vec2 window_size) {
+void Application::update_ui_state(melv::vec2 window_size) {
     for (int i = 0; i < uiStates.size(); i++)
     {
-        cobot::vec2 assumed = uiStates[i].assumed_window_size;
+        melv::vec2 assumed = uiStates[i].assumed_window_size;
         float x_factor = window_size.x / assumed.x;
         float y_factor = window_size.y / assumed.y;
         if ((fabsf(x_factor - 1.0f) >= 0.1f) || (fabsf(y_factor - 1.0f) >= 0.1f)) {
@@ -837,15 +837,15 @@ void Application::update_ui_pos()
         return;
     }
 
-    cobot::vec2 mouse_pos = input.mouse.pos;
+    melv::vec2 mouse_pos = input.mouse.pos;
 
     for (auto& editor : ui->editor)
     {
         if (editor.drag.drag)
         {
-            cobot::Rectangle area = editor.get_text_area();
-            cobot::vec2 half_scale = cobot::vec2(area.w / 2, area.h / 2);
-            cobot::vec2 dst = (mouse_pos - editor.drag.start) + half_scale;
+            melv::Rectangle area = editor.get_text_area();
+            melv::vec2 half_scale = melv::vec2(area.w / 2, area.h / 2);
+            melv::vec2 dst = (mouse_pos - editor.drag.start) + half_scale;
             dst.y += editor.title_height;
             editor.set_position(dst);
         }
@@ -855,8 +855,8 @@ void Application::update_ui_pos()
     {
         if (panel.drag.drag)
         {
-            cobot::vec2 half_scale = panel.area.get_scale() / 2;
-            cobot::vec2 pos = (mouse_pos - panel.drag.start) + half_scale;
+            melv::vec2 half_scale = panel.area.get_scale() / 2;
+            melv::vec2 pos = (mouse_pos - panel.drag.start) + half_scale;
             panel.area.x = pos.x;
             panel.area.y = pos.y;
         }
@@ -912,8 +912,8 @@ void Application::draw()
     }
 
 	// @todo user defined
-    cobot::Color edit_color = cobot::Color(0x77, 0x55, 0x66);
-    cobot::Color background = doing_text_input ? edit_color : clear_color;
+    melv::Color edit_color = melv::Color(0x77, 0x55, 0x66);
+    melv::Color background = doing_text_input ? edit_color : clear_color;
     SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
     SDL_RenderClear(renderer);
 
@@ -943,15 +943,15 @@ bool Application::is_fullscreen() const
     return flags & SDL_WINDOW_FULLSCREEN;
 }
 
-cobot::vec2 Application::get_window_size() const {
-    cobot::ivec2 s;
+melv::vec2 Application::get_window_size() const {
+    melv::ivec2 s;
     SDL_GetWindowSize(window.window, &s.x, &s.y);
-    return cobot::vec2(s.x, s.y);
+    return melv::vec2(s.x, s.y);
 }
 
 void Application::draw_ui_state(UiState& state)
 {
-	cobot::vec2 mouse_pos = input.mouse.pos;
+	melv::vec2 mouse_pos = input.mouse.pos;
 
     for (TextEditor& editor : state.editor)
     {
@@ -975,7 +975,7 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, cobot::Rectangle(button.position, button.scale), button.text.texture, button.background, true);
+            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), button.text.texture, button.background, true);
         }
     }
 
@@ -983,13 +983,13 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, cobot::Rectangle(button.position, button.scale), button.image, button.background, true);
+            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), button.image, button.background, true);
         }
     }
 
     for (const Label& label : state.label)
     {
-        render_textured_rectangle(render, cobot::Rectangle(label.position, label.scale), label.text.texture, label.background, false);
+        render_textured_rectangle(render, melv::Rectangle(label.position, label.scale), label.text.texture, label.background, false);
     }
 
     for (const ControlMenu& menu : state.control)
@@ -1022,10 +1022,10 @@ void Application::draw_ui_state(UiState& state)
 
 	float hoverWidth, hoverHeight = 0;
 	SDL_GetTextureSize(state.hoverText.text.texture, &hoverWidth, &hoverHeight);
-	render_textured_rectangle(render, cobot::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), state.hoverText.text.texture, state.hoverText.background);
+	render_textured_rectangle(render, melv::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), state.hoverText.text.texture, state.hoverText.background);
 }
 
-void Application::render_rectangle(cobot::Rectangle rect, cobot::Color color, bool center) const
+void Application::render_rectangle(melv::Rectangle rect, melv::Color color, bool center) const
 {
     SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
@@ -1034,7 +1034,7 @@ void Application::render_rectangle(cobot::Rectangle rect, cobot::Color color, bo
     SDL_RenderFillRect(render.renderer, &area);
 }
 
-void Application::render_rectangle_outline(cobot::Rectangle rect, cobot::Color color, bool center) const
+void Application::render_rectangle_outline(melv::Rectangle rect, melv::Color color, bool center) const
 {
     SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
@@ -1045,17 +1045,17 @@ void Application::render_rectangle_outline(cobot::Rectangle rect, cobot::Color c
 
 void Application::render_discrete_slider(const DiscreteSlider& slider) const
 {
-    cobot::vec2 start = slider.get_start();
-    cobot::vec2 step = slider.get_step();
+    melv::vec2 start = slider.get_start();
+    melv::vec2 step = slider.get_step();
 
-    cobot::Rectangle area = slider.get_bounds();
+    melv::Rectangle area = slider.get_bounds();
     render_rectangle_outline(area, slider.outlineColor, false);
 
     for (int i = 0; i < slider.element_count; i++)
     {
-        cobot::Rectangle area (start + i * step, slider.element_scale);
+        melv::Rectangle area (start + i * step, slider.element_scale);
         float t = float (i) / slider.element_count;
-        cobot::ColorF color = i <= slider.selected ? cobot::mixColors(slider.startColor, slider.endColor, t) : slider.inactiveColor;
+        melv::ColorF color = i <= slider.selected ? melv::mixColors(slider.startColor, slider.endColor, t) : slider.inactiveColor;
 
         if (slider.texture)
         {
@@ -1063,14 +1063,14 @@ void Application::render_discrete_slider(const DiscreteSlider& slider) const
         }
         else
         {
-            render_rectangle(area, cobot::Color(color));
+            render_rectangle(area, melv::Color(color));
         }
 
-        render_rectangle_outline(area, cobot::Color(slider.buttonColor));
+        render_rectangle_outline(area, melv::Color(slider.buttonColor));
     }
 }
 
-void Application::render_slider(cobot::Rectangle area, cobot::vec2 knob_scale, float value, cobot::Color slider_color, cobot::Color knob_color, const Text& text) const
+void Application::render_slider(melv::Rectangle area, melv::vec2 knob_scale, float value, melv::Color slider_color, melv::Color knob_color, const Text& text) const
 {
     float slider_knob_width = area.w * knob_scale.x;
     float slider_knob_height = area.h * knob_scale.y;
@@ -1090,7 +1090,7 @@ void Application::render_slider(cobot::Rectangle area, cobot::vec2 knob_scale, f
     {
         const int margin = 10;
         render_text_scale(render.renderer, text,
-            cobot::vec2(slider.x + slider.w / 2, slider.y + slider.h * 2 + margin), cobot::vec2(0.6, 0.6));
+            melv::vec2(slider.x + slider.w / 2, slider.y + slider.h * 2 + margin), melv::vec2(0.6, 0.6));
     }
 }
 
@@ -1104,12 +1104,12 @@ void Application::render_panel(const Panel& panel) const
     const float margin = 16;
     const float iconSize = 32;
     for (int i = 0; i < tab.icons.size(); i++) {
-        cobot::Rectangle area = panel.get_icon_area(i);
+        melv::Rectangle area = panel.get_icon_area(i);
         render_textured_rectangle(render, area, tab.icons.get(i).icon.texture, tab.icons.get(i).icon.background, true, false);
     }
 
     for (int i = 0; i < panel.tabs.size(); i++) {
-        cobot::Rectangle area = panel.get_tab_header_area(i);
+        melv::Rectangle area = panel.get_tab_header_area(i);
         render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
     }
 }
@@ -1124,13 +1124,13 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
     {
         ValueField& value = tab.fields[i];
 
-        cobot::Rectangle text_area = panel.get_field_title_area(panel.activeTab, i);
+        melv::Rectangle text_area = panel.get_field_title_area(panel.activeTab, i);
         text_area.y += height;
         height += text_area.h;
 
         render_texture(render, text_area, value.name.texture, true);
 
-        cobot::Rectangle area = panel.get_field_area(panel.activeTab, i, &ui);
+        melv::Rectangle area = panel.get_field_area(panel.activeTab, i, &ui);
         area.y += height;
 
         switch (value.type)
@@ -1161,15 +1161,15 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
             case ValueLabel: { /* nothing extra to display */ break; }
             case ValueSelection: {
                 ButtonGroup& group = ui.button_group.get_ref(value.ui_element);
-                group.position = cobot::vec2(area.x, area.y);
-                group.scale = cobot::vec2(area.w, area.h);
+                group.position = melv::vec2(area.x, area.y);
+                group.scale = melv::vec2(area.w, area.h);
                 render_button_group(group);
 
                 height += group.scale.y;
                 break;
             }
             case ValueButton: {
-                render_rectangle_outline(text_area, cobot::Color(0x99, 0x55, 0x66));
+                render_rectangle_outline(text_area, melv::Color(0x99, 0x55, 0x66));
                 break;
             }
         }
@@ -1180,7 +1180,7 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
     if (panel.showTabs && panel.tabs.size() > 1)
     {
         for (int i = 0; i < panel.tabs.size(); i++) {
-            cobot::Rectangle area = panel.get_tab_header_area(i);
+            melv::Rectangle area = panel.get_tab_header_area(i);
             render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
         }
     }
@@ -1188,14 +1188,14 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
 
 void Application::render_button_group(const ButtonGroup& group) const
 {
-    render_rectangle(cobot::Rectangle(group.position, group.scale), group.background);
-    cobot::vec2 top_left = group.position - group.scale / 2;
+    render_rectangle(melv::Rectangle(group.position, group.scale), group.background);
+    melv::vec2 top_left = group.position - group.scale / 2;
     int numColumns = std::floor(group.scale.x / group.button_scale.x);
     int row = 0;
     int column = 0;
     for (auto& texture : group.buttons)
     {
-        draw_texture(render, cobot::Rectangle(top_left + cobot::vec2(column * group.button_scale.x, row * group.button_scale.y) + group.button_scale / 2, group.button_scale), texture);
+        draw_texture(render, melv::Rectangle(top_left + melv::vec2(column * group.button_scale.x, row * group.button_scale.y) + group.button_scale / 2, group.button_scale), texture);
         column += 1;
         row = (column == numColumns) ? row + 1 : row;
     }
@@ -1213,7 +1213,7 @@ void Application::render_control_menu(const ControlMenu& menu) const
         int index = 0;
         for (auto& button : menu.buttons)
         {
-            render_textured_rectangle(render, cobot::Rectangle(menu.position + cobot::vec2(0, menu.scale.y * index), menu.scale), button.label.texture, menu.background, true);
+            render_textured_rectangle(render, melv::Rectangle(menu.position + melv::vec2(0, menu.scale.y * index), menu.scale), button.label.texture, menu.background, true);
             index += 1;
         }
     }
@@ -1221,15 +1221,15 @@ void Application::render_control_menu(const ControlMenu& menu) const
 
 void Application::render_text_editor(TextEditor& editor) const
 {
-    cobot::Rectangle text_area = editor.field.m_area;
-    cobot::Rectangle title_area = editor.get_title_area();
+    melv::Rectangle text_area = editor.field.m_area;
+    melv::Rectangle title_area = editor.get_title_area();
     render_textured_rectangle(render, title_area, editor.title_texture, editor.title_bar_color);
 
-    cobot::Rectangle area = editor.get_title_area();
-    cobot::vec2 iconPos = area.get_position() + cobot::vec2(area.get_scale().x / 2, 0);
-    cobot::vec2 iconScale = cobot::vec2(editor.title_height, editor.title_height);
+    melv::Rectangle area = editor.get_title_area();
+    melv::vec2 iconPos = area.get_position() + melv::vec2(area.get_scale().x / 2, 0);
+    melv::vec2 iconScale = melv::vec2(editor.title_height, editor.title_height);
 
-    cobot::Color clicked_background = cobot::Color(0xAA, 0x55, 0x33);
+    melv::Color clicked_background = melv::Color(0xAA, 0x55, 0x33);
     render_textured_rectangle(render, editor.get_icon1_area(), editor.icon1.texture, (editor.clicked_icon == 1) ? clicked_background : editor.icon1.background, true);
     render_textured_rectangle(render, editor.get_icon2_area(), editor.icon2.texture, (editor.clicked_icon == 2) ? clicked_background : editor.icon2.background, true);
     render_textured_rectangle(render, editor.get_icon3_area(), editor.icon3.texture, (editor.clicked_icon == 3) ? clicked_background : editor.icon3.background, true);
@@ -1239,7 +1239,7 @@ void Application::render_text_editor(TextEditor& editor) const
 
 void Application::render_text_field(Text_Field& text_field) const
 {
-    cobot::Rectangle area = text_field.m_area;
+    melv::Rectangle area = text_field.m_area;
     render_rectangle(area, text_field.background);
 
     SDL_Texture* text_texture = text_field.m_texture;
@@ -1248,8 +1248,8 @@ void Application::render_text_field(Text_Field& text_field) const
 
     if (text_texture)
     {
-        cobot::vec2 top_left = area.get_top_left();
-        cobot::vec2 text_scale = {};
+        melv::vec2 top_left = area.get_top_left();
+        melv::vec2 text_scale = {};
         SDL_GetTextureSize(text_texture, &text_scale.x, &text_scale.y);
 
         int line_count = text_field.m_line_count;
@@ -1265,7 +1265,7 @@ void Application::render_text_field(Text_Field& text_field) const
         };
         SDL_SetRenderClipRect(render.renderer, &clip);
 
-        draw_texture(render, cobot::Rectangle(top_left, text_scale), text_texture);
+        draw_texture(render, melv::Rectangle(top_left, text_scale), text_texture);
 
         SDL_SetRenderClipRect(render.renderer, nullptr);
 
@@ -1273,7 +1273,7 @@ void Application::render_text_field(Text_Field& text_field) const
         {
             String string = text_field.get_string();
 
-            cobot::ColorF highlightColor (0.2, 0.2, 0.6, 0.5);
+            melv::ColorF highlightColor (0.2, 0.2, 0.6, 0.5);
 
             // selected area
             CursorScreenPosition cursorPos = text_field.get_cursor_from_selection(text_field.m_selection_point, string, font, true);
@@ -1281,8 +1281,8 @@ void Application::render_text_field(Text_Field& text_field) const
             if (lineCount == 0)
             {
                 float width = std::fabsf(text_field.m_cursor_pixel_x - cursorPos.pixel_x);
-                int pixelX = cobot::min(text_field.m_cursor_pixel_x, cursorPos.pixel_x);
-                cobot::Rectangle area = {
+                int pixelX = melv::min(text_field.m_cursor_pixel_x, cursorPos.pixel_x);
+                melv::Rectangle area = {
                     top_left.x + pixelX, top_left.y + cursorPos.pixel_y,
                     width, float(line_skip)
                 };
@@ -1303,21 +1303,21 @@ void Application::render_text_field(Text_Field& text_field) const
                     end = cursorPos;
                 }
 
-                render_rectangle(cobot::Rectangle(top_left.x + start.pixel_x, top_left.y + start.line * line_skip, area.w - start.pixel_x, line_skip), highlightColor, false);
+                render_rectangle(melv::Rectangle(top_left.x + start.pixel_x, top_left.y + start.line * line_skip, area.w - start.pixel_x, line_skip), highlightColor, false);
                 for (int i = start.line + 1; i < end.line; i++)
                 {
                     log_info("%d", i);
-                    render_rectangle(cobot::Rectangle(top_left.x, top_left.y + i * line_skip, area.w, line_skip), highlightColor, false);
+                    render_rectangle(melv::Rectangle(top_left.x, top_left.y + i * line_skip, area.w, line_skip), highlightColor, false);
                 }
-                render_rectangle(cobot::Rectangle(top_left.x, top_left.y +  end.line * line_skip, end.pixel_x, line_skip), highlightColor, false);
+                render_rectangle(melv::Rectangle(top_left.x, top_left.y +  end.line * line_skip, end.pixel_x, line_skip), highlightColor, false);
             }
 
             // cursor
             float cursor_width = 5;
             render_rectangle(
-                cobot::Rectangle(cobot::vec2(top_left.x + text_field.m_cursor_pixel_x - cursor_width / 2,
+                melv::Rectangle(melv::vec2(top_left.x + text_field.m_cursor_pixel_x - cursor_width / 2,
                                             top_left.y + text_field.m_cursor_pixel_y + font_size / 2),
-                                cobot::vec2(cursor_width, font_size)),
+                                melv::vec2(cursor_width, font_size)),
                                 TextCursorColor);
         }
     }
@@ -1333,7 +1333,7 @@ void Application::render_dropdown(const Drop_Down_List& list) const {
     SDL_RenderFillRect(render.renderer, &header_area);
     Text title_text = list.selected == DROP_DOWN_LIST_SELECTED_SENTINEL ? list.title : list.get_option_text(list.selected);
     render_text_size(render.renderer, title_text,
-        cobot::vec2(header_area.x + header_area.w / 2, header_area.y + header_area.h / 2), cobot::vec2(header_area.w, header_area.h));
+        melv::vec2(header_area.x + header_area.w / 2, header_area.y + header_area.h / 2), melv::vec2(header_area.w, header_area.h));
 
     if (list.open) {
         SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(list.option_color));
@@ -1343,12 +1343,12 @@ void Application::render_dropdown(const Drop_Down_List& list) const {
             area.y += area.h * (i + 1);
             SDL_RenderFillRect(render.renderer, &area);
             render_text_size(render.renderer, list.get_option_text(i),
-                cobot::vec2(area.x + area.w/2, area.y + area.h/2), cobot::vec2(area.w, area.h));
+                melv::vec2(area.x + area.w/2, area.y + area.h/2), melv::vec2(area.w, area.h));
         }
     }
 }
 
-Icon Application::create_icon(AssetId image, cobot::Color background) {
+Icon Application::create_icon(AssetId image, melv::Color background) {
     SDL_Texture* texture = catalog.get_image(image);
     return Icon(texture, background);
 }
