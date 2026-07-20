@@ -724,6 +724,7 @@ struct List
 	}
 };
 
+// never used and not tested stub entry
 template<typename T>
 struct HashTable {
 	struct Entry {

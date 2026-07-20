@@ -791,7 +791,7 @@ void Application::user_update()
 		{
 			user.update_state->fixedUpdate(user.userdata);
 		}
-        user.update_state->elapsed += timeStep;
+        user.update_state->elapsed += timeStep * user.update_state->timeScale;
         user.update_state->ticks += 1;
 
         iterations += 1;
@@ -905,12 +905,16 @@ void Application::draw()
         return;
     }
 
+	// @todo user defined
     cobot::Color edit_color = cobot::Color(0x77, 0x55, 0x66);
     cobot::Color background = doing_text_input ? edit_color : clear_color;
     SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
     SDL_RenderClear(renderer);
 
-	user.draw(user.userdata, this);
+	if (user.draw)
+	{
+		user.draw(user.userdata, this);
+	}
 	
     SDL_RenderPresent(renderer);
 }
