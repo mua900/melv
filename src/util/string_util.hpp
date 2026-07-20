@@ -3,6 +3,9 @@
 
 #include "common.hpp"
 
+namespace melv
+{
+
 int string_length(const char* cstr);
 
 struct String {
@@ -244,4 +247,6 @@ int utf8_previous(String s, int offset);
 
 int string_length_utf8(String s);
 
+} // namespace
+	
 #endif // STRING_UTIL_HPP

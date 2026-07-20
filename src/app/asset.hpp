@@ -8,6 +8,9 @@
 #include "util/template.hpp"
 #include "util/log.hpp"
 
+namespace melv
+{
+
 enum AssetKind {
     ASSET_KIND_ZERO   = 0,
     ASSET_KIND_IMAGE  = 1,
@@ -257,5 +260,7 @@ void get_to_run_tree_path_string(String_Builder& builder, String path);
 
 void get_to_asset_path(String_Builder& builder, const char* path);
 void get_to_asset_path_string(String_Builder& builder, String path);
+
+} // namespace
 
 #endif // ASSET_HPP

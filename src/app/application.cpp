@@ -6,6 +6,9 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_mixer/SDL_mixer.h>
 
+namespace melv
+{
+
 InitConfiguration get_default_init_configuration()
 {
 	InitConfiguration conf;
@@ -1364,7 +1367,7 @@ void Application::text_input_stop()
         uiStates[i].text_input_target = {};
     }
 
-    clear_color = DEFAULT_BACKGROUND_COLOR;
+    clear_color = {};
 }
 
 void Application::text_input_start()
@@ -1387,3 +1390,5 @@ void Application::toggle_text_input()
         text_input_stop();
     }
 }
+
+} // namespace

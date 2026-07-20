@@ -5,6 +5,9 @@
 
 #include <SDL3_image/SDL_image.h>
 
+namespace melv
+{
+
 bool load_asset(int index, AssetCatalog& catalog);
 bool unload_asset(AssetId id, AssetCatalog& catalog, bool reset_generation = true);
 
@@ -757,3 +760,5 @@ const char* get_asset_kind_name(AssetKind kind)
             panic("Invalid asset kind");
     }
 }
+
+} // namespace

@@ -1,5 +1,8 @@
 #include "string_util.hpp"
 
+namespace melv
+{
+
 int string_length(const char* cstr) {
     return (int)strlen(cstr);
 }
@@ -481,3 +484,5 @@ int string_length_utf8(String s)
 
     return count;
 }
+
+} // namespace

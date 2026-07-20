@@ -1,5 +1,8 @@
 #include "file_util.hpp"
 
+namespace melv
+{
+
 long get_file_size(FILE* file) {
 	long pos = std::ftell(file);
     std::fseek(file, 0, SEEK_END);
@@ -101,3 +104,5 @@ u64 File::read_integer() {
 	fread(&n, sizeof(n), 1, handle);
 	return n;
 }
+
+} // namespace

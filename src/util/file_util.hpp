@@ -3,6 +3,9 @@
 
 #include "string_util.hpp"
 
+namespace melv
+{
+
 bool load_file(const char* filepath, BinaryData& bdata);
 bool load_file_text(const char* filepath, String_Builder& s);
 
@@ -30,5 +33,6 @@ struct File {
 	u64 read_integer();
 };
 
+} // namespace
 
 #endif // FILE_UTIL_HPP

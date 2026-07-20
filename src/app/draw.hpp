@@ -9,6 +9,9 @@
 #include "util/math_util.hpp"
 #include "util/template.hpp"
 
+namespace melv
+{
+
 // for users: there's some noise down here
 // you only need to worry about draw_* or render_* functions
 // the rest is about how it's implemented
@@ -45,7 +48,7 @@ struct GPUTexture {
 };
 
 enum MeshType {
-	Quad,
+	Quadrilateral,
 	Count,
 };
 
@@ -198,8 +201,8 @@ void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float
 void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
 void draw_quadratic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color);
 void draw_cubic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color);
-void draw_quad(const RenderContext& context, melv::Quad quad, melv::ColorF color);
-void draw_quad_with_texture(const RenderContext& context, melv::Quad quad, SDL_Texture* texture, melv::ColorF color);
+void draw_quad(const RenderContext& context, melv::RectPoints quad, melv::ColorF color);
+void draw_quad_with_texture(const RenderContext& context, melv::RectPoints quad, SDL_Texture* texture, melv::ColorF color);
 
 void draw_texture(const RenderContext& context, melv::Rectangle area, SDL_Texture* texture);
 
@@ -214,5 +217,7 @@ void render_texture_with_tint(const RenderContext& render, melv::Rectangle area,
 
 void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale = melv::vec2(0, 0));
 void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor = melv::vec2(0,0));
+
+} // namespace
 
 #endif // DRAW_HPP

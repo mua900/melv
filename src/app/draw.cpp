@@ -4,6 +4,9 @@
 #include "util/log.hpp"
 #include "util/file_util.hpp"
 
+namespace melv
+{
+
 void start_frame(RenderContext& context, SDL_Window* window) {
     context.frame.command_buffer = nullptr;
     context.frame.swapchain = {};
@@ -900,26 +903,26 @@ void draw_polygon(RenderContext& context, melv::vec2 points[], int numPoints, me
     SDL_RenderGeometry(context.renderer, nullptr, context.vertex_scratch.data(), context.vertex_scratch.size(), context.index_scratch.data(), context.index_scratch.size());
 }
 
-void draw_quad(const RenderContext& context, melv::Quad quad, melv::ColorF color)
+void draw_quad(const RenderContext& context, melv::RectPoints quad, melv::ColorF color)
 {
     SDL_Vertex vertex [4];
     vertex[0]     = {
-        context.transform_sdl_point(SDL_FPoint { quad.vertices[0].x, quad.vertices[0].y }),
+        context.transform_sdl_point(SDL_FPoint { quad.p[0].x, quad.p[0].y }),
         SDL_FColor { color.r, color.g, color.b, color.a },
         SDL_FPoint { 0, 1 }
     };
     vertex[1]    = {
-        context.transform_sdl_point(SDL_FPoint { quad.vertices[1].x, quad.vertices[1].y }),
+        context.transform_sdl_point(SDL_FPoint { quad.p[1].x, quad.p[1].y }),
         SDL_FColor { color.r, color.g, color.b, color.a },
         SDL_FPoint { 1, 1 }
     };
     vertex[2]  = {
-        context.transform_sdl_point(SDL_FPoint { quad.vertices[2].x, quad.vertices[2].y }),
+        context.transform_sdl_point(SDL_FPoint { quad.p[2].x, quad.p[2].y }),
         SDL_FColor { color.r, color.g, color.b, color.a },
         SDL_FPoint { 0, 0 }
     };
     vertex[3] = {
-        context.transform_sdl_point(SDL_FPoint { quad.vertices[3].x, quad.vertices[3].y }),
+        context.transform_sdl_point(SDL_FPoint { quad.p[3].x, quad.p[3].y }),
         SDL_FColor{ color.r, color.g, color.b, color.a },
         SDL_FPoint { 1, 0 }
     };
@@ -931,26 +934,26 @@ void draw_quad(const RenderContext& context, melv::Quad quad, melv::ColorF color
     SDL_RenderGeometry(context.renderer, nullptr, vertex, 4, index, 6);
 }
 
-void draw_quad_with_texture(const RenderContext& context, melv::Quad quad, SDL_Texture* texture, melv::ColorF color)
+void draw_quad_with_texture(const RenderContext& context, melv::RectPoints quad, SDL_Texture* texture, melv::ColorF color)
 {
     SDL_Vertex vertex [4];
     vertex[melv::QuadTopLeft]     = {
-		context.transform_sdl_point(SDL_FPoint { quad.vertices[melv::QuadTopLeft].x, quad.vertices[melv::QuadTopLeft].y }),
+		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y }),
 		SDL_FColor { color.r, color.g, color.b, color.a },
 		SDL_FPoint { 0, 1 }
 	};
     vertex[melv::QuadTopRight]    = {
-		context.transform_sdl_point(SDL_FPoint { quad.vertices[melv::QuadTopRight].x, quad.vertices[melv::QuadTopRight].y }),
+		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y }),
 		SDL_FColor { color.r, color.g, color.b, color.a },
 		SDL_FPoint { 1, 1 }
 	};
     vertex[melv::QuadBottomLeft]  = {
-		context.transform_sdl_point(SDL_FPoint { quad.vertices[melv::QuadBottomLeft].x, quad.vertices[melv::QuadBottomLeft].y }),
+		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y }),
 		SDL_FColor { color.r, color.g, color.b, color.a },
 		SDL_FPoint { 0, 0 }
 	};
     vertex[melv::QuadBottomRight] = {
-		context.transform_sdl_point(SDL_FPoint { quad.vertices[melv::QuadBottomRight].x, quad.vertices[melv::QuadBottomRight].y }),
+		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y }),
 		SDL_FColor{ color.r, color.g, color.b, color.a },
 		SDL_FPoint { 1, 0 }
 	};
@@ -1115,3 +1118,5 @@ bool loadShader(RenderContext& context, Shader& shader, const char* path)
 
     return true;
 }
+
+} // namespace

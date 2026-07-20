@@ -185,7 +185,7 @@ mat4x4 camera_matrix(vec2 position, vec2 scale)
     };
 }
 
-Quad get_rotated_points(Rectangle rect, float angle)
+RectPoints get_rotated_points(Rectangle rect, float angle)
 {
     float s = std::sinf(angle);
     float c = std::cosf(angle);
@@ -195,11 +195,11 @@ Quad get_rotated_points(Rectangle rect, float angle)
     vec2 diag0 = vec2(hw * c - hh * s, hw * s + hh * c);
     vec2 diag1 = vec2(-hw * c - hh * s, -hw * s + hh * c);
 
-	Quad quad;
-	quad.vertices[QuadTopLeft]     = vec2(rect.x + diag1.x, rect.y - diag1.y);
-	quad.vertices[QuadTopRight]    = vec2(rect.x + diag0.x, rect.y - diag0.y);
-	quad.vertices[QuadBottomLeft]  = vec2(rect.x - diag0.x, rect.y + diag0.y);
-	quad.vertices[QuadBottomRight] = vec2(rect.x - diag1.x, rect.y + diag1.y);
+	RectPoints quad;
+	quad.p[QuadTopLeft]     = vec2(rect.x + diag1.x, rect.y - diag1.y);
+	quad.p[QuadTopRight]    = vec2(rect.x + diag0.x, rect.y - diag0.y);
+	quad.p[QuadBottomLeft]  = vec2(rect.x - diag0.x, rect.y + diag0.y);
+	quad.p[QuadBottomRight] = vec2(rect.x - diag1.x, rect.y + diag1.y);
 
 	return quad;
 }

@@ -5,6 +5,9 @@
 #include "util/string_util.hpp"
 #include <SDL3_ttf/SDL_ttf.h>
 
+namespace melv
+{
+
 struct Font {
     TTF_Font* font = NULL;
     float size = 0;
@@ -64,5 +67,7 @@ struct IconButton {
         data.ptr = ptr;
     }
 };
+
+} // namespace
 
 #endif // TEXT_HPP

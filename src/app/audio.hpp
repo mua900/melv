@@ -6,6 +6,9 @@
 #include "util/common.hpp"
 #include "util/template.hpp"
 
+namespace melv
+{
+
 // a track which can be set to play different audio sources one at a time
 using TrackId = u32;
 constexpr TrackId NullTrackId = -1;
@@ -44,3 +47,5 @@ struct AudioPlayer {
     void resume_tag(const char* tag);
     void set_tag_gain(const char* tag, float gain);
 };
+
+} // namespace

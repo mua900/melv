@@ -4,6 +4,9 @@
 
 #include <cmath>
 
+namespace melv
+{
+
 bool AudioPlayer::initialize() {
     SDL_AudioDeviceID playback_device = SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
     SDL_AudioDeviceID sdl_device = SDL_OpenAudioDevice(playback_device, nullptr);
@@ -148,3 +151,5 @@ void AudioPlayer::set_tag_gain(const char* tag, float gain)
 {
     MIX_SetTagGain(mixer, tag, gain);
 }
+
+} // namespace

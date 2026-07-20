@@ -411,21 +411,12 @@ enum QuadVertexPosition {
     QuadBottomRight = 3,
 };
 
-struct Quad {
-    vec2 vertices[4];
-
-    Quad() {}
-    Quad(vec2 tl, vec2 tr, vec2 bl, vec2 br)
-    {
-        vertices[0] = tl;
-        vertices[1] = tr;
-        vertices[2] = bl;
-        vertices[3] = br;
-    }
+struct RectPoints {
+	vec2 p[4];
 };
 
-Quad get_rotated_points(Rectangle rect, float angle);
-
+RectPoints get_rotated_points(Rectangle rect, float rot);
+	
 struct RectangleRot {
     float x = {};
     float y = {};
@@ -443,7 +434,7 @@ struct RectangleRot {
         x(x), y(y), w(w), h(h), rot(rotation)
     {}
 
-    Quad get_points() const {
+    RectPoints get_points() const {
         return get_rotated_points(Rectangle(x,y,w,h), rot);
     }
 };

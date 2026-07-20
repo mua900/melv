@@ -4,6 +4,9 @@
 
 #include <SDL3/SDL.h>
 
+namespace melv
+{
+
 #define MOUSE_LEFT   SDL_BUTTON_LEFT
 #define MOUSE_MIDDLE SDL_BUTTON_MIDDLE
 #define MOUSE_RIGHT  SDL_BUTTON_RIGHT
@@ -70,3 +73,5 @@ struct Input {
 
 typedef void (*KeyboardCallback)(void *userdata, KeyboardState *keyboard);
 typedef void (*MouseCallback)(void *userdata, MouseState *mouse);
+
+} // namespace

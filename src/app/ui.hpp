@@ -10,7 +10,8 @@
 #include "util/template.hpp"
 #include "util/math_util.hpp"
 
-#define DEFAULT_BACKGROUND_COLOR melv::Color{ 0x77, 0x33, 0x55, 0xff }
+namespace melv
+{
 
 struct Window {
     SDL_Window* window;
@@ -799,5 +800,7 @@ struct UiState {
 
     ~UiState();
 };
+
+} // namespace
 
 #endif // UI_HPP

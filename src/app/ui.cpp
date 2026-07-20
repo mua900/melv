@@ -1,6 +1,9 @@
 #include "ui.hpp"
 #include "util/log.hpp"
 
+namespace melv
+{
+
 void GapBuffer::initialize(int init_buffer_size) {
     buffer = (char*) std::malloc(init_buffer_size);
     buffer_size = init_buffer_size;
@@ -927,3 +930,5 @@ melv::vec2 DiscreteSlider::get_button_scale() const
     melv::vec2 extraButtonSpace = vertical ? melv::vec2(0, element_gap) : melv::vec2(element_gap, 0);
     return element_scale + extraButtonSpace;
 }
+
+} // namespace

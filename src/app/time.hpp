@@ -3,6 +3,9 @@
 
 #include "util/common.hpp"
 
+namespace melv
+{
+
 struct TimeInfo {
     s64 time = 0;  // miliseconds
     s64 deltaTime = 0;
@@ -14,5 +17,6 @@ struct TimeInfo {
 #define MICROSECONDS_PER_SECOND 1'000'000
 #define MILLISECONDS_PER_SECOND 1'000
 
+} // namespace
 
 #endif // TIME_HPP

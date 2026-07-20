@@ -12,6 +12,9 @@
 #include "util/template.hpp"
 #include "util/math_util.hpp"
 
+namespace melv
+{
+
 class Application;
 
 struct Event_Timeout {
@@ -107,7 +110,7 @@ public:
 
     DArray<UiState> uiStates = {};
 	
-    melv::Color clear_color = DEFAULT_BACKGROUND_COLOR;
+    melv::Color clear_color = {};
 
     TimeInfo timeInfo = {};
 
@@ -199,4 +202,7 @@ private:
 void get_base_path(String_Builder& builder);
 void get_pref_path(String_Builder& builder, const char *org, const char *app);
 
+} // namespace
+
 #endif // APPLICATION_HPP
+
