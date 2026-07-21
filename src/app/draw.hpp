@@ -12,11 +12,6 @@
 namespace melv
 {
 
-// there's some noise down here
-// you only need to worry about draw_* or render_* functions
-// the rest is about how it's implemented
-// you can also use your own fragment shaders
-
 #define GRAPHICS_DEBUG 0
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
