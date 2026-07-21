@@ -383,6 +383,32 @@ void RenderContext::set_viewport(Viewport viewport)
     SDL_SetGPUViewport(frame.render_pass, &viewport);
 }
 
+void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color)
+{
+    SDL_Vertex vertices[3];
+    vertices[0].position = {p0.x, p0.y};
+    vertices[1].position = {p1.x, p1.y};
+    vertices[2].position = {p2.x, p2.y};
+    for (int i = 0; i < 3; i++) vertices[i].color    = {COLOR_ARG(color)};
+
+    int indices[3] = {0, 1, 2};
+
+    SDL_RenderGeometry(context.renderer, nullptr, vertices, 3, indices, 3);
+}
+
+void draw_triangle_texture(const RenderContext& context, SDL_Texture* texture, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color)
+{
+    SDL_Vertex vertices[3];
+    vertices[0].position = {p0.x, p0.y};
+    vertices[1].position = {p1.x, p1.y};
+    vertices[2].position = {p2.x, p2.y};
+    for (int i = 0; i < 3; i++) vertices[i].color    = {COLOR_ARG(color)};
+
+    int indices[3] = {0, 1, 2};
+
+    SDL_RenderGeometry(context.renderer, texture, vertices, 3, indices, 3);
+}
+
 void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color)
 {
     SDL_SetRenderDrawColorFloat(context.renderer, COLOR_ARG(color));
