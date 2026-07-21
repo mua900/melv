@@ -47,28 +47,6 @@ struct GPUTexture {
     u32 height = 0;
 };
 
-enum MeshType {
-	Quadrilateral,
-	Count,
-};
-
-struct MeshData {
-    DArray<Vertex> vertices = {};
-    DArray<u16> indices = {};
-};
-
-struct MeshReference {
-    u32 numVertices = 0;
-    u32 numIndices = 0;
-    u32 vertex_offset = 0;
-    u32 index_offset = 0;
-};
-
-struct Mesh {
-    MeshData data = {};
-    MeshReference ref = {};
-};
-
 struct GPUBuffer {
     SDL_GPUBuffer* buffer = nullptr;
     u32 size = 0;
@@ -88,6 +66,8 @@ struct FrameContext {
 };
 
 // you should set this to the correct value before drawing something
+// typically you would set this in the top draw loop to switch between things that you want to draw in the coordinate space you want
+// and also set it and back in place for exceptions
 enum CoordinateSpace
 {
 	// top left of the screen is 0, 0. y is down, x is right
@@ -106,12 +86,9 @@ struct RenderContext {
     CoordinateSpace space = {};  // what coordinate space input vertices are in
     melv::vec2 zoomTarget = {};
 	const Camera* camera = {};
-	
+
     // @todo switch to sdl gpu
     // all below belongs to incomplete code
-    SDL_Texture* target_texture = nullptr;
-    SDL_GPUTexture* render_target = nullptr;
-
     SDL_GPUDevice* device = nullptr;
 
     melv::mat4x4 mvp = {};
@@ -130,26 +107,22 @@ struct RenderContext {
 
     melv::vec2 get_center() const { return render_size / 2; }
 
-    // camera transforms
+    // you do a copy pass to update positions etc. first and then draw those every frame
+    bool start_render_pass();
+    void end_render_pass();
+
+    bool start_copy_pass();
+    void end_copy_pass();
+
+    void set_viewport(Viewport viewport);
+
+    // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
     melv::vec2 transformScreen(melv::vec2 p) const;
     melv::Rectangle transform_rectangle(melv::Rectangle r) const;
     SDL_FPoint transform_sdl_point(SDL_FPoint p) const;
     SDL_FRect transform_sdl_rectangle(SDL_FRect r) const;
     SDL_Vertex transform_sdl_vertex(SDL_Vertex v) const;
-
-    // you do a copy pass to update positions etc. first and then draw those every frame
-    bool start_render_pass();
-    void end_render_pass();
-    bool start_copy_pass();
-    void end_copy_pass();
-
-    void set_viewport(Viewport viewport);
-
-    bool add_mesh(MeshData& meshData, MeshReference& mesh);
-    bool update_mesh(MeshData& meshData, MeshReference& mesh);
-
-    void draw_mesh(MeshReference mesh);
 };
 
 enum ShaderStage {

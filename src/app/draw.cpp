@@ -38,7 +38,7 @@ bool RenderContext::start_render_pass() {
     if (frame.swapchain.texture)
     {
         SDL_GPUColorTargetInfo color_targets[1] = {};
-        color_targets[0].texture = render_target;
+        color_targets[0].texture = frame.swapchain.texture;
         color_targets[0].mip_level = 0;
         color_targets[0].layer_or_depth_plane = 0;
         color_targets[0].clear_color = SDL_FColor{ DEBUG_COLOR.r, DEBUG_COLOR.g, DEBUG_COLOR.b, DEBUG_COLOR.a };
@@ -131,32 +131,12 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window)
     u32 render_width = u32(render_size_x);
     u32 render_height = u32(render_size_y);
 
-    SDL_GPUTextureFormat format = SDL_GetGPUSwapchainTextureFormat(device, window);
-    SDL_PixelFormat pixel_format = SDL_GetPixelFormatFromGPUTextureFormat(format);
-    log_info("Swapchain pixel format: %s", SDL_GetPixelFormatName(pixel_format));
-    log_info("Render size: %d %d", render_width, render_height);
-    SDL_GPUTextureCreateInfo targetCreateInfo = {};
-    targetCreateInfo.type = SDL_GPU_TEXTURETYPE_2D;
-    targetCreateInfo.format = format;
-    targetCreateInfo.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-    targetCreateInfo.width = render_width;
-    targetCreateInfo.height = render_height;
-    targetCreateInfo.layer_count_or_depth = 1;
-    targetCreateInfo.num_levels = 1;
-    targetCreateInfo.sample_count = SDL_GPU_SAMPLECOUNT_1;
-    SDL_GPUTexture* target = SDL_CreateGPUTexture(device, &targetCreateInfo);
-
-    SDL_PropertiesID texture_properties = SDL_CreateProperties();
-    SDL_SetPointerProperty(texture_properties, SDL_PROP_TEXTURE_CREATE_GPU_TEXTURE_POINTER, target);
-    SDL_Texture* target_texture = SDL_CreateTextureWithProperties(renderer, texture_properties);
-
     render->device = device;
     render->renderer = renderer;
-    render->render_target = target;
-    render->target_texture = target_texture;
     render->render_size = melv::vec2(render_size_x, render_size_y);
 
     melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
+    // @todo camera matrix
     melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
     mat4mul(&render->mvp, &orthographic, &camera);
 
@@ -401,86 +381,6 @@ void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv
 void RenderContext::set_viewport(Viewport viewport)
 {
     SDL_SetGPUViewport(frame.render_pass, &viewport);
-}
-
-bool RenderContext::add_mesh(MeshData& meshData, MeshReference& mesh)
-{
-    if (!frame.copy_pass)
-    {
-        return false;
-    }
-
-    u32 vBufferUsage = vertex_buffer.used;
-    u32 vMesh = meshData.vertices.size() * sizeof(Vertex);
-    u32 iBufferUsage = index_buffer.used;
-    u32 iMesh = meshData.indices.size() * sizeof(u16);
-
-    u32 nVertices = meshData.vertices.size();
-    u32 nIndices = meshData.indices.size();
-
-    if (vBufferUsage + vMesh >= vertex_buffer.size)
-    {
-        return false;
-    }
-    if (iBufferUsage + iMesh >= index_buffer.size)
-    {
-        return false;
-    }
-
-    u8* memory = (u8*) SDL_MapGPUTransferBuffer(device, transfer_buffer.buffer, true);
-
-    memcpy(memory + 0, meshData.vertices.data(), vMesh);
-    memcpy(memory + vMesh, meshData.indices.data(), iMesh);
-
-    SDL_UnmapGPUTransferBuffer(device, transfer_buffer.buffer);
-
-    SDL_GPUTransferBufferLocation vertexSource = {};
-    SDL_GPUTransferBufferLocation indexSource = {};
-    vertexSource.transfer_buffer = transfer_buffer.buffer;
-    vertexSource.offset = 0;
-    indexSource.transfer_buffer = transfer_buffer.buffer;
-    indexSource.offset = vMesh;
-
-    SDL_GPUBufferRegion vertexDestination = {};
-    SDL_GPUBufferRegion indexDestination = {};
-    vertexDestination.buffer = vertex_buffer.buffer;
-    vertexDestination.offset = vBufferUsage;
-    vertexDestination.size = vMesh;
-
-    indexDestination.buffer = index_buffer.buffer;
-    indexDestination.offset = iBufferUsage;
-    indexDestination.size = iMesh;
-
-    SDL_UploadToGPUBuffer(frame.copy_pass, &vertexSource, &vertexDestination, true);
-    SDL_UploadToGPUBuffer(frame.copy_pass, &indexSource, &indexDestination, true);
-
-    mesh.numVertices = nVertices;
-    mesh.numIndices = nIndices;
-    mesh.vertex_offset = vertex_buffer.used;
-    mesh.index_offset = index_buffer.used;
-
-    vertex_buffer.used += nVertices;
-    index_buffer.used += nIndices;
-
-    return true;
-}
-
-void RenderContext::draw_mesh(MeshReference mesh)
-{
-    if (frame.render_pass)
-    {
-        SDL_GPUBufferBinding vertexBinding;
-        vertexBinding.buffer = vertex_buffer.buffer;
-        vertexBinding.offset = 0;
-        SDL_GPUBufferBinding indexBinding;
-        indexBinding.buffer = index_buffer.buffer;
-        indexBinding.offset = 0;
-
-        SDL_BindGPUVertexBuffers(frame.render_pass, 0, &vertexBinding, 1);
-        SDL_BindGPUIndexBuffer(frame.render_pass, &indexBinding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-
-        SDL_DrawGPUIndexedPrimitives(frame.render_pass, mesh.numIndices, 1, mesh.index_offset, mesh.vertex_offset, 0);
-    }
 }
 
 void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color)
