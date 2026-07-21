@@ -160,7 +160,7 @@ bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);
 
 // immediate mode drawing
-void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2);
+void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
 void draw_triangle_texture(const RenderContext& context, SDL_Texture* texture, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
 void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color);
 void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
