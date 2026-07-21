@@ -106,8 +106,7 @@ bool Application::initialize(InitConfiguration conf)
 
     for (auto& cam : cameras)
     {
-        cam.zoom = 1;
-        cam.position = render.get_center();  // start the camera centered to the screen
+		cam = init_camera();
     }
 
     {
@@ -128,6 +127,15 @@ bool Application::initialize(InitConfiguration conf)
 	}
 	
     return true;
+}
+
+Camera Application::init_camera() const
+{
+	Camera cam;
+	cam.position = render.get_center();
+	cam.zoom = 1;
+	cam.rotation = 1;
+	return cam;
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
@@ -202,12 +210,6 @@ UiState* Application::get_active_ui()
     return nullptr;
 }
 
-Camera* Application::get_active_camera()
-{
-    // @todo ask the game
-    return nullptr;
-}
-
 void Application::handle_events()
 {
     SDL_Event e = {};
@@ -265,19 +267,6 @@ void Application::handle_events()
             {
                 input.mouse.buttonFlags = SDL_GetMouseState(&input.mouse.pos.x, &input.mouse.pos.y);
                 on_mouse_move();
-                break;
-            }
-            case SDL_EVENT_MOUSE_WHEEL:
-            {
-                const float mouseSensitivity = 0.1;
-                SDL_MouseWheelEvent wheel = e.wheel;
-
-                Camera* camera = get_active_camera();
-                if (camera)
-                {
-                    camera->zoom += wheel.y * mouseSensitivity;
-                    camera->zoom = melv::clamp(0.1, 10, camera->zoom);
-                }
                 break;
             }
             case SDL_EVENT_WINDOW_RESIZED:
@@ -623,18 +612,6 @@ void Application::on_mouse_move()
 {
     melv::vec2 mouse_pos = input.mouse.pos;
 
-    if (input.mouse.drag)
-    {
-        Camera* camera = get_active_camera();
-        if (camera)
-        {
-            melv::vec2 move = (input.mouse.dragPosition - mouse_pos);
-            camera->position += melv::vec2(move.x, -move.y) / camera->zoom;
-            input.mouse.dragPosition = mouse_pos;
-        }
-        return;
-    }
-
     UiState* ui = get_active_ui();
     if (ui)
     {
@@ -651,7 +628,7 @@ bool Application::on_mouse_down()
 		return true;
 	}
 
-    if ((input.mouse.buttonFlags & MOUSE_LEFT_MASK) && get_active_camera() && ui && !ui->get_drag_info() && !ui->doing_resize())
+    if ((input.mouse.buttonFlags & MOUSE_LEFT_MASK) && ui && !ui->get_drag_info() && !ui->doing_resize())
     {
         input.mouse.dragPosition = input.mouse.pos;
         input.mouse.drag = true;

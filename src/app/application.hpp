@@ -92,6 +92,8 @@ struct InitConfiguration {
 
 	// Default Name
 	const char* name;
+
+	// not a part of this but you probably want to fill out app.update_state and app.user
 };
 
 InitConfiguration get_default_init_configuration();
@@ -134,10 +136,10 @@ public:
     void draw();
 
     void cleanup();
+
+	Camera init_camera() const;
 private:
     bool init_render();
-
-    Camera* get_active_camera();
 
 	bool load_assets();
     bool reload_assets();
