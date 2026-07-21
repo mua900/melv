@@ -12,7 +12,7 @@
 namespace melv
 {
 
-// for users: there's some noise down here
+// there's some noise down here
 // you only need to worry about draw_* or render_* functions
 // the rest is about how it's implemented
 // you can also use your own fragment shaders

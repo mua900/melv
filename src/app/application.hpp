@@ -36,8 +36,8 @@ typedef void (*DrawCallback)(void *userdata, Application* app);
 typedef void (*BeforeCleanupCallback)(void *userdata, Application* app);
 typedef void (*AfterCleanupCallback)(void *userdata, Application* app);
 
-typedef void (*UpdateFunction)(void *userdata, TimeInfo time);
-typedef void (*FixedUpdateFunction)(void *userdata);
+typedef void (*UpdateFunction)(void *userdata, Application* app);
+typedef void (*FixedUpdateFunction)(void *userdata, Application* app);
 
 struct UpdateState {
     UpdateFunction update = nullptr;
@@ -60,8 +60,8 @@ struct UserData {
 
 	// called once after SDL and everything is initialized
 	InitCallback init = nullptr;
-	// called before application tries to handle events it itself tries to handle like text input
-	// to react to one time events
+	// called with an event before application tries to process it itself
+	// use this to react to one time events
 	// if this returns true, the application will consider that event consumed and won't process it
 	EventCallback event = nullptr;
 	// called after all events are processed.

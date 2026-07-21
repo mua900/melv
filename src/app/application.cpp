@@ -107,7 +107,7 @@ bool Application::initialize(InitConfiguration conf)
     for (auto& cam : cameras)
     {
         cam.zoom = 1;
-        cam.offset = render.get_center();
+        cam.position = render.get_center();  // start the camera centered to the screen
     }
 
     {
@@ -282,13 +282,9 @@ void Application::handle_events()
             }
             case SDL_EVENT_WINDOW_RESIZED:
             {
-                int render_size_x, render_size_y;
-                SDL_GetRenderOutputSize(render.renderer, &render_size_x, &render_size_y);
-                render.render_size = melv::vec2(render_size_x, render_size_y);
-                for (auto& c : cameras)
-                {
-                    c.offset = melv::vec2(render_size_x / 2, render_size_y / 2);
-                }
+				int render_size_x, render_size_y;
+				SDL_GetRenderOutputSize(render.renderer, &render_size_x, &render_size_y);
+				render.render_size = melv::vec2(render_size_x, render_size_y);
 
                 update_ui_state(melv::vec2(render_size_x, render_size_y));
 
@@ -792,7 +788,7 @@ void Application::user_update()
     {
 		if (user.update_state->fixedUpdate)
 		{
-			user.update_state->fixedUpdate(user.userdata);
+			user.update_state->fixedUpdate(user.userdata, this);
 		}
         user.update_state->elapsed += timeStep * user.update_state->timeScale;
         user.update_state->ticks += 1;
@@ -802,7 +798,7 @@ void Application::user_update()
 
 	if (user.update_state->update)
 	{
-		user.update_state->update(user.userdata, timeInfo);
+		user.update_state->update(user.userdata, this);
 	}
 }
 
