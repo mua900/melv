@@ -35,6 +35,17 @@ add_library(melv
 	src/app/serialize.cpp
 )
 
+option(BUILD_EXAMPLE_PROGRAM OFF)
+if (BUILD_EXAMPLE_PROGRAM)
+	add_executable(
+		example
+		example/src/main.cpp
+	)
+
+	target_include_directories(example PRIVATE src)
+	target_link_libraries(example PRIVATE melv)
+endif()
+
 target_include_directories(melv PUBLIC src/)
 
 add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
