@@ -131,10 +131,13 @@ bool Application::initialize(InitConfiguration conf)
 
 Camera Application::init_camera() const
 {
+    melv::vec2 center = render.get_center();
 	Camera cam;
-	cam.position = render.get_center();
+	// this weird inverted signs are because of coordinate system mismatch between
+	// render.get_center which is is screen space and the camera position which is in world space
+	cam.position = melv::vec2(-center.x, center.y);
 	cam.zoom = 1;
-	cam.rotation = 1;
+	cam.rotation = 0;
 	return cam;
 }
 
