@@ -12,7 +12,7 @@ namespace melv
 InitConfiguration get_default_init_configuration()
 {
 	InitConfiguration conf;
-	
+
 	conf.flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
 
 	conf.window_width = 1440;
@@ -125,7 +125,7 @@ bool Application::initialize(InitConfiguration conf)
 			return false;
 		}
 	}
-	
+
     return true;
 }
 
@@ -225,7 +225,7 @@ void Application::handle_events()
 				// continue;
 			}
 		}
-		
+
         switch (e.type)
         {
             case SDL_EVENT_QUIT:
@@ -308,7 +308,7 @@ void Application::handle_events()
     update_keyboard_state();
 
 	if (user.input)
-	{		
+	{
 		user.input(user.userdata, this);
 	}
 }
@@ -756,7 +756,7 @@ void Application::user_update()
 	{
 		return;
 	}
-	
+
 	constexpr int maxIterationsPerFrame = 50;
     int iterations = 0;
 	double timeStep = user.update_state->calculateTimeStep();
@@ -856,7 +856,7 @@ void Application::cleanup()
 	{
 		user.before_cleanup(user.userdata, this);
 	}
-	
+
     MIX_Quit();
     SDL_Quit();
     TTF_Quit();
@@ -873,31 +873,32 @@ bool Application::init_render()
     {
         return false;
     }
-	
+
     return true;
 }
 
 void Application::draw()
 {
-    SDL_Renderer* renderer = render.renderer;
-
     if (SDL_GetWindowFlags(window.window) & SDL_WINDOW_MINIMIZED) {
         // don't draw anything if the window is minimized
         return;
     }
 
-	// @todo user defined
-    melv::Color edit_color = melv::Color(0x77, 0x55, 0x66);
-    melv::Color background = doing_text_input ? edit_color : clear_color;
-    SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
-    SDL_RenderClear(renderer);
+    if (!start_frame(render, window.window))
+    {
+        // couldn't get command buffer or the swapchain texture
+        return;
+    }
+
+    render.start_render_pass();
 
 	if (user.draw)
 	{
 		user.draw(user.userdata, this);
 	}
-	
-    SDL_RenderPresent(renderer);
+
+	render.end_render_pass();
+	end_frame(render);
 }
 
 bool Application::is_minimized() const

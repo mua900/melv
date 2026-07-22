@@ -93,6 +93,21 @@ public:
 		return ret_index;
 	}
 
+	int add_array(T* elems, int count)
+	{
+		ensure_size(m_size + count);
+
+		for (int i = 0; i < count; i++)
+		{
+			m_data[m_size + i] = elems[i];
+		}
+
+		int start = m_size;
+		m_size += count;
+
+		return start;
+	}
+
 	void remove_shift(int index) {
 		if (!in_bounds(index)) {
 			panic("Out of bounds array access");

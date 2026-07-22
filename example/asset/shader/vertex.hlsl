@@ -1,6 +1,8 @@
+/*
 cbuffer buffer : register(b0, space1) {
     float4x4 ModelViewProjection;
 }
+*/
 
 struct VSInput {
     float2 position : TEXCOORD0;
@@ -17,7 +19,7 @@ struct VSOutput {
 VSOutput main(VSInput input)
 {
     VSOutput output;
-    output.position = mul(ModelViewProjection, float4(input.position, 0.0, 1.0));
+    output.position = float4(input.position, 0, 1);//mul(ModelViewProjection, float4(input.position, 0.0, 1.0));
     output.uv = input.uv;
     output.color = input.color;
     return output;

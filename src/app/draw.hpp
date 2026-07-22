@@ -36,6 +36,20 @@ struct Vertex {
     {}
 };
 
+struct MeshData
+{
+    DArray<Vertex> vertices;
+    DArray<u16> indices;
+};
+
+struct MeshReference
+{
+    int vertex_count = 0;
+    int index_count = 0;
+    int vertex_offset = 0;
+    int index_offset = 0;
+};
+
 struct GPUTexture {
     SDL_GPUTexture* texture = nullptr;
     u32 width = 0;
@@ -75,11 +89,10 @@ enum CoordinateSpace
 
 struct RenderContext {
     melv::vec2 render_size = {};
+    // @todo remove
     SDL_Renderer* renderer = nullptr;
-    DArray<SDL_GPURenderState*> render_states = {};
 
     CoordinateSpace space = {};  // what coordinate space input vertices are in
-    melv::vec2 zoomTarget = {};
 	const Camera* camera = {};
 
     // @todo switch to sdl gpu
@@ -107,6 +120,8 @@ struct RenderContext {
 
     bool start_copy_pass();
     void end_copy_pass();
+
+    bool get_command_buffer();
 
     void set_viewport(Viewport viewport);
 
@@ -147,8 +162,12 @@ enum Flip {
 bool initialize_render_context(RenderContext* render, SDL_Window* window);
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
-void start_frame(RenderContext& context, SDL_Window* window);
+bool start_frame(RenderContext& context, SDL_Window* window);
 void end_frame(RenderContext& context);
+
+MeshReference add_mesh(RenderContext& context, MeshData data);
+
+void draw_mesh(RenderContext& render, MeshReference mesh);
 
 bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);
