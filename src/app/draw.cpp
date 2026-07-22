@@ -417,6 +417,12 @@ void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::Co
     SDL_RenderFillRect(context.renderer, &dst);
 }
 
+void draw_rectangle_rotated(const RenderContext& context, melv::Rectangle area, float rotation, melv::ColorF color)
+{
+	auto quad = get_rotated_points(area, rotation);
+	draw_quad(context, quad, color);
+}
+
 void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color)
 {
     melv::vec2 dir = (end - start).normalized();

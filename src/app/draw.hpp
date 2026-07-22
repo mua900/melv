@@ -158,6 +158,7 @@ bool unloadShader(RenderContext& context, Shader& shader);
 void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
 void draw_triangle_texture(const RenderContext& context, SDL_Texture* texture, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
 void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color);
+void draw_rectangle_rotated(const RenderContext& context, melv::Rectangle area, float rotation, melv::ColorF color);
 void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
 void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, float head_ratio, melv::ColorF color);
 void draw_circle(const RenderContext& context, melv::vec2 position, float radius, melv::ColorF color);
