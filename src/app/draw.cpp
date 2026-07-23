@@ -266,7 +266,7 @@ melv::vec2 RenderContext::transformWorld(melv::vec2 p) const
 {
     if (space == CoordinateSpace::World)
     {
-        return camera->world_to_screen(p);
+        return camera->world_to_screen(p) + render_size / 2;
     }
     else
     {
