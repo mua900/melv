@@ -414,10 +414,6 @@ bool Application::keyboard_input_down(SDL_KeyboardEvent keyboard)
 bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
 {
     UiState* ui = get_active_ui();
-    if (!ui)
-    {
-        return false;
-    }
 
     switch (keyboard.scancode)
     {
@@ -434,7 +430,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_RETURN:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field)
@@ -448,7 +444,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_TAB:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field)
@@ -462,7 +458,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_BACKSPACE:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field)
@@ -483,7 +479,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_DELETE:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field)
@@ -505,7 +501,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_HOME:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field) {
@@ -522,7 +518,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         }
         case SDL_SCANCODE_END:
         {
-            if (doing_text_input)
+            if (ui && doing_text_input)
             {
                 auto field = ui->get_selected_text_field();
                 if (field) {
@@ -538,7 +534,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
             break;
         }
         case SDL_SCANCODE_LEFT: {
-            if (doing_text_input) {
+            if (ui && doing_text_input) {
                 auto field = ui->get_selected_text_field();
                 if (field) {
                     String s = field->get_string();
@@ -565,7 +561,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
             break;
         }
         case SDL_SCANCODE_RIGHT: {
-            if (doing_text_input) {
+            if (ui && doing_text_input) {
                 auto field = ui->get_selected_text_field();
                 if (field) {
                     String s = field->get_string();
