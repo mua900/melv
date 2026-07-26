@@ -329,10 +329,7 @@ SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, melv::C
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
 
-    if (!texture) {
-        SDL_DestroySurface(surface);
-        return nullptr;
-    }
+	SDL_DestroySurface(surface);
 
     return texture;
 }
