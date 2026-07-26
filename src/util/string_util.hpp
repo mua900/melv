@@ -64,9 +64,16 @@ struct MutableString {
         create(init_cap);
     }
 
+	MutableString(const char* s)
+	{
+		int len = strlen(s);
+		create(len);
+		memcpy(data, s, len * sizeof(char));
+		size = len;
+	}
+	
     MutableString(String s) {
         create(s.size);
-        ASSERT(data);
         memcpy(data, s.data, s.size * sizeof(char));
         size = s.size;
     }
