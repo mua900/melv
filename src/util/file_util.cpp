@@ -63,9 +63,20 @@ bool load_file_text(const char* filepath, String_Builder& builder)
 	return true;
 }
 
+size_t write_to_file(const char* filepath, String_Builder& builder, const char* access)
+{
+	FILE* handle = fopen(filepath, access);
+
+	size_t written = fwrite(builder.buffer, 1, builder.cursor, handle);
+
+	fclose(handle);
+
+	return written;
+}
+
 void File::write_string(String s) {
-	fwrite(&s.size, sizeof(s.size), 1, handle);
-	fwrite(s.data, sizeof(s.data[0]), s.size, handle);
+	fwrite(&s.size, 1, sizeof(s.size), handle);
+	fwrite(s.data, s.size, sizeof(s.data[0]), handle);
 }
 
 void File::write_number(double n) {

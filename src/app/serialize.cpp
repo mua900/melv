@@ -36,7 +36,9 @@ bool serialize_text(const char* outputName, SerializeState& state)
         builder.append_char('\n');
     }
 
-    return true;
+    size_t written = write_to_file(outputName, builder, "w");
+
+    return written == builder.cursor;
 }
 
 bool readback_text(const char* fileName, SerializeState* state)
@@ -85,10 +87,6 @@ bool readback_text_mem(const char* data, size_t size, SerializeState* state)
     line = string_slice_to_character(s, cursor, '\n');
     cursor += line.size;
     line.trim();
-    if (line.size != 0)
-    {
-        return false;
-    }
 
     while (cursor < s.size)
     {
@@ -103,11 +101,10 @@ bool readback_text_mem(const char* data, size_t size, SerializeState* state)
 
         int lineCursor = 0;
         String a0 = next_word(line, lineCursor, ' ');
+        // since we called trim() already, this is really just the rest of it
         String a1 = next_word(line, lineCursor, ' ');
 
-        line.advance(lineCursor);
-        line.trim();
-        if (line.size != 0)
+        if (line.size != lineCursor)
         {
             return false;
         }

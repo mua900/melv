@@ -9,6 +9,9 @@ namespace melv
 bool load_file(const char* filepath, BinaryData& bdata);
 bool load_file_text(const char* filepath, String_Builder& s);
 
+// access is directly passed to fopen
+size_t write_to_file(const char* filepath, String_Builder& s, const char* access);
+
 long get_file_size(FILE* file);
 
 struct File {
@@ -16,9 +19,14 @@ struct File {
 
     File(FILE* handle) : handle(handle) {}
 	File(String filepath, const char* access) {
-		SCOPE_STRING(filepath, buffer);
+		char* tmp = (char*) malloc(filepath.size);
 
-		handle = fopen(buffer, access);
+		memcpy(tmp, filepath.data, filepath.size);
+		tmp[filepath.size] = '\0';
+
+		handle = fopen(tmp, access);
+
+		free(tmp);
 	}
 	~File() {
 		fclose(handle);
