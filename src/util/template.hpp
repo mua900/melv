@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common.hpp"
-#include "string_util.hpp"
+#include "util/common.hpp"
+#include "util/string_util.hpp"
+#include "util/log.hpp"
 
 template <typename T>
 struct DArray {
@@ -18,6 +19,11 @@ public:
 	DArray(int cap) {
 		m_data = new T[cap];
 		m_cap = cap;
+	}
+
+	// for special use case when you are using this more as an allocator
+	void mark_full() {
+		m_size = m_cap;
 	}
 
 	void discard_data() {
@@ -415,7 +421,7 @@ struct BucketList {
 	{
 		int bucket_index = elem_index / BUCKET_SIZE;
 		int index = elem_index % BUCKET_SIZE;
-		
+
 		return buckets[bucket_index].elements[index];
 	}
 
@@ -687,7 +693,7 @@ struct List
 
 		T elem = std::move(head->element);
 		remove_start();
-		
+
 		return elem;
 	}
 

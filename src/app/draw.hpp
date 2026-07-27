@@ -102,7 +102,6 @@ struct RenderContext {
 
     melv::vec2 get_center() const { return render_size / 2; }
 
-    // you do a copy pass to update positions etc. first and then draw those every frame
     bool start_render_pass();
     void end_render_pass();
 

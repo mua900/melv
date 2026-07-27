@@ -6,6 +6,8 @@ add_library(melv
 	src/util/common.hpp
 	src/util/common.cpp
 	src/util/template.hpp
+	src/util/hash_table.hpp
+	src/util/value.hpp
 	src/util/log.hpp
 	src/util/log.cpp
 	src/util/string_util.hpp
@@ -50,9 +52,9 @@ target_include_directories(melv PUBLIC src/)
 
 add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 
-# SDL's helper libraries themselves depend on other libraries like libpng, zlib, freetype, harfbuzz and a ton of different libraries for SDL image etc.
-# SDL's own configuration uses system libraries if it's not targeting windows or android
-# it can silently skip building support for a backend or do some things without telling you
+# SDL's helper libraries themselves depend on other libraries like libpng, zlib, freetype, harfbuzz etc.
+# SDL's own configuration defaults to using system libraries if it's not targeting windows or android
+# it can silently skip building support for a backend if it doesn't find required libraries on the system
 # it is nice to have this explicitly under control under an option that is easier to control
 option(USE_VENDORED_DEPENDENCIES ON)
 if (USE_VENDORED_DEPENDENCIES)

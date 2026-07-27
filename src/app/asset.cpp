@@ -24,14 +24,6 @@ bool parse_shader_attribute(String attribute, Shader& shader);
 
 bool parse_attribute_value(String attribute, const char* key, String& out_value);
 
-String next_word(String source, int& offset)
-{
-    offset += string_match_character(source, offset, ' ');
-    String word = string_slice_to_character(source, offset, ' ');
-    offset += word.size;
-    return word;
-}
-
 #define ASSET_LINE_IS_VALID              BIT(0)
 #define ASSET_LINE_IS_COMMENT            BIT(1)
 #define ASSET_LINE_IS_EMPTY              BIT(2)
@@ -48,6 +40,8 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
     SCOPE_STRING(line, cstr);
     log_info("Asset entry: %s\n", cstr);
 #endif
+
+	char delimeter = ' ';
 
     u32 result = 0;
     AssetFlags flags = 0;
@@ -107,16 +101,16 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
     bool is_folder = false;
 
     String name = {};
-    String scope = next_word(line, cursor);
+    String scope = next_word(line, cursor, delimeter);
     if (string_compare(scope, make_string("file")))
     {
         is_folder = false;
-        name = next_word(line, cursor);
+        name = next_word(line, cursor, delimeter);
     }
     else if (string_compare(scope, make_string("folder")))
     {
         is_folder = true;
-        name = next_word(line, cursor);
+        name = next_word(line, cursor, delimeter);
     }
     else
     {
@@ -129,14 +123,14 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
 
     flags |= is_folder ? ASSET_IS_FOLDER : 0;
 
-    String path = next_word(line, cursor);
+    String path = next_word(line, cursor, delimeter);
 
     if (name.size == 0 || path.size == 0)
     {
         return 0;
     }
 
-    String next = next_word(line, cursor);
+    String next = next_word(line, cursor, delimeter);
     bool attribute = true;
     while (attribute)
     {
@@ -177,7 +171,7 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
 
         if (attribute)
         {
-            next = next_word(line, cursor);
+            next = next_word(line, cursor, delimeter);
         }
     }
 
@@ -197,7 +191,7 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
             break;
         }
 
-        next = next_word(line, cursor);
+        next = next_word(line, cursor, delimeter);
     }
 
     String trail = string_slice_to_character(line, cursor, '\n');

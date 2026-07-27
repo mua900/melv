@@ -10,7 +10,7 @@ int string_length(const char* cstr);
 
 struct String {
     const char* data = NULL;
-    int size = 0;
+    u32 size = 0;
 
     String () {}
 	explicit String (const char* d) : data(d), size(string_length(d)) {}
@@ -46,6 +46,8 @@ String string_get_extension(String s);  // the extension
 String string_get_file_name(String s);  // the string except the extension
 u64 string_hash(String s);
 
+String next_word(String source, int& offset, char delimeter);
+
 int string_to_integer(String s, bool* success);
 double string_to_real(String s, bool* success);
 
@@ -71,7 +73,7 @@ struct MutableString {
 		memcpy(data, s, len * sizeof(char));
 		size = len;
 	}
-	
+
     MutableString(String s) {
         create(s.size);
         memcpy(data, s.data, s.size * sizeof(char));
@@ -232,6 +234,11 @@ struct String_Builder {
     String to_string();
     String slice(int start, int length) const;
     String get_string(StringReference ref) const { return slice(ref.offset, ref.length); }
+    StringReference put_string_reference(String s) {
+        int offset = cursor;
+        append(s);
+        return StringReference { offset, s.size };
+    }
     StringReference get_reference(String s) const {
         s64 offset = std::ptrdiff_t(s.data - buffer);
         if (offset > 100000 || offset < 0) {
@@ -255,5 +262,5 @@ int utf8_previous(String s, int offset);
 int string_length_utf8(String s);
 
 } // namespace
-	
+
 #endif // STRING_UTIL_HPP

@@ -23,6 +23,15 @@ bool string_compare(String s1, String s2)
     return true;
 }
 
+
+String next_word(String source, int& offset, char delimeter)
+{
+    offset += string_match_character(source, offset, delimeter);
+    String word = string_slice_to_character(source, offset, delimeter);
+    offset += word.size;
+    return word;
+}
+
 String string_slice(String s, int start, int end)
 {
     return String { s.data + start, end - start };
@@ -162,11 +171,11 @@ double string_to_real(String s, bool* success)
 
 void String_Builder::create(int initial_capacity)
 {
+    ASSERT(initial_capacity > 0);
     buffer = (char*)malloc(initial_capacity);
     if (!buffer) panic("Malloc fail");
     buffer_capacity = initial_capacity;
     cursor = 0;
-    buffer[0] = '\0';
 }
 
 String_Builder::String_Builder(int initial_capacity) {
@@ -286,14 +295,12 @@ int String_Builder::append_float(float n) {
 String String_Builder::put_string(String s) {
     int c = cursor;
     append(s);
-    append_char('\0');
     return String(buffer + c, s.size);
 }
 
 String String_Builder::put_path(String path) {
     int c = cursor;
     append_path(path);
-    append_char('\0');
     return String(buffer + c, path.size);
 }
 
@@ -325,7 +332,7 @@ int String_Builder::append_many(String* strings, int n) {
 }
 
 const char* String_Builder::c_string() {
-    ensure_size(32);
+    ensure_size(this->cursor + 1);
 
     this->buffer[this->cursor] = '\0';
     return this->buffer;

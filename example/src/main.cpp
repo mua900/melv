@@ -4,6 +4,8 @@ using namespace melv;
 
 bool initialize(void *userdata, Application *app)
 {
+	// example of loading assets
+
 	AssetId vtx = get_asset(String("Vertex"), app->catalog);
 	AssetId frag = get_asset(String("Fragment"), app->catalog);
 
@@ -15,25 +17,75 @@ bool initialize(void *userdata, Application *app)
 	SDL_GPUShader* vertex = app->catalog.get_shader(vtx);
 	SDL_GPUShader* fragment = app->catalog.get_shader(frag);
 
-	if (!init_gpu_renderer(&app->render, app->window.window, vertex, fragment))
-	{
-		return false;
-	}
-
 	return true;
 }
 
 void draw(void *userdata, Application *app)
 {
-	melv::draw_triangle(app->render, vec2(100, 100), vec2(200, 200), vec2(100, 200), ColorF(0, 1, 1, 1));
+	melv::draw_rectangle(app->render, Rectangle(100, 100, 100, 100), ColorF(1, 1, 0));
+}
+
+bool handleEvent(SDL_Event event, void *userdata, Application* app)
+{
+	if (event.type == SDL_EVENT_KEY_DOWN)
+	{
+		switch (event.key.scancode)
+		{
+			case SDL_SCANCODE_ESCAPE:
+			{
+				app->quit = true;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+void handleInput(void* userdata, Application* app)
+{
+	vec2 mouse_pos = app->input.mouse.pos;
+
+	if ((mouse_pos - vec2(100, 100)).magnitude() < 100)
+	{
+		log_info("Heyyyy");
+	}
+}
+
+void updateFunc(void *userdata, Application *app)
+{
+	float *number = (float*) userdata;
+
+	float dt = app->timeInfo.deltaTimeSeconds;
+	*number = dt;
+}
+
+void fixedUpdate(void *userdata, Application *app)
+{
+	float *number = (float*) userdata;
+
+	float dt = app->user.update_state->calculateTimeStep() * app->user.update_state->timeScale;
+
+	*number = dt;
 }
 
 int main()
 {
 	melv::Application app;
 
+	float number = 0;
+
+	UpdateState update = {};
+
+	update.fixedUpdate = fixedUpdate;
+	update.update = updateFunc;
+
+	app.user.userdata = &number;
 	app.user.init = initialize;
 	app.user.draw = draw;
+	app.user.event = handleEvent;
+	app.user.input = handleInput;
+	app.user.update_state = &update;
 
 	if (!app.initialize(melv::get_default_init_configuration()))
 	{
