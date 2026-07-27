@@ -32,6 +32,14 @@ String next_word(String source, int& offset, char delimeter)
     return word;
 }
 
+String string_get_paren_content(String source, int& offset, char delimOpen, char delimClose)
+{
+    offset += string_match_character(source, offset, delimOpen);
+    String word = string_slice_to_character(source, offset, delimClose);
+    offset += word.size;
+    return word;
+}
+
 String string_slice(String s, int start, int end)
 {
     return String { s.data + start, end - start };

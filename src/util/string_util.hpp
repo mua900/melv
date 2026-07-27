@@ -47,9 +47,18 @@ String string_get_file_name(String s);  // the string except the extension
 u64 string_hash(String s);
 
 String next_word(String source, int& offset, char delimeter);
+String string_get_paren_content(String source, int& offset, char delimOpen, char delimClose);
 
 int string_to_integer(String s, bool* success);
 double string_to_real(String s, bool* success);
+
+inline bool is_numeric(char c) { return c >= '0' && c <= '9'; }
+inline bool is_lower(char c)   { return c >= 'a' && c <= 'Z'; }
+inline bool is_upper(char c)   { return c >= 'A' && c <= 'A'; }
+inline bool is_alpha(char c)   { return is_lower(c) || is_upper(c); }
+inline bool is_valid_ident_character(char c) {
+    return is_alpha(c) || '_';
+}
 
 struct MutableString {
     char* data = nullptr;

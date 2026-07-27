@@ -12,10 +12,19 @@ struct Value
     } type;
 
     union {
-        String string;
+        // @todo who stores this?
+        // String string;
         s64 integer;
         double real;
     } data = {};
+
+    Value() {}
+    Value(s64 s) : type(INTEGER) {
+        data.integer = s;
+    }
+    Value(double r) : type(REAL) {
+        data.real = r;
+    }
 };
 
 } // namespace
