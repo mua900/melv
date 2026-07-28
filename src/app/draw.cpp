@@ -32,9 +32,32 @@ bool start_frame(RenderContext& context, SDL_Window* window) {
 }
 
 void end_frame(RenderContext& context) {
+
+    /*
+    // copy the result in the render target to the swapchain
+    {
+        SDL_GPUColorTargetInfo color_targets[1] = {};
+        color_targets[0].texture = frame.swapchain.texture;
+        color_targets[0].mip_level = 0;
+        color_targets[0].layer_or_depth_plane = 0;
+        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
+        color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
+        color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
+        color_targets[0].resolve_texture = nullptr;
+        color_targets[0].resolve_mip_level = 0;
+        color_targets[0].resolve_layer = 0;
+        color_targets[0].cycle = true;
+        color_targets[0].cycle_resolve_texture = false;
+        SDL_GPURenderPass *swapchain_render_pass = SDL_BeginGPURenderPass(context.frame.command_buffer, &color_target_info, 1, nullptr);
+
+        SDL_EndGPURenderPass(swapchain_render_pass);
+    }
+    */
+
     if (context.frame.command_buffer)
     {
         SDL_SubmitGPUCommandBuffer(context.frame.command_buffer);
+        context.frame.command_buffer = nullptr;
     }
 }
 
@@ -46,6 +69,15 @@ bool RenderContext::get_command_buffer()
     SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(device);
     frame.command_buffer = command_buffer;
     return command_buffer ? true : false;
+}
+
+void RenderContext::submit_command_buffer()
+{
+    if (frame.command_buffer)
+    {
+        SDL_SubmitGPUCommandBuffer(frame.command_buffer);
+        frame.command_buffer = nullptr;
+    }
 }
 
 bool RenderContext::start_render_pass() {
@@ -264,25 +296,31 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     return true;
 }
 
-MeshReference add_mesh(RenderContext& context, MeshData data)
+TransferMemory add_mesh_to_transfer_buffer(RenderContext& context, MeshData data)
 {
-    MeshReference reference = {};
-
     u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, true);
+    if (!memory)
+    {
+        return TransferMemory();
+    }
     size_t vertex_byte = data.vertices.size() * sizeof(Vertex);
     size_t index_byte = data.indices.size() * sizeof(u16);
     memcpy(memory, data.vertices.data(), vertex_byte);
     memcpy(memory + vertex_byte, data.indices.data(), index_byte);
     SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer.buffer);
 
-    SDL_GPUCommandBuffer* command_buffer = context.frame.command_buffer;
-    ASSERT(command_buffer);
+    return TransferMemory(memory, vertex_byte, index_byte);
+}
 
-    SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(command_buffer);
-    if (!copy_pass)
-    {
-        return reference;
-    }
+MeshReference add_mesh(RenderContext& context, TransferMemory memory)
+{
+    SDL_GPUCommandBuffer* command_buffer = context.frame.command_buffer;
+
+    MeshReference reference = {};
+
+    // strict
+    ASSERT(command_buffer);
+    ASSERT(context.frame.copy_pass);
 
     SDL_GPUTransferBufferLocation source;
     source.transfer_buffer = context.transfer_buffer.buffer;
@@ -291,28 +329,26 @@ MeshReference add_mesh(RenderContext& context, MeshData data)
     SDL_GPUBufferRegion destination;
     destination.buffer = context.vertex_buffer.buffer;
     destination.offset = context.vertex_buffer.used;
-    destination.size = vertex_byte;
-    SDL_UploadToGPUBuffer(copy_pass, &source, &destination, true);
+    destination.size = memory.vertex_byte;
+    SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
 
     reference.vertex_offset = context.vertex_buffer.used;
 
-    context.vertex_buffer.used += vertex_byte;
+    context.vertex_buffer.used += memory.vertex_byte;
 
-    source.offset = vertex_byte;
+    source.offset = memory.vertex_byte;
 
     destination.buffer = context.index_buffer.buffer;
     destination.offset = context.index_buffer.used;
-    destination.size = index_byte;
-    SDL_UploadToGPUBuffer(copy_pass, &source, &destination, true);
+    destination.size = memory.index_byte;
+    SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
 
     reference.index_offset = context.index_buffer.used;
 
-    context.index_buffer.used += index_byte;
+    context.index_buffer.used += memory.index_byte;
 
-    SDL_EndGPUCopyPass(copy_pass);
-
-    reference.vertex_count = data.vertices.size();
-    reference.index_count = data.indices.size();
+    reference.vertex_count = memory.vertex_byte;
+    reference.index_count = memory.index_byte;
 
     return reference;
 }

@@ -62,6 +62,15 @@ struct GPUBuffer {
     u32 used = 0;
 };
 
+struct TransferMemory {
+    u8* memory = nullptr;  // memory mapped from the driver
+    size_t vertex_byte = 0;
+    size_t index_byte = 0;
+
+    TransferMemory() {}
+    TransferMemory(u8* mem, size_t vb, size_t ib) : memory(mem), vertex_byte(vb), index_byte(ib) {}
+};
+
 struct TransferBuffer {
     SDL_GPUTransferBuffer* buffer = nullptr;
     u32 size = 0;
@@ -130,6 +139,8 @@ struct RenderContext {
     void end_copy_pass();
 
     bool get_command_buffer();
+    void submit_command_buffer();
+    void cancel_command_buffer(); // @todo
 
     void set_viewport(Viewport viewport);
 
@@ -173,7 +184,8 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
 bool start_frame(RenderContext& context, SDL_Window* window);
 void end_frame(RenderContext& context);
 
-MeshReference add_mesh(RenderContext& context, MeshData data);
+TransferMemory add_mesh_to_transfer_buffer(RenderContext& context, MeshData data);
+MeshReference add_mesh(RenderContext& context, TransferMemory memory);
 
 void draw_mesh(RenderContext& render, MeshReference mesh);
 

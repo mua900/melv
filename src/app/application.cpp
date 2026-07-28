@@ -121,16 +121,6 @@ bool Application::initialize(InitConfiguration conf)
         input.keyboard.do_input = true;
     }
 
-	quit = false;
-
-	if (user.init)
-	{
-		if (!user.init(user.userdata, this))
-		{
-			return false;
-		}
-	}
-
     SDL_GPUShaderCreateInfo vertexInfo = {};
     SDL_GPUShaderCreateInfo fragmentInfo = {};
 
@@ -170,8 +160,18 @@ bool Application::initialize(InitConfiguration conf)
     SDL_GPUShader *fragment = SDL_CreateGPUShader(render.device, &fragmentInfo);
     if (!init_gpu_renderer(&render, window.window, vertex, fragment))
     {
-
+        return false;
     }
+
+	if (user.init)
+	{
+		if (!user.init(user.userdata, this))
+		{
+			return false;
+		}
+	}
+
+	quit = false;
 
     return true;
 }

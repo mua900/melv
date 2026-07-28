@@ -3,16 +3,82 @@
 
 using namespace melv;
 
+struct State
+{
+	MeshReference triangle = {};
+	MeshReference quad = {};
+};
+
 bool initialize(void *userdata, Application *app)
 {
+	State* state = (State*) userdata;
 	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
+
+	TransferMemory triangle, quad;
+
+	Vertex vertices[10] = {
+		{ 1,     0,     0, 0, 1, 0, 0, 1},
+		{ -0.5,  0.866, 0, 0, 1, 0, 0, 1},
+		{ -0.5, -0.866, 0, 0, 1, 0, 0, 1},
+	};
+	u16 indices[10] = {
+		0, 1, 2
+	};
+
+	MeshData mesh = {};
+	mesh.vertices.add_array(vertices, 3);
+	mesh.indices.add_array(indices, 3);
+
+	triangle = add_mesh_to_transfer_buffer(app->render, mesh);
+
+	vertices[0] = { 0,   0,   0, 0, 0, 1, 0, 1 };
+	vertices[1] = { 0.5, 0,   0, 0, 0, 1, 0, 1 };
+	vertices[2] = { 0.5, 0.5, 0, 0, 0, 1, 0, 1 };
+	vertices[3] = { 0,   0.5, 0, 0, 0, 1, 0, 1 };
+
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+	indices[3] = 0;
+	indices[4] = 2;
+	indices[5] = 3;
+
+	mesh.vertices.discard_data();
+	mesh.indices.discard_data();
+	mesh.vertices.add_array(vertices, 4);
+	mesh.indices.add_array(indices, 6);
+	quad = add_mesh_to_transfer_buffer(app->render, mesh);
+
+	/*
+	if (!app->render.get_command_buffer())
+	{
+		return false;
+	}
+
+	if (!app->render.start_copy_pass())
+	{
+		log_info("Couldn't start copy pass");
+		app->render.submit_command_buffer();
+		return false;
+	}
+
+	state->triangle = add_mesh(app->render, triangle);
+	state->quad = add_mesh(app->render, quad);
+
+	app->render.end_copy_pass();
+	app->render.submit_command_buffer();
+	*/
 
 	return true;
 }
 
 void draw(void *userdata, Application *app)
 {
-	melv::draw_rectangle(app->render, Rectangle(100, 100, 100, 100), ColorF(1, 1, 0));
+	State* state = (State*) userdata;
+
+	// @todo
+	// melv::draw_mesh(app->render, state->triangle);
+	// melv::draw_mesh(app->render, state->quad);
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
