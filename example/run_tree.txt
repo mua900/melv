@@ -1,2 +1,2 @@
-shader Vertex shader/vertex.spv stage=vertex
-shader Fragment shader/fragment.spv stage=fragment
+shader Vertex shader/binary/vertex.spv stage=vertex
+shader Fragment shader/binary/fragment.spv stage=fragment

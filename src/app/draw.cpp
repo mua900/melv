@@ -51,14 +51,14 @@ bool RenderContext::get_command_buffer()
 bool RenderContext::start_render_pass() {
     SDL_GPURenderPass* render_pass = nullptr;
 
+    // no point if we didn't get the swapchain texture
     if (frame.swapchain.texture)
     {
         SDL_GPUColorTargetInfo color_targets[1] = {};
-        // @todo render to render target
         color_targets[0].texture = frame.swapchain.texture;
         color_targets[0].mip_level = 0;
         color_targets[0].layer_or_depth_plane = 0;
-        color_targets[0].clear_color = SDL_FColor{ DEBUG_COLOR.r, DEBUG_COLOR.g, DEBUG_COLOR.b, DEBUG_COLOR.a };
+        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
         color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
         color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
         color_targets[0].resolve_texture = nullptr;
@@ -70,9 +70,12 @@ bool RenderContext::start_render_pass() {
         render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
 
         SDL_BindGPUGraphicsPipeline(render_pass, graphics);
-    }
 
-    SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+        melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
+        melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
+        mat4mul(&mvp, &orthographic, &camera);
+        SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+    }
 
     frame.render_pass = render_pass;
     return render_pass ? true : false;
@@ -105,23 +108,6 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window)
 
     SDL_ClaimWindowForGPUDevice(device, window);
 
-    // @todo fix vsync
-    /*
-	{
-		bool set_Vsync = SDL_SetRenderVSync(renderer, 1);
-
-
-		if (set_Vsync)
-		{
-			log_info("Using vsync");
-		}
-		else
-		{
-			log_info("Couldn't use vsync: %s", SDL_GetError());
-		}
-	}
-    */
-
     int render_size_x, render_size_y;
     SDL_GetWindowSize(window, &render_size_x, &render_size_y);
 
@@ -129,7 +115,6 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window)
     render->render_size = melv::vec2(render_size_x, render_size_y);
 
     melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
-    // @todo camera matrix
     melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
     mat4mul(&render->mvp, &orthographic, &camera);
 
@@ -138,6 +123,11 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window)
 
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 {
+    if (render->gpu_inited())
+    {
+        return true;
+    }
+
     SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
     SDL_GPUVertexAttribute vertex_attributes[3] = {};
     vertex_buffer_description[0].slot = 0;                        /**< The binding slot of the vertex buffer. */
@@ -247,7 +237,26 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     transferInfo.size = 1024;  // @todo
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
+    SDL_GPUTextureCreateInfo renderTargetCI = {};
+    renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
+    // @todo this needs to change if swapchain changes
+    // or create it in a known format
+    renderTargetCI.format = SDL_GetGPUSwapchainTextureFormat(render->device, window);
+    renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+    renderTargetCI.width = render->render_size.x;
+    renderTargetCI.height = render->render_size.y;
+    renderTargetCI.layer_count_or_depth = 1;
+    renderTargetCI.num_levels = 1;
+    renderTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
+    SDL_GPUTexture *render_target = SDL_CreateGPUTexture(render->device, &renderTargetCI);
+
+    if (!render_target)
+    {
+        return false;
+    }
+
     render->graphics = pipeline;
+    render->render_target = render_target;
     render->vertex_buffer = { vertex_buffer, vertex_info.size, 0 };
     render->index_buffer = { index_buffer, index_info.size, 0 };
     render->transfer_buffer = { transfer_buffer, transferInfo.size };

@@ -95,6 +95,8 @@ struct RenderContext {
     CoordinateSpace space = {};  // what coordinate space input vertices are in
 	const Camera* camera = {};
 
+    ColorF clear_color = {};
+
     // @todo switch to sdl gpu
     // all below belongs to incomplete code
     SDL_GPUDevice* device = nullptr;
@@ -105,6 +107,7 @@ struct RenderContext {
     GPUBuffer index_buffer = {};
     SDL_GPUSampler* sampler = nullptr;
     SDL_GPUGraphicsPipeline* graphics = nullptr;
+    SDL_GPUTexture* render_target = nullptr;
 
     TransferBuffer transfer_buffer = {};
 
@@ -112,6 +115,11 @@ struct RenderContext {
 
     DArray<SDL_Vertex> vertex_scratch = {};
     DArray<int> index_scratch = {};
+
+    bool gpu_inited() const
+    {
+        return device && graphics && render_target;
+    }
 
     melv::vec2 get_center() const { return render_size / 2; }
 

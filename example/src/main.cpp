@@ -18,6 +18,10 @@ bool initialize(void *userdata, Application *app)
 	SDL_GPUShader* vertex = app->catalog.get_shader(vtx);
 	SDL_GPUShader* fragment = app->catalog.get_shader(frag);
 
+	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
+
+	init_gpu_renderer(&app->render, app->window.window, vertex, fragment);
+
 	return true;
 }
 
@@ -49,7 +53,8 @@ void handleInput(void* userdata, Application* app)
 
 	if ((mouse_pos - vec2(100, 100)).magnitude() < 100)
 	{
-		log_info("Heyyyy");
+		app->render.clear_color.r += 0.1;
+		app->render.clear_color.r = fmodf(app->render.clear_color.r, 1.0f);
 	}
 }
 

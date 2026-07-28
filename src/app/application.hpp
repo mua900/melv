@@ -103,7 +103,7 @@ public:
 	// you can directly access everything here
 	// maybe be careful with doing_text_input
 	// also if you set render context's coordinate space to be world, you need to give it a camera pointer
-	
+
     Window window = {};
     RenderContext render = {};
     AudioPlayer audio_player = {};
@@ -111,8 +111,6 @@ public:
     AssetCatalog catalog = {};
 
     DArray<UiState> uiStates = {};
-	
-    melv::Color clear_color = {};
 
     TimeInfo timeInfo = {};
 
@@ -149,7 +147,7 @@ private:
     UiState* get_active_ui();
 
 	void user_update();
-	
+
     void timeout();
     void update_ui_state(melv::vec2 window_size);
     void update_ui_pos();

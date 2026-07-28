@@ -126,6 +126,14 @@ bool Application::initialize(InitConfiguration conf)
 		}
 	}
 
+    // @todo
+    SDL_GPUShader *vertex = nullptr;
+    SDL_GPUShader *fragment = nullptr;
+    if (!init_gpu_renderer(&render, window.window, vertex, fragment))
+    {
+
+    }
+
     return true;
 }
 
@@ -1340,7 +1348,7 @@ void Application::text_input_stop()
         uiStates[i].text_input_target = {};
     }
 
-    clear_color = {};
+    render.clear_color = {};
 }
 
 void Application::text_input_start()
@@ -1349,7 +1357,8 @@ void Application::text_input_start()
     doing_text_input = true;
     input.keyboard.do_input = false;
 
-    clear_color = {0, 0x44, 0x66, 0xff};
+    // @todo not hardcode
+    render.clear_color = {0, 0x44, 0x66, 0xff};
 }
 
 void Application::toggle_text_input()
