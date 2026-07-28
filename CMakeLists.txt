@@ -33,6 +33,8 @@ add_library(melv
 	src/app/draw.cpp
 	src/app/camera.hpp
 	src/app/camera.cpp
+	src/app/animation.hpp
+	src/app/animation.cpp
 	src/app/serialize.hpp
 	src/app/serialize.cpp
 )

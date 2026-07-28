@@ -88,24 +88,6 @@ int main()
 	app.user.input = handleInput;
 	app.user.update_state = &update;
 
-	const char* filename = "test.out";
-
-	SerializeState state;
-	if (!readback_text(filename, &state))
-	{
-		log_error("Couldn't read back");
-		return 1;
-	}
-	// state.values.add(String("a0"), Value(s64(10)));
-	// state.values.add(String("a1"), Value(double(10)));
-	// state.values.add(String("a2"), Value(s64(10542)));
-
-	if (!serialize_text(filename, state))
-	{
-		log_error("Couldn't serialize");
-		return 1;
-	}
-
 	if (!app.initialize(melv::get_default_init_configuration()))
 	{
 		return 1;
