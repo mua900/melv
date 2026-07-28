@@ -142,7 +142,6 @@ bool Application::initialize(InitConfiguration conf)
     SDL_GPUShaderFormat shaderFormat = SDL_GetGPUShaderFormats(render.device);
     if (shaderFormat & SDL_GPU_SHADERFORMAT_DXIL)
     {
-        log_info("dxil");
         vertexInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
         fragmentInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
 
@@ -153,7 +152,6 @@ bool Application::initialize(InitConfiguration conf)
     }
     else if (shaderFormat & SDL_GPU_SHADERFORMAT_SPIRV)
     {
-        log_info("spv");
         vertexInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
         fragmentInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
 

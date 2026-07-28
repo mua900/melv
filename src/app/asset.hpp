@@ -32,6 +32,11 @@ struct AssetId {
     bool is_valid() const { return id != -1 && generation != 0; }
 };
 
+using ImageId = AssetId;
+using AudioId = AssetId;
+using FotnId = AssetId;
+using ShaderId = AssetId;
+
 static constexpr AssetId NullAssetId = AssetId {-1, 0};
 
 struct AssetLoadContext {
