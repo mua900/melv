@@ -5,22 +5,7 @@ using namespace melv;
 
 bool initialize(void *userdata, Application *app)
 {
-	// example of loading assets
-
-	AssetId vtx = get_asset(String("Vertex"), app->catalog);
-	AssetId frag = get_asset(String("Fragment"), app->catalog);
-
-	if (!(vtx.is_valid() && frag.is_valid()))
-	{
-		return false;
-	}
-
-	SDL_GPUShader* vertex = app->catalog.get_shader(vtx);
-	SDL_GPUShader* fragment = app->catalog.get_shader(frag);
-
 	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
-
-	init_gpu_renderer(&app->render, app->window.window, vertex, fragment);
 
 	return true;
 }

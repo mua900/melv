@@ -37,6 +37,11 @@ add_library(melv
 	src/app/animation.cpp
 	src/app/serialize.hpp
 	src/app/serialize.cpp
+
+	src/bundle/vertex_spv.h
+	src/bundle/fragment_spv.h
+	src/bundle/vertex_dxil.h
+	src/bundle/fragment_dxil.h
 )
 
 option(BUILD_EXAMPLE_PROGRAM OFF)

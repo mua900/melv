@@ -6,6 +6,11 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_mixer/SDL_mixer.h>
 
+#include "bundle/vertex_dxil.h"
+#include "bundle/vertex_spv.h"
+#include "bundle/fragment_dxil.h"
+#include "bundle/fragment_spv.h"
+
 namespace melv
 {
 
@@ -126,9 +131,45 @@ bool Application::initialize(InitConfiguration conf)
 		}
 	}
 
-    // @todo
-    SDL_GPUShader *vertex = nullptr;
-    SDL_GPUShader *fragment = nullptr;
+    SDL_GPUShaderCreateInfo vertexInfo = {};
+    SDL_GPUShaderCreateInfo fragmentInfo = {};
+
+    // @todo other shader formats
+    // @todo i am not sure about the behavior of this on a system that might support multiple shader formats
+    // like on windows maybe
+    // we probably want to prioritize something like a native format
+
+    SDL_GPUShaderFormat shaderFormat = SDL_GetGPUShaderFormats(render.device);
+    if (shaderFormat & SDL_GPU_SHADERFORMAT_DXIL)
+    {
+        log_info("dxil");
+        vertexInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+        fragmentInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+
+        vertexInfo.code_size = vertex_dxil_len;
+        vertexInfo.code = vertex_dxil;
+        fragmentInfo.code_size = fragment_dxil_len;
+        fragmentInfo.code = fragment_dxil;
+    }
+    else if (shaderFormat & SDL_GPU_SHADERFORMAT_SPIRV)
+    {
+        log_info("spv");
+        vertexInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        fragmentInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+
+        vertexInfo.code_size = vertex_spv_len;
+        vertexInfo.code = vertex_spv;
+        fragmentInfo.code_size = fragment_spv_len;
+        fragmentInfo.code = fragment_spv;
+    }
+    else
+    {
+        log_info("No supported shader formats");
+        return false;
+    }
+
+    SDL_GPUShader *vertex = SDL_CreateGPUShader(render.device, &vertexInfo);
+    SDL_GPUShader *fragment = SDL_CreateGPUShader(render.device, &fragmentInfo);
     if (!init_gpu_renderer(&render, window.window, vertex, fragment))
     {
 
