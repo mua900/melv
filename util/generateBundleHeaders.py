@@ -25,7 +25,7 @@ def main():
     args = parser.parse_args()
 
     # output
-    directory : str = os.path.dirname(os.path.normpath(__file__)) + "/src/bundle/"
+    directory : str = os.path.dirname(os.path.normpath(__file__)) + "../src/bundle/"
     var_name : str = args.variable_name
 
     data : bytes

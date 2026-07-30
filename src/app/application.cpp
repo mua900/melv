@@ -39,20 +39,20 @@ bool Application::initialize(InitConfiguration conf)
 
     get_base_path(path);
     if (!read_asset_catalog(path)) {
-        log_error("Could not read asset catalog\n");
+        log_error("Could not read asset catalog");
         return false;
     }
 
     {
         if (!TTF_Init())
         {
-            fprintf(stderr, "Could not initialize TTF: %s\n", SDL_GetError());
+            log_error("Could not initialize TTF: %s", SDL_GetError());
             return false;
         }
 
         if (!MIX_Init())
         {
-            fprintf(stderr, "Could not initialize MIX: %s\n", SDL_GetError());
+            log_error("Could not initialize MIX: %s", SDL_GetError());
             return false;
         }
     }
