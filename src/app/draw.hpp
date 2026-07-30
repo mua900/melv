@@ -178,7 +178,7 @@ enum Flip {
     FlipHorizontalAndVertical = SDL_FLIP_HORIZONTAL_AND_VERTICAL,
 };
 
-bool initialize_render_context(RenderContext* render, SDL_Window* window);
+bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
 bool start_frame(RenderContext& context, SDL_Window* window);

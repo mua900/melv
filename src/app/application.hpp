@@ -84,16 +84,17 @@ struct UserData {
 
 struct InitConfiguration {
 	// 1440, 810
-	int window_width;
-	int window_height;
+	int window_width = 0;
+	int window_height = 0;
 
 	// VIDEO | AUDIO
-	SDL_InitFlags flags;
+	SDL_InitFlags flags = 0;
 
 	// Default Name
-	const char* name;
+	const char* name = nullptr;
 
-	// not a part of this but you probably want to fill out app.update_state and app.user
+    // enable debug layers for the gpu
+    bool gpuDebug = false;
 };
 
 InitConfiguration get_default_init_configuration();
@@ -137,7 +138,7 @@ public:
 
 	Camera init_camera() const;
 private:
-    bool init_render();
+    bool init_render(bool enableDebug);
 
 	bool load_assets();
     bool reload_assets();

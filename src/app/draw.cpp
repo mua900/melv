@@ -37,10 +37,10 @@ void end_frame(RenderContext& context) {
     // copy the result in the render target to the swapchain
     {
         SDL_GPUColorTargetInfo color_targets[1] = {};
-        color_targets[0].texture = frame.swapchain.texture;
+        color_targets[0].texture = context.frame.swapchain.texture;
         color_targets[0].mip_level = 0;
         color_targets[0].layer_or_depth_plane = 0;
-        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
+        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(context.clear_color) };
         color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
         color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
         color_targets[0].resolve_texture = nullptr;
@@ -48,7 +48,7 @@ void end_frame(RenderContext& context) {
         color_targets[0].resolve_layer = 0;
         color_targets[0].cycle = true;
         color_targets[0].cycle_resolve_texture = false;
-        SDL_GPURenderPass *swapchain_render_pass = SDL_BeginGPURenderPass(context.frame.command_buffer, &color_target_info, 1, nullptr);
+        SDL_GPURenderPass *swapchain_render_pass = SDL_BeginGPURenderPass(context.frame.command_buffer, color_targets, 1, nullptr);
 
         SDL_EndGPURenderPass(swapchain_render_pass);
     }
@@ -130,9 +130,9 @@ void RenderContext::end_copy_pass() {
     frame.copy_pass = nullptr;
 }
 
-bool initialize_render_context(RenderContext* render, SDL_Window* window)
+bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug)
 {
-    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, false, nullptr);
+    SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, enableGpuDebug, nullptr);
     if (!device)
     {
         return false;

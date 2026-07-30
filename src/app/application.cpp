@@ -25,6 +25,8 @@ InitConfiguration get_default_init_configuration()
 
 	conf.name = "Default Name";
 
+	conf.gpuDebug = false;
+
 	return conf;
 }
 
@@ -75,7 +77,7 @@ bool Application::initialize(InitConfiguration conf)
 
         window = { w };
 
-        if (!init_render())
+        if (!init_render(conf.gpuDebug))
         {
             return false;
         }
@@ -914,9 +916,9 @@ void Application::cleanup()
 	}
 }
 
-bool Application::init_render()
+bool Application::init_render(bool enableDebug)
 {
-    if (!initialize_render_context(&render, window.window))
+    if (!initialize_render_context(&render, window.window, enableDebug))
     {
         return false;
     }

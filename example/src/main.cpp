@@ -49,7 +49,6 @@ bool initialize(void *userdata, Application *app)
 	mesh.indices.add_array(indices, 6);
 	quad = add_mesh_to_transfer_buffer(app->render, mesh);
 
-	/*
 	if (!app->render.get_command_buffer())
 	{
 		return false;
@@ -67,7 +66,6 @@ bool initialize(void *userdata, Application *app)
 
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
-	*/
 
 	return true;
 }
@@ -144,7 +142,10 @@ int main()
 	app.user.input = handleInput;
 	app.user.update_state = &update;
 
-	if (!app.initialize(melv::get_default_init_configuration()))
+	InitConfiguration conf = melv::get_default_init_configuration();
+	conf.gpuDebug = true;
+
+	if (!app.initialize(conf))
 	{
 		return 1;
 	}
