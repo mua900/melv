@@ -138,7 +138,10 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
         return false;
     }
 
-    SDL_ClaimWindowForGPUDevice(device, window);
+    if (!SDL_ClaimWindowForGPUDevice(device, window))
+    {
+        return false;
+    }
 
     int render_size_x, render_size_y;
     SDL_GetWindowSize(window, &render_size_x, &render_size_y);
@@ -155,10 +158,7 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
 
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 {
-    if (render->gpu_inited())
-    {
-        return true;
-    }
+    // @todo provide a version that just swaps out shaders
 
     SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
     SDL_GPUVertexAttribute vertex_attributes[3] = {};
@@ -264,6 +264,8 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
         return false;
     }
 
+    // @todo a way to allocate and reallocate gpu buffers in the api
+
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     transferInfo.size = 1024;  // @todo
@@ -296,61 +298,107 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     return true;
 }
 
-TransferMemory add_mesh_to_transfer_buffer(RenderContext& context, MeshData data)
+TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data)
 {
+    if (data.size() == 0)
+    {
+        return TransferData();
+    }
+
+    int vcount = 0;
+    int icount = 0;
+    for (auto mesh : data)
+    {
+        vcount += mesh.vertices.size();
+        icount += mesh.indices.size();
+    }
+
+    size_t total = vcount * sizeof(Vertex) + icount * sizeof(u16);
+    if (total > context.transfer_buffer.size)
+    {
+        return TransferData();
+    }
+
     u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, true);
     if (!memory)
     {
-        return TransferMemory();
+        return TransferData();
     }
-    size_t vertex_byte = data.vertices.size() * sizeof(Vertex);
-    size_t index_byte = data.indices.size() * sizeof(u16);
-    memcpy(memory, data.vertices.data(), vertex_byte);
-    memcpy(memory + vertex_byte, data.indices.data(), index_byte);
+
+    size_t offset = 0;
+
+    DArray<MeshDataSize> meshes = {};
+
+    for (auto mesh : data)
+    {
+        int vertex_count = mesh.vertices.size();
+        int index_count = mesh.indices.size();
+
+        size_t vertex_byte = vertex_count * sizeof(Vertex);
+        size_t index_byte = index_count * sizeof(u16);
+        memcpy(memory + offset, mesh.vertices.data(), vertex_byte);
+        offset += vertex_byte;
+        memcpy(memory + offset, mesh.indices.data(), index_byte);
+        offset += index_byte;
+
+        meshes.add(MeshDataSize(vertex_count, index_count));
+    }
+
     SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer.buffer);
 
-    return TransferMemory(memory, vertex_byte, index_byte);
+    return TransferData(meshes);
 }
 
-MeshReference add_mesh(RenderContext& context, TransferMemory memory)
+DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& memory)
 {
     SDL_GPUCommandBuffer* command_buffer = context.frame.command_buffer;
 
-    MeshReference reference = {};
-
-    // strict
     ASSERT(command_buffer);
     ASSERT(context.frame.copy_pass);
 
-    SDL_GPUTransferBufferLocation source;
-    source.transfer_buffer = context.transfer_buffer.buffer;
-    source.offset = 0;
+    DArray<MeshReference> refs = {};
 
-    SDL_GPUBufferRegion destination;
-    destination.buffer = context.vertex_buffer.buffer;
-    destination.offset = context.vertex_buffer.used;
-    destination.size = memory.vertex_byte;
-    SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
+    size_t transfer_offset = 0;
 
-    reference.vertex_offset = context.vertex_buffer.used;
+    for (auto mesh : memory.meshes)
+    {
+        MeshReference reference = {};
 
-    context.vertex_buffer.used += memory.vertex_byte;
+        size_t vertex_byte = mesh.vertex_count * sizeof(Vertex);
+        size_t index_byte = mesh.index_count * sizeof(u16);
 
-    source.offset = memory.vertex_byte;
+        SDL_GPUTransferBufferLocation source;
+        source.transfer_buffer = context.transfer_buffer.buffer;
+        source.offset = transfer_offset;
 
-    destination.buffer = context.index_buffer.buffer;
-    destination.offset = context.index_buffer.used;
-    destination.size = memory.index_byte;
-    SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
+        SDL_GPUBufferRegion destination;
+        destination.buffer = context.vertex_buffer.buffer;
+        destination.offset = context.vertex_buffer.used;
+        destination.size = vertex_byte;
+        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
 
-    reference.index_offset = context.index_buffer.used;
+        reference.vertex_offset = context.vertex_buffer.used;
+        context.vertex_buffer.used += vertex_byte;
+        transfer_offset += vertex_byte;
 
-    context.index_buffer.used += memory.index_byte;
+        source.offset = vertex_byte;
 
-    reference.vertex_count = memory.vertex_byte;
-    reference.index_count = memory.index_byte;
+        destination.buffer = context.index_buffer.buffer;
+        destination.offset = context.index_buffer.used;
+        destination.size = index_byte;
+        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
 
-    return reference;
+        reference.index_offset = context.index_buffer.used;
+        context.index_buffer.used += index_byte;
+        transfer_offset += index_byte;
+
+        reference.vertex_count = mesh.vertex_count;
+        reference.index_count = mesh.index_count;
+
+        refs.add(reference);
+    }
+
+    return refs;
 }
 
 void draw_mesh(RenderContext& render, MeshReference mesh)

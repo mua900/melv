@@ -38,6 +38,7 @@ add_library(melv
 	src/app/serialize.hpp
 	src/app/serialize.cpp
 
+	src/bundle/bundle_shaders.h
 	src/bundle/vertex_spv.h
 	src/bundle/fragment_spv.h
 	src/bundle/vertex_dxil.h

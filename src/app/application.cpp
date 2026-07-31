@@ -6,10 +6,7 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_mixer/SDL_mixer.h>
 
-#include "bundle/vertex_dxil.h"
-#include "bundle/vertex_spv.h"
-#include "bundle/fragment_dxil.h"
-#include "bundle/fragment_spv.h"
+#include "bundle/bundle_shaders.h"
 
 namespace melv
 {
@@ -125,6 +122,12 @@ bool Application::initialize(InitConfiguration conf)
 
     SDL_GPUShaderCreateInfo vertexInfo = {};
     SDL_GPUShaderCreateInfo fragmentInfo = {};
+
+    vertexInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+    fragmentInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+
+    vertexInfo.entrypoint = "main";
+    fragmentInfo.entrypoint = "main";
 
     // @todo other shader formats
     // @todo i am not sure about the behavior of this on a system that might support multiple shader formats

@@ -5,8 +5,8 @@ using namespace melv;
 
 struct State
 {
-	MeshReference triangle = {};
-	MeshReference quad = {};
+	float number = 0;
+	DArray<MeshReference> references = {};
 };
 
 bool initialize(void *userdata, Application *app)
@@ -14,7 +14,18 @@ bool initialize(void *userdata, Application *app)
 	State* state = (State*) userdata;
 	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
 
-	TransferMemory triangle, quad;
+	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
+	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
+
+	SDL_GPUShader *vertex = app->catalog.get_shader(vertexId);
+	SDL_GPUShader *fragment = app->catalog.get_shader(fragmentId);
+
+	if (!init_gpu_renderer(&app->render, app->window.window, vertex, fragment))
+	{
+		return false;
+	}
+
+	TransferData triangle, quad;
 
 	Vertex vertices[10] = {
 		{ 1,     0,     0, 0, 1, 0, 0, 1},
@@ -25,11 +36,13 @@ bool initialize(void *userdata, Application *app)
 		0, 1, 2
 	};
 
-	MeshData mesh = {};
-	mesh.vertices.add_array(vertices, 3);
-	mesh.indices.add_array(indices, 3);
+	DArray<MeshData> meshData(2);
 
-	triangle = add_mesh_to_transfer_buffer(app->render, mesh);
+	meshData.add(MeshData());
+	meshData.add(MeshData());
+
+	meshData[0].vertices.add_array(vertices, 3);
+	meshData[0].indices.add_array(indices, 3);
 
 	vertices[0] = { 0,   0,   0, 0, 0, 1, 0, 1 };
 	vertices[1] = { 0.5, 0,   0, 0, 0, 1, 0, 1 };
@@ -43,11 +56,12 @@ bool initialize(void *userdata, Application *app)
 	indices[4] = 2;
 	indices[5] = 3;
 
-	mesh.vertices.discard_data();
-	mesh.indices.discard_data();
-	mesh.vertices.add_array(vertices, 4);
-	mesh.indices.add_array(indices, 6);
-	quad = add_mesh_to_transfer_buffer(app->render, mesh);
+	meshData[1].vertices.add_array(vertices, 4);
+	meshData[1].indices.add_array(indices, 6);
+
+	TransferData memory = add_to_transfer_buffer(app->render, meshData);
+
+	meshData.reset();
 
 	if (!app->render.get_command_buffer())
 	{
@@ -61,8 +75,7 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 
-	state->triangle = add_mesh(app->render, triangle);
-	state->quad = add_mesh(app->render, quad);
+	state->references = upload_mesh_data(app->render, memory);
 
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
@@ -109,33 +122,33 @@ void handleInput(void* userdata, Application* app)
 
 void updateFunc(void *userdata, Application *app)
 {
-	float *number = (float*) userdata;
+	State *state = (State*) userdata;
 
 	float dt = app->timeInfo.deltaTimeSeconds;
-	*number = dt;
+	state->number = dt;
 }
 
 void fixedUpdate(void *userdata, Application *app)
 {
-	float *number = (float*) userdata;
+	State *state = (State*) userdata;
 
 	float dt = app->user.update_state->calculateTimeStep() * app->user.update_state->timeScale;
 
-	*number = dt;
+	state->number = dt;
 }
 
 int main()
 {
 	melv::Application app;
 
-	float number = 0;
+	State state = {};
 
 	UpdateState update = {};
 
 	update.fixedUpdate = fixedUpdate;
 	update.update = updateFunc;
 
-	app.user.userdata = &number;
+	app.user.userdata = &state;
 	app.user.init = initialize;
 	app.user.draw = draw;
 	app.user.event = handleEvent;
