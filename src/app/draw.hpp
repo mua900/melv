@@ -36,6 +36,22 @@ struct Vertex {
     {}
 };
 
+// @todo maybe a function to validate this
+struct GraphicsPipelineParameters
+{
+    // @todo
+    // vertex description
+    // and anything else as we need them
+    SDL_GPUTextureFormat format = {};
+};
+
+struct GraphicsPipeline
+{
+    // remember what parameters we created this with so that we can recreate it
+    GraphicsPipelineParameters parameters = {};
+    SDL_GPUGraphicsPipeline *pipeline = nullptr;
+};
+
 struct MeshData
 {
     DArray<Vertex> vertices;
@@ -122,7 +138,11 @@ struct RenderContext {
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
     SDL_GPUSampler* sampler = nullptr;
-    SDL_GPUGraphicsPipeline* graphics = nullptr;
+
+    // @todo
+    // GraphicsPipeline user_pipeline = {};
+    GraphicsPipeline graphics = {};
+
     SDL_GPUTexture* render_target = nullptr;
 
     TransferBuffer transfer_buffer = {};
@@ -134,7 +154,7 @@ struct RenderContext {
 
     bool gpu_inited() const
     {
-        return device && graphics && render_target;
+        return device && graphics.pipeline && render_target;
     }
 
     melv::vec2 get_center() const { return render_size / 2; }
@@ -150,6 +170,8 @@ struct RenderContext {
     void cancel_command_buffer(); // @todo
 
     void set_viewport(Viewport viewport);
+
+    bool set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
     // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
@@ -184,6 +206,9 @@ enum Flip {
     FlipVertical = SDL_FLIP_VERTICAL,
     FlipHorizontalAndVertical = SDL_FLIP_HORIZONTAL_AND_VERTICAL,
 };
+
+bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parameters, SDL_GPUDevice* device, SDL_Window* window);
+SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
 bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment);

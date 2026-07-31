@@ -20,9 +20,10 @@ bool initialize(void *userdata, Application *app)
 	SDL_GPUShader *vertex = app->catalog.get_shader(vertexId);
 	SDL_GPUShader *fragment = app->catalog.get_shader(fragmentId);
 
-	if (!init_gpu_renderer(&app->render, app->window.window, vertex, fragment))
+	if (!app->render.set_shaders(vertex, fragment))
 	{
-		return false;
+		log_error("Couldn't set shaders");
+		// return false;
 	}
 
 	TransferData triangle, quad;
@@ -88,8 +89,8 @@ void draw(void *userdata, Application *app)
 	State* state = (State*) userdata;
 
 	// @todo
-	// melv::draw_mesh(app->render, state->triangle);
-	// melv::draw_mesh(app->render, state->quad);
+	melv::draw_mesh(app->render, state->references.get(0));
+	melv::draw_mesh(app->render, state->references.get(1));
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)

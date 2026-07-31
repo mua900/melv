@@ -6,5 +6,5 @@ struct PSInput {
 
 void main(PSInput input, out float4 fragColor : SV_Target)
 {
-    fragColor = input.color;
+    fragColor = float4(1, 0, 0, 1);
 }

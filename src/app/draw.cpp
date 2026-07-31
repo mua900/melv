@@ -101,7 +101,7 @@ bool RenderContext::start_render_pass() {
 
         render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
 
-        SDL_BindGPUGraphicsPipeline(render_pass, graphics);
+        SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
 
         melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
         melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
@@ -156,10 +156,22 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
     return true;
 }
 
-bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters *parameters, SDL_GPUDevice* device, SDL_Window *window)
 {
-    // @todo provide a version that just swaps out shaders
+    auto texture_format = SDL_GetGPUSwapchainTextureFormat(device, window);
+    if (texture_format == SDL_GPU_TEXTUREFORMAT_INVALID)
+    {
+        log_error("Couldn't get swapchain texture format: %s", SDL_GetError());
+        return false;
+    }
 
+    parameters->format = texture_format;
+
+    return true;
+}
+
+SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+{
     SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
     SDL_GPUVertexAttribute vertex_attributes[3] = {};
     vertex_buffer_description[0].slot = 0;                        /**< The binding slot of the vertex buffer. */
@@ -220,10 +232,9 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     blend_state.enable_blend = true;                            /**< Whether blending is enabled for the color target. */
     blend_state.enable_color_write_mask = false;                 /**< Whether the color write mask is enabled. */
 
-
     SDL_GPUColorTargetDescription color_target_description[1] = {};
 
-    color_target_description[0].format = SDL_GetGPUSwapchainTextureFormat(render->device, window);               /**< The pixel format of the texture to be used as a color target. */
+    color_target_description[0].format = parameters->format;
     color_target_description[0].blend_state = blend_state;  /**< The blend state to be used for the color target. */
 
     SDL_GPUGraphicsPipelineTargetInfo target_info = {};
@@ -242,7 +253,19 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     pipelineInfo.depth_stencil_state = stencil;
     pipelineInfo.target_info = target_info;
 
-    SDL_GPUGraphicsPipeline* pipeline = SDL_CreateGPUGraphicsPipeline(render->device, &pipelineInfo);
+    SDL_GPUGraphicsPipeline *pipeline = SDL_CreateGPUGraphicsPipeline(render->device, &pipelineInfo);
+    return pipeline;
+}
+
+bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+{
+    GraphicsPipelineParameters pipeline_parameters;
+    if (!get_default_graphics_pipeline_parameters(&pipeline_parameters, render->device, window))
+    {
+        return false;
+    }
+
+    SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&pipeline_parameters, render, vertex, fragment);
     if (!pipeline) {
         log_error("Failed to create graphics pipeline: %s", SDL_GetError());
         return false;
@@ -289,7 +312,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
         return false;
     }
 
-    render->graphics = pipeline;
+    render->graphics = { pipeline_parameters, pipeline };
     render->render_target = render_target;
     render->vertex_buffer = { vertex_buffer, vertex_info.size, 0 };
     render->index_buffer = { index_buffer, index_info.size, 0 };
@@ -536,6 +559,26 @@ void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv
 void RenderContext::set_viewport(Viewport viewport)
 {
     SDL_SetGPUViewport(frame.render_pass, &viewport);
+}
+
+bool RenderContext::set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+{
+    if (!this->graphics.pipeline)
+    {
+        return false;
+    }
+
+    SDL_GPUGraphicsPipeline *pipeline = create_gpu_graphics_pipeline(&graphics.parameters, this, vertex, fragment);
+
+    if (!pipeline)
+    {
+        return false;
+    }
+
+    SDL_ReleaseGPUGraphicsPipeline(this->device, this->graphics.pipeline);
+
+    this->graphics.pipeline = pipeline;
+    return true;
 }
 
 void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color)
