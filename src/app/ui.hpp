@@ -719,7 +719,7 @@ struct DiscreteSlider {
     int selected = 0;
     float element_gap = 0;
     bool vertical = false;
-    Texture* texture = nullptr;
+    SDL_Texture* texture = nullptr;
     melv::ColorF outlineColor = {};
     melv::ColorF buttonColor = {};
     melv::ColorF inactiveColor = {};

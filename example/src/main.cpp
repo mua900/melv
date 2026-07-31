@@ -17,16 +17,20 @@ bool initialize(void *userdata, Application *app)
 	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
 	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
 
-	SDL_GPUShader *vertex = app->catalog.get_shader(vertexId);
-	SDL_GPUShader *fragment = app->catalog.get_shader(fragmentId);
+	Shader vertex = app->catalog.get_shader(vertexId);
+	Shader fragment = app->catalog.get_shader(fragmentId);
 
-	/*
-	if (!app->render.set_shaders(vertex, fragment))
+	if (vertex.numUniformBuffers != 1)
+	{
+		log_error("Wrong number of uniform buffers");
+		return false;
+	}
+
+	if (!app->render.set_shaders(vertex.shader, fragment.shader))
 	{
 		log_error("Couldn't set shaders");
 		return false;
 	}
-	*/
 
 	TransferData triangle, quad;
 

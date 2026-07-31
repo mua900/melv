@@ -16,7 +16,6 @@ namespace melv
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
 
-using Texture = SDL_Texture;
 using Viewport = SDL_GPUViewport;
 
 struct Vertex {
@@ -251,10 +250,10 @@ void draw_texture(const RenderContext& context, melv::Rectangle area, SDL_Textur
 SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
 Text create_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
 
-void render_texture(const RenderContext& render, melv::Rectangle area, Texture* texture, bool strech = false);
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, Texture* texture, float angle, Flip flip, bool strech = false);
-void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, Texture* texture, melv::Color color, bool strech = false, bool center = true);
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, Texture* texture, melv::ColorF tint, bool strech = false);
+void render_texture(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, bool strech = false);
+void render_texture_rotate(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, float angle, Flip flip, bool strech = false);
+void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, SDL_Texture* texture, melv::Color color, bool strech = false, bool center = true);
+void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, melv::ColorF tint, bool strech = false);
 
 void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale = melv::vec2(0, 0));
 void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor = melv::vec2(0,0));

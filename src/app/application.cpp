@@ -129,6 +129,8 @@ bool Application::initialize(InitConfiguration conf)
     vertexInfo.entrypoint = "main";
     fragmentInfo.entrypoint = "main";
 
+    // vertexInfo.num_uniforms = 1;
+
     // @todo other shader formats
     // @todo i am not sure about the behavior of this on a system that might support multiple shader formats
     // like on windows maybe

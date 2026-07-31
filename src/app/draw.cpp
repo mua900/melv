@@ -1111,7 +1111,7 @@ void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints
     }
 }
 
-void render_texture(const RenderContext& render, melv::Rectangle area, Texture* texture, bool stretch)
+void render_texture(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, bool stretch)
 {
     float tex_w, tex_h;
     SDL_GetTextureSize(texture, &tex_w, &tex_h);
@@ -1123,7 +1123,7 @@ void render_texture(const RenderContext& render, melv::Rectangle area, Texture* 
     SDL_RenderTexture(render.renderer, texture, &src, &dst);
 }
 
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, Texture* texture, float angle, Flip flip, bool strech)
+void render_texture_rotate(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, float angle, Flip flip, bool strech)
 {
     float tex_w, tex_h;
     SDL_GetTextureSize(texture, &tex_w, &tex_h);
@@ -1153,7 +1153,7 @@ void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect
     SDL_RenderTexture(render.renderer, texture, &src, &dst);
 }
 
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, Texture* texture, melv::ColorF tint, bool strech)
+void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, melv::ColorF tint, bool strech)
 {
     float tex_w, tex_h;
     SDL_GetTextureSize(texture, &tex_w, &tex_h);

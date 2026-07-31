@@ -217,25 +217,25 @@ struct AssetCatalog {
         return asset.data.audio;
     }
 
-    SDL_GPUShader* get_shader(AssetId id) const
+    Shader get_shader(AssetId id) const
     {
         if (!id.is_valid())
         {
-            return nullptr;
+            return Shader();
         }
 
         const Asset& asset = assets.get(id.id);
         if (!compare_asset_kind(ASSET_KIND_SHADER, asset.kind))
         {
-            return nullptr;
+            return Shader();
         }
 
         if (!compare_asset_generation(asset.identifier.generation, id.generation))
         {
-            return nullptr;
+            return Shader();
         }
 
-        return asset.data.shader.shader;
+        return asset.data.shader;
     }
 
     bool reload_asset(AssetId id);
