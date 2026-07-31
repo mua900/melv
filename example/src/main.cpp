@@ -20,11 +20,13 @@ bool initialize(void *userdata, Application *app)
 	SDL_GPUShader *vertex = app->catalog.get_shader(vertexId);
 	SDL_GPUShader *fragment = app->catalog.get_shader(fragmentId);
 
+	/*
 	if (!app->render.set_shaders(vertex, fragment))
 	{
 		log_error("Couldn't set shaders");
-		// return false;
+		return false;
 	}
+	*/
 
 	TransferData triangle, quad;
 
@@ -37,6 +39,17 @@ bool initialize(void *userdata, Application *app)
 		0, 1, 2
 	};
 
+	Vertex qv[4] = {
+		{ 0,     0, 0, 0, 0, 1, 0, 1 },
+		{ 0.5,   0, 0, 0, 0, 1, 0, 1 },
+		{ 0.5, 0.5, 0, 0, 0, 1, 0, 1 },
+		{ 0,   0.5, 0, 0, 0, 1, 0, 1 },
+	};
+	u16 qi[6] = {
+		0, 1, 2,
+		0, 2, 3
+	};
+
 	DArray<MeshData> meshData(2);
 
 	meshData.add(MeshData());
@@ -45,20 +58,8 @@ bool initialize(void *userdata, Application *app)
 	meshData[0].vertices.add_array(vertices, 3);
 	meshData[0].indices.add_array(indices, 3);
 
-	vertices[0] = { 0,   0,   0, 0, 0, 1, 0, 1 };
-	vertices[1] = { 0.5, 0,   0, 0, 0, 1, 0, 1 };
-	vertices[2] = { 0.5, 0.5, 0, 0, 0, 1, 0, 1 };
-	vertices[3] = { 0,   0.5, 0, 0, 0, 1, 0, 1 };
-
-	indices[0] = 0;
-	indices[1] = 1;
-	indices[2] = 2;
-	indices[3] = 0;
-	indices[4] = 2;
-	indices[5] = 3;
-
-	meshData[1].vertices.add_array(vertices, 4);
-	meshData[1].indices.add_array(indices, 6);
+	meshData[1].vertices.add_array(qv, 4);
+	meshData[1].indices.add_array(qi, 6);
 
 	TransferData memory = add_to_transfer_buffer(app->render, meshData);
 
@@ -88,7 +89,6 @@ void draw(void *userdata, Application *app)
 {
 	State* state = (State*) userdata;
 
-	// @todo
 	melv::draw_mesh(app->render, state->references.get(0));
 	melv::draw_mesh(app->render, state->references.get(1));
 }

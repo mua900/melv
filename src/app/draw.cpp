@@ -398,18 +398,18 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& mem
         destination.buffer = context.vertex_buffer.buffer;
         destination.offset = context.vertex_buffer.used;
         destination.size = vertex_byte;
-        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
+        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, false);
 
         reference.vertex_offset = context.vertex_buffer.used;
         context.vertex_buffer.used += vertex_byte;
         transfer_offset += vertex_byte;
 
-        source.offset = vertex_byte;
+        source.offset = transfer_offset;
 
         destination.buffer = context.index_buffer.buffer;
         destination.offset = context.index_buffer.used;
         destination.size = index_byte;
-        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, true);
+        SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, false);
 
         reference.index_offset = context.index_buffer.used;
         context.index_buffer.used += index_byte;

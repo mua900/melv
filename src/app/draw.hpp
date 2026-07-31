@@ -256,7 +256,6 @@ void render_texture_rotate(const RenderContext& render, melv::Rectangle area, Te
 void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, Texture* texture, melv::Color color, bool strech = false, bool center = true);
 void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, Texture* texture, melv::ColorF tint, bool strech = false);
 
-
 void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale = melv::vec2(0, 0));
 void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor = melv::vec2(0,0));
 
