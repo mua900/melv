@@ -7,6 +7,9 @@
 namespace melv
 {
 
+const int RenderTargetWidth = 1440;
+const int RenderTargetHeight = 810;
+
 bool start_frame(RenderContext& context, SDL_Window* window) {
     context.frame.command_buffer = nullptr;
 
@@ -87,7 +90,9 @@ bool RenderContext::start_render_pass() {
     if (frame.swapchain.texture)
     {
         SDL_GPUColorTargetInfo color_targets[1] = {};
-        color_targets[0].texture = frame.swapchain.texture;
+        // @todo
+        color_targets[0].texture = render_target;
+        // color_targets[0].texture = frame.swapchain.texture;
         color_targets[0].mip_level = 0;
         color_targets[0].layer_or_depth_plane = 0;
         color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
@@ -103,8 +108,15 @@ bool RenderContext::start_render_pass() {
 
         SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
 
-        melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
+        float half_width = RenderTargetWidth/2;
+        float half_height = RenderTargetHeight/2;
+        melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
+                                                                         -half_height, half_height,
+                                                                          0.0, 1.0);
+
+        // @todo actually read this from the camera
         melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
+
         mat4mul(&mvp, &orthographic, &camera);
         SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
     }
@@ -117,6 +129,35 @@ void RenderContext::end_render_pass() {
     ASSERT(frame.render_pass);
     SDL_EndGPURenderPass(frame.render_pass);
     frame.render_pass = nullptr;
+
+    copy_to_swapchain();
+}
+
+void RenderContext::copy_to_swapchain()
+{
+    SDL_GPUBlitRegion rt_region = {};
+    rt_region.texture = render_target;      /**< The texture. */
+    rt_region.x = 0;                     /**< The left offset of the region. */
+    rt_region.y = 0;                     /**< The top offset of the region.  */
+    rt_region.w = RenderTargetWidth;                     /**< The width of the region. */
+    rt_region.h = RenderTargetHeight;                     /**< The height of the region. */
+
+    SDL_GPUBlitRegion sc_region = {};
+    sc_region.texture = frame.swapchain.texture;      /**< The texture. */
+    sc_region.x = 0;                     /**< The left offset of the region. */
+    sc_region.y = 0;                     /**< The top offset of the region.  */
+    sc_region.w = render_size.x;                     /**< The width of the region. */
+    sc_region.h = render_size.y;                     /**< The height of the region. */
+
+    SDL_GPUBlitInfo blit_info = {};
+    blit_info.source = rt_region;       /**< The source region for the blit. */
+    blit_info.destination = sc_region;  /**< The destination region for the blit. */
+    blit_info.load_op = SDL_GPU_LOADOP_CLEAR;          /**< What is done with the contents of the destination before the blit. */
+    blit_info.clear_color = SDL_FColor {COLOR_ARG(clear_color) };         /**< The color to clear the destination region to before the blit. Ignored if load_op is not SDL_GPU_LOADOP_CLEAR. */
+    blit_info.flip_mode = SDL_FLIP_NONE;         /**< The flip mode for the source region. */
+    blit_info.filter = SDL_GPU_FILTER_LINEAR;           /**< The filter mode used when blitting. */
+
+    SDL_BlitGPUTexture(frame.command_buffer, &blit_info);
 }
 
 bool RenderContext::start_copy_pass() {
@@ -294,14 +335,36 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     transferInfo.size = 1024;  // @todo
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
+    SDL_GPUSamplerCreateInfo samplerCI = {};
+    samplerCI.min_filter = SDL_GPU_FILTER_LINEAR;                  /**< The minification filter to apply to lookups. */
+    samplerCI.mag_filter = SDL_GPU_FILTER_LINEAR;                  /**< The magnification filter to apply to lookups. */
+    samplerCI.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;      /**< The mipmap filter to apply to lookups. */
+    samplerCI.address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;  /**< The addressing mode for U coordinates outside [0, 1). */
+    samplerCI.address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;  /**< The addressing mode for V coordinates outside [0, 1). */
+    samplerCI.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;  /**< The addressing mode for W coordinates outside [0, 1). */
+    // samplerCI.mip_lod_bias;                        /**< The bias to be added to mipmap LOD calculation. */
+    // samplerCI.max_anisotropy;                      /**< The anisotropy value clamp used by the sampler. If enable_anisotropy is false, this is ignored. */
+    // samplerCI.compare_op = {};               /**< The comparison operator to apply to fetched data before filtering. */
+    samplerCI.min_lod = 0;                             /**< Clamps the minimum of the computed LOD value. */
+    samplerCI.max_lod = 8;                             /**< Clamps the maximum of the computed LOD value. */
+    // samplerCI.enable_anisotropy = false;                    /**< true to enable anisotropic filtering. */
+    // samplerCI.enable_compare = false;                       /**< true to enable comparison against a reference value during lookups. */
+    SDL_GPUSampler *sampler = SDL_CreateGPUSampler(render->device, &samplerCI);
+
+    if (!sampler)
+    {
+        log_error("Couldn't create gpu sampler");
+        return false;
+    }
+
     SDL_GPUTextureCreateInfo renderTargetCI = {};
     renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
     // @todo this needs to change if swapchain changes
     // or create it in a known format
     renderTargetCI.format = SDL_GetGPUSwapchainTextureFormat(render->device, window);
-    renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
-    renderTargetCI.width = render->render_size.x;
-    renderTargetCI.height = render->render_size.y;
+    renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    renderTargetCI.width = RenderTargetWidth;
+    renderTargetCI.height = RenderTargetHeight;
     renderTargetCI.layer_count_or_depth = 1;
     renderTargetCI.num_levels = 1;
     renderTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
@@ -314,6 +377,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
 
     render->graphics = { pipeline_parameters, pipeline };
     render->render_target = render_target;
+    render->sampler = sampler;
     render->vertex_buffer = { vertex_buffer, vertex_info.size, 0 };
     render->index_buffer = { index_buffer, index_info.size, 0 };
     render->transfer_buffer = { transfer_buffer, transferInfo.size };

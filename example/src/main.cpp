@@ -16,11 +16,16 @@ bool initialize(void *userdata, Application *app)
 
 	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
 	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
+	AssetId fragTexId = get_asset(String("FragTexture"), app->catalog);
 
 	Shader vertex = app->catalog.get_shader(vertexId);
 	Shader fragment = app->catalog.get_shader(fragmentId);
+	Shader frag_texture = app->catalog.get_shader(fragTexId);
 
-	if (vertex.numUniformBuffers != 1)
+	if (vertex.numUniformBuffers != 1 ||
+		frag_texture.numSamplers != 1 ||
+		frag_texture.numStorageTextures != 1
+		)
 	{
 		log_error("Wrong number of uniform buffers");
 		return false;
@@ -34,14 +39,21 @@ bool initialize(void *userdata, Application *app)
 
 	TransferData triangle, quad;
 
-	Vertex vertices[10] = {
+	float scale = 100;
+
+	Vertex vertices[3] = {
 		{ 1,     0,     0, 0, 1, 0, 0, 1},
 		{ -0.5,  0.866, 0, 0, 1, 0, 0, 1},
 		{ -0.5, -0.866, 0, 0, 1, 0, 0, 1},
 	};
-	u16 indices[10] = {
+	u16 indices[3] = {
 		0, 1, 2
 	};
+
+	for (int i = 0; i < 3; i++) {
+		vertices[i].x *= scale;
+		vertices[i].y *= scale;
+	}
 
 	Vertex qv[4] = {
 		{ 0,     0, 0, 0, 0, 1, 0, 1 },
@@ -53,6 +65,11 @@ bool initialize(void *userdata, Application *app)
 		0, 1, 2,
 		0, 2, 3
 	};
+
+	for (int i = 0; i < 4; i++) {
+		qv[i].x *= scale;
+		qv[i].y *= scale;
+	}
 
 	DArray<MeshData> meshData(2);
 

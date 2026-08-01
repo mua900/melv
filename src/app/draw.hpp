@@ -136,6 +136,7 @@ struct RenderContext {
 
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
+
     SDL_GPUSampler* sampler = nullptr;
 
     // @todo
@@ -171,6 +172,8 @@ struct RenderContext {
     void set_viewport(Viewport viewport);
 
     bool set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment);
+
+    void copy_to_swapchain();
 
     // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
