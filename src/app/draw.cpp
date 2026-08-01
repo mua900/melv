@@ -315,19 +315,6 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     SDL_GPUBuffer* vertex_buffer = nullptr;
     SDL_GPUBuffer* index_buffer = nullptr;
 
-    SDL_GPUBufferCreateInfo vertex_info = {};
-    vertex_info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-    vertex_info.size = 1024;  // @todo
-    SDL_GPUBufferCreateInfo index_info = {};
-    index_info.usage = SDL_GPU_BUFFERUSAGE_INDEX;
-    index_info.size = 1024;  // @todo
-    vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertex_info);
-    index_buffer = SDL_CreateGPUBuffer(render->device, &index_info);
-
-    if (!(vertex_buffer && index_buffer)) {
-        return false;
-    }
-
     // @todo a way to allocate and reallocate gpu buffers in the api
 
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
@@ -378,11 +365,64 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     render->graphics = { pipeline_parameters, pipeline };
     render->render_target = render_target;
     render->sampler = sampler;
-    render->vertex_buffer = { vertex_buffer, vertex_info.size, 0 };
-    render->index_buffer = { index_buffer, index_info.size, 0 };
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
 
     return true;
+}
+
+bool RenderContext::set_vertex_buffer(int vb)
+{
+    if (!buffers.in_bounds(vb))
+    {
+        return false;
+    }
+
+    if (buffers.get_ref(vb).usage != GPUBufferVertex)
+    {
+        return false;
+    }
+
+    active_vertex_buffer = vb;
+
+    return true;
+}
+
+bool RenderContext::set_index_buffer(int ib)
+{
+    if (!buffers.in_bounds(ib))
+    {
+        return false;
+    }
+
+    if (buffers.get_ref(ib).usage != GPUBufferIndex)
+    {
+        return false;
+    }
+
+    active_index_buffer = ib;
+
+    return true;
+}
+
+int RenderContext::allocate_gpu_buffer(GPUBufferUsage usage, int size)
+{
+    GPUBuffer buffer = {};
+
+    SDL_GPUBufferCreateInfo ci = {};
+    ci.usage = SDL_GPUBufferUsageFlags(usage);
+    ci.size = size;
+
+    buffer.buffer = SDL_CreateGPUBuffer(device, &ci);
+    buffer.usage = usage;
+    buffer.size = size;
+    buffer.used = 0;
+
+    if (!buffer.buffer)
+    {
+        return -1;
+    }
+
+    return buffers.add(buffer);;
 }
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data)
@@ -436,7 +476,7 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
     return TransferData(meshes);
 }
 
-DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& memory)
+DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data)
 {
     SDL_GPUCommandBuffer* command_buffer = context.frame.command_buffer;
 
@@ -447,7 +487,10 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& mem
 
     size_t transfer_offset = 0;
 
-    for (auto mesh : memory.meshes)
+    GPUBuffer& vertex_buffer = context.buffers.get_ref(context.active_vertex_buffer);
+    GPUBuffer& index_buffer = context.buffers.get_ref(context.active_index_buffer);
+
+    for (auto mesh : data.meshes)
     {
         MeshReference reference = {};
 
@@ -459,28 +502,31 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& mem
         source.offset = transfer_offset;
 
         SDL_GPUBufferRegion destination;
-        destination.buffer = context.vertex_buffer.buffer;
-        destination.offset = context.vertex_buffer.used;
+        destination.buffer = vertex_buffer.buffer;
+        destination.offset = vertex_buffer.used;
         destination.size = vertex_byte;
         SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, false);
 
-        reference.vertex_offset = context.vertex_buffer.used;
-        context.vertex_buffer.used += vertex_byte;
+        reference.vertex_offset = vertex_buffer.used;
+        vertex_buffer.used += vertex_byte;
         transfer_offset += vertex_byte;
 
         source.offset = transfer_offset;
 
-        destination.buffer = context.index_buffer.buffer;
-        destination.offset = context.index_buffer.used;
+        destination.buffer = index_buffer.buffer;
+        destination.offset = index_buffer.used;
         destination.size = index_byte;
         SDL_UploadToGPUBuffer(context.frame.copy_pass, &source, &destination, false);
 
-        reference.index_offset = context.index_buffer.used;
-        context.index_buffer.used += index_byte;
+        reference.index_offset = index_buffer.used;
+        index_buffer.used += index_byte;
         transfer_offset += index_byte;
 
         reference.vertex_count = mesh.vertex_count;
         reference.index_count = mesh.index_count;
+
+        reference.vertex_buffer = context.active_vertex_buffer;
+        reference.index_buffer = context.active_index_buffer;
 
         refs.add(reference);
     }
@@ -495,10 +541,10 @@ void draw_mesh(RenderContext& render, MeshReference mesh)
     SDL_GPUBufferBinding vertex_binding = {};
     SDL_GPUBufferBinding index_binding = {};
 
-    vertex_binding.buffer = render.vertex_buffer.buffer;
+    vertex_binding.buffer = render.buffers.get_ref(mesh.vertex_buffer).buffer;
     vertex_binding.offset = mesh.vertex_offset;
 
-    index_binding.buffer = render.index_buffer.buffer;
+    index_binding.buffer = render.buffers.get_ref(mesh.index_buffer).buffer;
     index_binding.offset = mesh.index_offset;
 
     SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, &vertex_binding, 1);

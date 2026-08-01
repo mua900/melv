@@ -86,6 +86,17 @@ bool initialize(void *userdata, Application *app)
 
 	meshData.reset();
 
+	int vertex_buffer = app->render.allocate_gpu_buffer(GPUBufferVertex, 1024);
+	int index_buffer = app->render.allocate_gpu_buffer(GPUBufferIndex, 1024);
+
+	if (vertex_buffer == -1 || index_buffer == -1)
+	{
+		return false;
+	}
+
+	app->render.set_vertex_buffer(vertex_buffer);
+	app->render.set_index_buffer(index_buffer);
+
 	if (!app->render.get_command_buffer())
 	{
 		return false;

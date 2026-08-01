@@ -63,6 +63,9 @@ struct MeshReference
     int index_count = 0;
     int vertex_offset = 0;
     int index_offset = 0;
+
+    int vertex_buffer = 0;
+    int index_buffer = 0;
 };
 
 struct MeshDataSize
@@ -87,8 +90,15 @@ struct GPUTexture {
     u32 height = 0;
 };
 
+
+enum GPUBufferUsage {
+    GPUBufferVertex = SDL_GPU_BUFFERUSAGE_VERTEX,
+    GPUBufferIndex = SDL_GPU_BUFFERUSAGE_INDEX,
+};
+
 struct GPUBuffer {
     SDL_GPUBuffer* buffer = nullptr;
+    GPUBufferUsage usage = {};
     u32 size = 0;
     u32 used = 0;
 };
@@ -134,8 +144,9 @@ struct RenderContext {
 
     melv::mat4x4 mvp = {};
 
-    GPUBuffer vertex_buffer = {};
-    GPUBuffer index_buffer = {};
+    DArray<GPUBuffer> buffers = {};
+    int active_vertex_buffer = 0;
+    int active_index_buffer = 0;
 
     SDL_GPUSampler* sampler = nullptr;
 
@@ -164,6 +175,10 @@ struct RenderContext {
 
     bool start_copy_pass();
     void end_copy_pass();
+
+    int allocate_gpu_buffer(GPUBufferUsage usage, int size);
+    bool set_vertex_buffer(int buffer);
+    bool set_index_buffer(int buffer);
 
     bool get_command_buffer();
     void submit_command_buffer();
@@ -217,6 +232,8 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
 
 bool start_frame(RenderContext& context, SDL_Window* window);
 void end_frame(RenderContext& context);
+
+GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
