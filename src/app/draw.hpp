@@ -1,7 +1,7 @@
 #ifndef DRAW_HPP
 #define DRAW_HPP
 
-#include <SDL3/SDL.h>
+#include "draw_types.hpp"
 #include "text.hpp"
 #include "camera.hpp"
 
@@ -33,6 +33,22 @@ struct Vertex {
         :
         x(x), y(y), uvx(uvx), uvy(uvy), r(r), g(g), b(b), a(a)
     {}
+    Vertex(vec2 pos, vec2 uv, ColorF col)
+        :
+        x(pos.x), y(pos.y), uvx(uv.x), uvy(uv.y), r(col.r), g(col.g), b(col.b), a(col.a)
+    {}
+
+    vec2 position() const {
+        return vec2(x, y);
+    }
+
+    vec2 uv() const {
+        return vec2(uvx, uvy);
+    }
+
+    ColorF color() const {
+        return ColorF(r, g, b, a);
+    }
 };
 
 // @todo maybe a function to validate this
@@ -88,8 +104,12 @@ struct GPUTexture {
     SDL_GPUTexture* texture = nullptr;
     u32 width = 0;
     u32 height = 0;
-};
 
+    u32 sampler = 0;
+
+    GPUTexture() {}
+    GPUTexture(SDL_GPUTexture *tex, u32 w, u32 h) : texture(tex), width(w), height(h) {}
+};
 
 enum GPUBufferUsage {
     GPUBufferVertex = SDL_GPU_BUFFERUSAGE_VERTEX,
@@ -130,8 +150,6 @@ enum CoordinateSpace
 
 struct RenderContext {
     melv::vec2 render_size = {};
-    // @todo remove
-    SDL_Renderer* renderer = nullptr;
 
     CoordinateSpace space = {};  // what coordinate space input vertices are in
 	const Camera* camera = {};
@@ -160,13 +178,27 @@ struct RenderContext {
 
     FrameContext frame = {};
 
-    DArray<SDL_Vertex> vertex_scratch = {};
-    DArray<int> index_scratch = {};
+    // @todo
+    // use these to store and draw once per frame stuff
+    GPUBuffer vertex_buffer = {};
+    GPUBuffer index_buffer = {};
+
+    DArray<MeshReference> frameGeometry = {};
+    DArray<Vertex> vertex_scratch = {};
+    DArray<u16> index_scratch = {};
+
+    DArray<GPUTexture> textures = {};
 
     bool gpu_inited() const
     {
         return device && graphics.pipeline && render_target;
     }
+
+    TextureHandle create_texture(u32 width, u32 height);
+    void destroy_texture(TextureHandle handle);
+    bool is_texture_handle_valid(TextureHandle handle);
+
+    GPUTexture get_texture(TextureHandle handle);
 
     melv::vec2 get_center() const { return render_size / 2; }
 
@@ -176,9 +208,9 @@ struct RenderContext {
     bool start_copy_pass();
     void end_copy_pass();
 
-    int allocate_gpu_buffer(GPUBufferUsage usage, int size);
-    bool set_vertex_buffer(int buffer);
-    bool set_index_buffer(int buffer);
+    u32 allocate_gpu_buffer(GPUBufferUsage usage, u32 size);
+    bool set_vertex_buffer(u32 buffer);
+    bool set_index_buffer(u32 buffer);
 
     bool get_command_buffer();
     void submit_command_buffer();
@@ -194,9 +226,6 @@ struct RenderContext {
     melv::vec2 transformWorld(melv::vec2 p) const;
     melv::vec2 transformScreen(melv::vec2 p) const;
     melv::Rectangle transform_rectangle(melv::Rectangle r) const;
-    SDL_FPoint transform_sdl_point(SDL_FPoint p) const;
-    SDL_FRect transform_sdl_rectangle(SDL_FRect r) const;
-    SDL_Vertex transform_sdl_vertex(SDL_Vertex v) const;
 };
 
 enum ShaderStage {
@@ -240,43 +269,39 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& dat
 
 void draw_mesh(RenderContext& render, MeshReference mesh);
 
+void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
+void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
+
 bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);
 
-// immediate mode drawing
-void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
-void draw_triangle_texture(const RenderContext& context, SDL_Texture* texture, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color);
-void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color);
-void draw_rectangle_rotated(const RenderContext& context, melv::Rectangle area, float rotation, melv::ColorF color);
-void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
-void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, float head_ratio, melv::ColorF color);
-void draw_circle(const RenderContext& context, melv::vec2 position, float radius, melv::ColorF color);
-void draw_circle_empty(const RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color);
-void draw_circle_with_texture(const RenderContext& context, melv::vec2 position, float radius, SDL_Texture* texture, melv::ColorF color);
-void draw_circle_segment(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color);
-void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, SDL_Texture* texture, melv::ColorF color);
-void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color);
-void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color);
-void draw_polygon(RenderContext& context, melv::vec2 points[], int numPoints, melv::ColorF color);
+void destroy_texture(GPUTexture *texture);
+
+TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
+Text create_text(RenderContext& render, String text, Font font, melv::Color color);
+
+// @todo
+void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech = false);
+void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech = false);
+void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech = false, bool center = true);
+void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech = false);
+
+// @todo
+void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
+void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color);
+void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color);
+void draw_circle_empty(RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color);
+void draw_circle(RenderContext& context, melv::vec2 position, float radius, melv::ColorF color);
+void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float radius, GPUTexture texture, melv::ColorF color);
+void draw_circle_segment(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color);
+void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, GPUTexture texture, melv::ColorF color);
+void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color);
+void draw_quad(RenderContext& context, melv::RectPoints quad, melv::ColorF color);
+void draw_quad_with_texture(RenderContext& context, melv::RectPoints quad, GPUTexture texture, melv::ColorF color);
 void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
 void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
-void draw_quadratic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color);
-void draw_cubic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color);
-void draw_quad(const RenderContext& context, melv::RectPoints quad, melv::ColorF color);
-void draw_quad_with_texture(const RenderContext& context, melv::RectPoints quad, SDL_Texture* texture, melv::ColorF color);
-
-void draw_texture(const RenderContext& context, melv::Rectangle area, SDL_Texture* texture);
-
-SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
-Text create_text(SDL_Renderer* renderer, String text, Font font, melv::Color color);
-
-void render_texture(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, bool strech = false);
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, float angle, Flip flip, bool strech = false);
-void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, SDL_Texture* texture, melv::Color color, bool strech = false, bool center = true);
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, melv::ColorF tint, bool strech = false);
-
-void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale = melv::vec2(0, 0));
-void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor = melv::vec2(0,0));
+void draw_quadratic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color);
+void draw_cubic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color);
 
 } // namespace
 

@@ -17,7 +17,7 @@ SDL_EnumerationResult unload_asset_callback(void* userdata, const char* dirname,
 bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context);
 void unload_asset_file(Asset& asset, AssetLoadContext& load_context, bool reset_generation = true);
 
-bool parse_image_attribute(String attribute, SDL_Texture*& texture);
+bool parse_image_attribute(String attribute, TextureHandle& texture);
 bool parse_audio_attribute(String attribute, MIX_Audio*& audio);
 bool parse_font_attribute(String attribute, Font& font);
 bool parse_shader_attribute(String attribute, Shader& shader);
@@ -211,7 +211,7 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
     return result;
 }
 
-bool parse_image_attribute(String attribute, SDL_Texture*& texture)
+bool parse_image_attribute(String attribute, TextureHandle& texture)
 {
     return false;
 }
@@ -495,6 +495,8 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
+            // @todo load_texture
+            /*
             SDL_Texture* texture = IMG_LoadTexture(load_context.render->renderer, path.c_string());
             if (!texture)
             {
@@ -503,8 +505,9 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
             }
 
             asset.data.image = texture;
+            */
 
-            return true;
+            return false;
         }
         case ASSET_KIND_AUDIO: {
             MIX_Audio* audio = MIX_LoadAudio(load_context.audio->mixer, path.c_string(), true);
@@ -645,8 +648,8 @@ void unload_asset_file(Asset& asset, AssetLoadContext& load_context, bool reset_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            SDL_DestroyTexture(asset.data.image);
-            asset.data.image = nullptr;
+            load_context.render->destroy_texture(asset.data.image);
+            asset.data.image = {};
             break;
         }
         case ASSET_KIND_AUDIO: {

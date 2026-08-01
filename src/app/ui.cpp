@@ -273,10 +273,10 @@ size_t Text_Field::calculate_cursor_from_mouse(melv::vec2 position, String strin
     return cursor_character;
 }
 
-bool Text_Field::render_text_field_texture(SDL_Renderer* renderer, Font font, melv::Color color, bool wrapped)
+bool Text_Field::render_text_field_texture(RenderContext& render, Font font, melv::Color color, bool wrapped)
 {
-    SDL_DestroyTexture(m_texture);  // old texture
-    m_texture = nullptr;
+    render.destroy_texture(m_texture);  // old texture
+    m_texture = {};
 
     String str = get_string();
     if (str.size == 0)
@@ -298,23 +298,24 @@ bool Text_Field::render_text_field_texture(SDL_Renderer* renderer, Font font, me
         return false;
     }
 
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+    TextureHandle handle = {};
+    // @todo
+    // handle =  render.create_texture();
     SDL_DestroySurface(text_surface);
 
-    if (!texture)
+    if (!render.is_texture_handle_valid(handle))
     {
         return false;
     }
 
-    float texture_width, texture_height;
-    SDL_GetTextureSize(texture, &texture_width, &texture_height);
+    GPUTexture texture = render.get_texture(handle);
     int line_skip = TTF_GetFontLineSkip(font.font);
-    int line_count = (wrapped) ? MAX(1, (int)(texture_height / line_skip)) : (1);
+    int line_count = (wrapped) ? MAX(1, (int)(texture.height / line_skip)) : (1);
 
     calculate_cursor_from_selection(str, font, wrapped);
 
     m_line_count = line_count;
-    m_texture = texture;
+    m_texture = handle;
     m_font_size = font.size;
 
     return true;
@@ -387,24 +388,24 @@ melv::Rectangle ResizeInfo::calculate_new_area(melv::vec2 mouse_position, int mi
 void UiState::reinit_text(RenderContext& render, Font font)
 {
     for (auto& lbl : label) {
-        SDL_DestroyTexture(lbl.text.texture);
-        lbl.text = create_text(render.renderer, lbl.text.string, font, lbl.text.color);
+        render.destroy_texture(lbl.text.texture);
+        lbl.text = create_text(render, lbl.text.string, font, lbl.text.color);
     }
 
     for (auto& but : button) {
-        SDL_DestroyTexture(but.text.texture);
-        but.text = create_text(render.renderer, but.text.string, font, but.text.color);
+        render.destroy_texture(but.text.texture);
+        but.text = create_text(render, but.text.string, font, but.text.color);
     }
 
     for (auto& drop : drop_down) {
         for (auto& e : drop.options)
         {
-            SDL_DestroyTexture(e.label.texture);
-            e.label = create_text(render.renderer, e.label.string, font, e.label.color);
+            render.destroy_texture(e.label.texture);
+            e.label = create_text(render, e.label.string, font, e.label.color);
         }
 
-        SDL_DestroyTexture(drop.title.texture);
-        drop.title = create_text(render.renderer, drop.title.string, font, drop.title.color);
+        render.destroy_texture(drop.title.texture);
+        drop.title = create_text(render, drop.title.string, font, drop.title.color);
     }
 
     for (auto& vp : value_panel)
@@ -413,8 +414,8 @@ void UiState::reinit_text(RenderContext& render, Font font)
         {
             for (auto& field : tab.fields)
             {
-                SDL_DestroyTexture(field.name.texture);
-                field.name = create_text(render.renderer, field.name.string, font, field.name.color);
+                render.destroy_texture(field.name.texture);
+                field.name = create_text(render, field.name.string, font, field.name.color);
             }
         }
     }
@@ -459,18 +460,10 @@ DragInfo* UiState::get_drag_info()
         }
     }
 
-    for (auto& c : control)
-    {
-        if (c.drag.drag)
-        {
-            return &c.drag;
-        }
-    }
-
     return nullptr;
 }
 
-void UiState::update_state(melv::vec2 window_size, const RenderContext& render, const AssetCatalog& catalog) {
+void UiState::update_state(melv::vec2 window_size, RenderContext& render, const AssetCatalog& catalog) {
     float y_factor = window_size.y / assumed_window_size.y;
     float x_factor = window_size.x / assumed_window_size.x;
 
@@ -485,7 +478,7 @@ void UiState::update_state(melv::vec2 window_size, const RenderContext& render, 
         field.m_area.y *= y_factor;
         field.m_area.w *= x_factor;
         field.m_area.h *= y_factor;
-        field.render_text_field_texture(render.renderer, font, field.text_color, true);
+        field.render_text_field_texture(render, font, field.text_color, true);
     }
 
     for (auto& drop : drop_down) {
@@ -514,14 +507,6 @@ void UiState::update_state(melv::vec2 window_size, const RenderContext& render, 
         lbl.position.y *= y_factor;
         lbl.scale.x *= x_factor;
         lbl.scale.y *= y_factor;
-    }
-
-    for (auto& c : control)
-    {
-        c.position.x *= x_factor;
-        c.position.y *= y_factor;
-        c.scale.x *= x_factor;
-        c.scale.y *= y_factor;
     }
 
     for (auto& ds : discrete_slider)
@@ -586,21 +571,21 @@ bool load_font_file(Font* font, const char* path, float size)
     return true;
 }
 
-void TextEditor::rescale(melv::vec2 scale, const RenderContext& render, const AssetCatalog& catalog)
+void TextEditor::rescale(melv::vec2 scale, RenderContext& render, const AssetCatalog& catalog)
 {
     Font font = catalog.get_font(field.fontId);
 
     title_height *= scale.y;
     if (title_texture) {
-        SDL_DestroyTexture(title_texture);
-        title_texture = render_text(render.renderer, name.to_string(), font, title_color);
+        render.destroy_texture(title_texture);
+        title_texture = render_text(render, name.to_string(), font, title_color);
     }
 
     field.m_area.x *= scale.x;
     field.m_area.y *= scale.y;
     field.m_area.w *= scale.x;
     field.m_area.h *= scale.y;
-    field.render_text_field_texture(render.renderer, font, field.text_color, true);
+    field.render_text_field_texture(render, font, field.text_color, true);
 }
 
 UiState::~UiState()
@@ -616,7 +601,6 @@ UiState::~UiState()
     image_button.reset();
     label.reset();
     value_panel.reset();
-    control.reset();
     discrete_slider.reset();
     button_group.reset();
 
@@ -817,13 +801,13 @@ void ValuePanel::switch_tabs(UiState& ui, int tabIndex)
     activeTab = tabIndex;
 }
 
-melv::Rectangle ValuePanel::get_field_title_area(int tabIndex, int fieldIndex) const
+melv::Rectangle ValuePanel::get_field_title_area(RenderContext& render, int tabIndex, int fieldIndex) const
 {
     ValuePanelTab& tab = tabs.get_ref(tabIndex);
     ValueField& field = tab.fields.get_ref(fieldIndex);
 
-    melv::vec2 text_scale = {};
-    SDL_GetTextureSize(field.name.texture, &text_scale.x, &text_scale.y);
+    GPUTexture tex = render.get_texture(field.name.texture);
+    melv::vec2 text_scale = { float(tex.width), float(tex.height) };
     float factor = fieldSize / text_scale.y;
     text_scale.x *= factor;
     text_scale.y = fieldSize;

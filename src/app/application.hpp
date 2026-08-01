@@ -188,7 +188,6 @@ private:
     void render_text_field(Text_Field& text_field) const;
     void render_text_editor(TextEditor& editor) const;
     void render_dropdown(const Drop_Down_List& list) const;
-    void render_control_menu(const ControlMenu& menu) const;
     void render_discrete_slider(const DiscreteSlider& slider) const;
     void render_panel(const Panel& panel) const;
     void render_value_panel(const UiState& ui, const ValuePanel& panel) const;

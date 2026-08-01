@@ -370,7 +370,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     return true;
 }
 
-bool RenderContext::set_vertex_buffer(int vb)
+bool RenderContext::set_vertex_buffer(u32 vb)
 {
     if (!buffers.in_bounds(vb))
     {
@@ -387,7 +387,7 @@ bool RenderContext::set_vertex_buffer(int vb)
     return true;
 }
 
-bool RenderContext::set_index_buffer(int ib)
+bool RenderContext::set_index_buffer(u32 ib)
 {
     if (!buffers.in_bounds(ib))
     {
@@ -404,7 +404,7 @@ bool RenderContext::set_index_buffer(int ib)
     return true;
 }
 
-int RenderContext::allocate_gpu_buffer(GPUBufferUsage usage, int size)
+u32 RenderContext::allocate_gpu_buffer(GPUBufferUsage usage, u32 size)
 {
     GPUBuffer buffer = {};
 
@@ -534,6 +534,43 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& dat
     return refs;
 }
 
+TextureHandle RenderContext::create_texture(u32 width, u32 height)
+{
+    // @todo
+    // SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture();
+    GPUTexture texture = GPUTexture(nullptr, width, height);
+    return textures.add(texture);
+}
+
+void RenderContext::destroy_texture(TextureHandle handle)
+{
+    // if (is_texture_handle_valid())
+    GPUTexture& texture = textures.get_ref(handle);
+    SDL_ReleaseGPUTexture(device, texture.texture);
+    texture = {};
+}
+
+GPUTexture RenderContext::get_texture(TextureHandle handle)
+{
+    return textures.get_ref(handle);
+}
+
+bool RenderContext::is_texture_handle_valid(TextureHandle handle)
+{
+    // @todo
+    return textures.in_bounds(handle);
+}
+
+void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
+{
+    // @todo
+}
+
+void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
+{
+    // @todo
+}
+
 void draw_mesh(RenderContext& render, MeshReference mesh)
 {
     ASSERT(render.frame.render_pass);
@@ -584,91 +621,34 @@ melv::Rectangle RenderContext::transform_rectangle(melv::Rectangle r) const
     return melv::Rectangle(t,s);
 }
 
-SDL_FPoint RenderContext::transform_sdl_point(SDL_FPoint p) const
+void RenderContext::set_viewport(Viewport viewport)
 {
-    melv::vec2 t = transformWorld(melv::vec2(p.x, p.y));
-    return { t.x, t.y };
+    SDL_SetGPUViewport(frame.render_pass, &viewport);
 }
 
-SDL_Vertex RenderContext::transform_sdl_vertex(SDL_Vertex v) const
-{
-    SDL_FPoint t = transform_sdl_point(v.position);
-    v.position = t;
-    return v;
-}
-
-SDL_FRect RenderContext::transform_sdl_rectangle(SDL_FRect r) const
-{
-    melv::Rectangle t = transform_rectangle(melv::Rectangle(r.x + r.w / 2, r.y + r.h / 2, r.w, r.h));
-    return SDL_FRect { t.x - t.w / 2, t.y - t.h / 2, t.w, t.h };
-}
-
-void draw_texture(const RenderContext& context, melv::Rectangle area, SDL_Texture* texture)
-{
-    SDL_FRect dst = { area.x, area.y, area.w, area.h };
-    dst = context.transform_sdl_rectangle(dst);
-    SDL_RenderTexture(context.renderer, texture, NULL, &dst);
-}
-
-SDL_Texture* render_text(SDL_Renderer* renderer, String text, Font font, melv::Color color) {
+TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color) {
     SDL_Color sdl_color = { color.r, color.g, color.b, color.a };
     SDL_Surface* surface = TTF_RenderText_Solid(font.font, text.data, text.size, sdl_color);
 
     if (!surface) {
-        return nullptr;
+        return TextureHandle();
     }
 
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    // @todo
+    // create gpu texture
+    // calculate text width and height
+    SDL_GPUTexture* texture = nullptr;
 
 	SDL_DestroySurface(surface);
 
-    return texture;
+    return TextureHandle();
 }
 
-Text create_text(SDL_Renderer* renderer, String text, Font font, melv::Color color)
+Text create_text(RenderContext& render, String text, Font font, melv::Color color)
 {
-    SDL_Texture* texture = render_text(renderer, text, font, color);
-    if (!texture) return Text();
+    TextureHandle texture = render_text(render, text, font, color);
+    if (!render.is_texture_handle_valid(texture)) return Text();
     return Text(texture, text, color);
-}
-
-void render_text_size(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 absolute_scale)
-{
-    float tex_w, tex_h;
-    SDL_GetTextureSize(text.texture, &tex_w, &tex_h);
-
-    if (!absolute_scale.x)
-    {
-        absolute_scale = melv::vec2(tex_w, tex_h);
-    }
-
-    SDL_FRect src = { 0,0,tex_w,tex_h };
-    SDL_FRect dst = {where.x - absolute_scale.x/2, where.y - absolute_scale.y/2, absolute_scale.x, absolute_scale.y};
-
-    SDL_RenderTexture(renderer, text.texture, &src, &dst);
-}
-
-void render_text_scale(SDL_Renderer* renderer, Text text, melv::vec2 where, melv::vec2 scale_factor)
-{
-    float tex_w, tex_h;
-    SDL_GetTextureSize(text.texture, &tex_w, &tex_h);
-
-    if (!scale_factor.x)
-    {
-        scale_factor = melv::vec2(1,1);
-    }
-
-    auto scale = melv::vec2(tex_w * scale_factor.x, tex_h * scale_factor.y);
-
-    SDL_FRect src = { 0,0,tex_w,tex_h };
-    SDL_FRect dst = {where.x - scale.x/2, where.y - scale.y/2, scale.x, scale.y};
-
-    SDL_RenderTexture(renderer, text.texture, &src, &dst);
-}
-
-void RenderContext::set_viewport(Viewport viewport)
-{
-    SDL_SetGPUViewport(frame.render_pass, &viewport);
 }
 
 bool RenderContext::set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment)
@@ -691,47 +671,21 @@ bool RenderContext::set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment)
     return true;
 }
 
-void draw_triangle(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color)
+// @todo
+void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech)
 {
-    SDL_Vertex vertices[3];
-    vertices[0].position = {p0.x, p0.y};
-    vertices[1].position = {p1.x, p1.y};
-    vertices[2].position = {p2.x, p2.y};
-    for (int i = 0; i < 3; i++) vertices[i].color    = {COLOR_ARG(color)};
-
-    int indices[3] = {0, 1, 2};
-
-    SDL_RenderGeometry(context.renderer, nullptr, vertices, 3, indices, 3);
+}
+void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech)
+{
+}
+void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech, bool center)
+{
+}
+void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech)
+{
 }
 
-void draw_triangle_texture(const RenderContext& context, SDL_Texture* texture, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, ColorF color)
-{
-    SDL_Vertex vertices[3];
-    vertices[0].position = {p0.x, p0.y};
-    vertices[1].position = {p1.x, p1.y};
-    vertices[2].position = {p2.x, p2.y};
-    for (int i = 0; i < 3; i++) vertices[i].color    = {COLOR_ARG(color)};
-
-    int indices[3] = {0, 1, 2};
-
-    SDL_RenderGeometry(context.renderer, texture, vertices, 3, indices, 3);
-}
-
-void draw_rectangle(const RenderContext& context, melv::Rectangle area, melv::ColorF color)
-{
-    SDL_SetRenderDrawColorFloat(context.renderer, COLOR_ARG(color));
-    SDL_FRect dst = { area.x - area.w / 2, area.y - area.h / 2, area.w, area.h };
-    dst = context.transform_sdl_rectangle(dst);
-    SDL_RenderFillRect(context.renderer, &dst);
-}
-
-void draw_rectangle_rotated(const RenderContext& context, melv::Rectangle area, float rotation, melv::ColorF color)
-{
-	auto quad = get_rotated_points(area, rotation);
-	draw_quad(context, quad, color);
-}
-
-void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color)
+void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color)
 {
     melv::vec2 dir = (end - start).normalized();
     melv::vec2 perp = melv::vec2(-dir.y, dir.x);
@@ -741,16 +695,12 @@ void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end
     melv::vec2 eleft = end + perp * thick;
     melv::vec2 eright = end - perp * thick;
 
-    SDL_Vertex vertices[4];
-    int indices[6];
-    vertices[0].position = context.transform_sdl_point({ sleft.x, sleft.y });
-    vertices[0].color = { COLOR_ARG(color) };
-    vertices[1].position = context.transform_sdl_point({ sright.x, sright.y });
-    vertices[1].color = { COLOR_ARG(color) };
-    vertices[2].position = context.transform_sdl_point({ eleft.x, eleft.y });
-    vertices[2].color = { COLOR_ARG(color) };
-    vertices[3].position = context.transform_sdl_point({ eright.x, eright.y });
-    vertices[3].color = { COLOR_ARG(color) };
+    Vertex vertices[4];
+    u16 indices[6];
+    vertices[0] = Vertex(context.transformWorld({ sleft.x, sleft.y }), {0, 0}, color);
+    vertices[1] = Vertex(context.transformWorld({ sright.x, sright.y }), {0, 0}, color);
+    vertices[2] = Vertex(context.transformWorld({ eleft.x, eleft.y }), {0, 0}, color);
+    vertices[3] = Vertex(context.transformWorld({ eright.x, eright.y }), {0, 0}, color);
 
     indices[0] = 0;
     indices[1] = 1;
@@ -759,49 +709,13 @@ void draw_segment(const RenderContext& context, melv::vec2 start, melv::vec2 end
     indices[4] = 1;
     indices[5] = 3;
 
-    SDL_RenderGeometry(context.renderer, nullptr, vertices, 4, indices, 6);
+    draw_geometry(context, vertices, 4, indices, 6);
 }
 
-void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, float head_ratio, melv::ColorF color)
-{
-    melv::vec2 dir = end - start;
-    float length = dir.magnitude();
-    dir /= length;
-    melv::vec2 perp = melv::vec2(-dir.y, dir.x);
-    melv::vec2 head_start = start + dir * (1.0f - head_ratio) * length;
-    float wide = thick * 1.5;
-
-    draw_segment(context, start, head_start, thick, color);
-
-    SDL_Vertex vertices[3];
-    int indices[3];
-
-    vertices[0] = {
-        context.transform_sdl_point ( SDL_FPoint { head_start.x + perp.x * wide, head_start.y + perp.y * wide } ),
-        SDL_FColor { COLOR_ARG(color) },
-    };
-    vertices[1] = {
-        context.transform_sdl_point ( SDL_FPoint { head_start.x - perp.x * wide, head_start.y - perp.y * wide } ),
-        SDL_FColor { COLOR_ARG(color) },
-    };
-    vertices[2] = {
-        context.transform_sdl_point ( SDL_FPoint { end.x, end.y } ),
-        SDL_FColor { COLOR_ARG(color) },
-    };
-
-    indices[0] = 0;
-    indices[1] = 1;
-    indices[2] = 2;
-
-    SDL_RenderGeometry(context.renderer, nullptr, vertices, 3, indices, 3);
-}
-
-void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color)
+void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color)
 {
     // 3 for the arrow head, 4 for the quadrilateral below
-    SDL_Vertex vertices[7];
-
-    for (int i = 0; i < 7; i++) vertices[i].color = SDL_FColor {color.r, color.g, color.b, color.a};
+    Vertex vertices[7];
 
     melv::vec2 dir = end - start;
     float total_length = dir.magnitude();
@@ -823,33 +737,33 @@ void draw_arrow(const RenderContext& context, melv::vec2 start, melv::vec2 end, 
     melv::vec2 head_start = end - dir * head_size;
     melv::vec2 arrow_left = head_start + ortho * head_width;
     melv::vec2 arrow_right = head_start - ortho * head_width;
-    vertices[0].position = context.transform_sdl_point(SDL_FPoint { end.x, end.y });
-    vertices[1].position = context.transform_sdl_point(SDL_FPoint { arrow_left.x, arrow_left.y });
-    vertices[2].position = context.transform_sdl_point(SDL_FPoint { arrow_right.x, arrow_right.y });
+    vertices[0] = Vertex(context.transformWorld({ end.x, end.y }), vec2(0, 0), color);
+    vertices[1] = Vertex(context.transformWorld({ arrow_left.x, arrow_left.y }), vec2(0, 0), color);
+    vertices[2] = Vertex(context.transformWorld({ arrow_right.x, arrow_right.y }), vec2(0, 0), color);
 
     melv::vec2 upper_base_left = head_start + ortho * base_width;
     melv::vec2 upper_base_right = head_start - ortho * base_width;
     melv::vec2 lower_base_left = upper_base_left - dir * total_length * (1.0 - head_percentage);
     melv::vec2 lower_base_right = upper_base_right - dir * total_length * (1.0 - head_percentage);
-    vertices[3].position = context.transform_sdl_point(SDL_FPoint { upper_base_left.x, upper_base_left.y });
-    vertices[4].position = context.transform_sdl_point(SDL_FPoint { upper_base_right.x, upper_base_right.y });
-    vertices[5].position = context.transform_sdl_point(SDL_FPoint { lower_base_left.x, lower_base_left.y });
-    vertices[6].position = context.transform_sdl_point(SDL_FPoint { lower_base_right.x, lower_base_right.y });
+    vertices[3] = Vertex(context.transformWorld({ upper_base_left.x, upper_base_left.y }), vec2(0, 0), color);
+    vertices[4] = Vertex(context.transformWorld({ upper_base_right.x, upper_base_right.y }), vec2(0, 0), color);
+    vertices[5] = Vertex(context.transformWorld({ lower_base_left.x, lower_base_left.y }), vec2(0, 0), color);
+    vertices[6] = Vertex(context.transformWorld({ lower_base_right.x, lower_base_right.y }), vec2(0, 0), color);
 
-    const int indices[9] = {
+    const u16 indices[9] = {
         0, 1, 2,  // head
         3, 5, 4,
         4, 5, 6
     };
 
-    SDL_RenderGeometry(context.renderer, nullptr, vertices, 7, indices, ARRAY_SIZE(indices));
+    draw_geometry(context, vertices, 7, indices, ARRAY_SIZE(indices));
 }
 
-void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color)
+void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color)
 {
     // resolution
     #define NVERTICES 64
-    SDL_Vertex vertices[NVERTICES];
+    Vertex vertices[NVERTICES];
 
     // the angle between vertices and it's sin and cos
     const float angle = arc / float(NVERTICES / 2 - 1);
@@ -860,16 +774,20 @@ void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radiu
     float ycomp = std::sinf(start_angle);
     for (int i = 0; i < NVERTICES; i += 2)
     {
-        vertices[i + 0].position.x = center.x + xcomp * inner_radius;
-        vertices[i + 0].position.y = center.y + ycomp * inner_radius;
-        vertices[i + 0].color = SDL_FColor { color.r, color.g, color.b, color.a };
+        float px0 = center.x + xcomp * inner_radius;
+        float py0 = center.y + ycomp * inner_radius;
+        vertices[i + 0] = Vertex(px0, py0, 0, 0, COLOR_ARG(color));
 
-        vertices[i + 1].position.x = center.x + xcomp * outer_radius;
-        vertices[i + 1].position.y = center.y + ycomp * outer_radius;
-        vertices[i + 1].color = SDL_FColor { color.r, color.g, color.b, color.a };
+        float px1 = center.x + xcomp * outer_radius;
+        float py1 = center.y + ycomp * outer_radius;
+        vertices[i + 1] = Vertex(px1, py1, 0, 0, COLOR_ARG(color));
 
-        vertices[i + 0].position = context.transform_sdl_point(vertices[i + 0].position);
-        vertices[i + 1].position = context.transform_sdl_point(vertices[i + 1].position);
+        vec2 v0 = context.transformWorld(vertices[i + 0].position());
+        vec2 v1 = context.transformWorld(vertices[i + 1].position());
+        vertices[i + 0].x = v0.x;
+        vertices[i + 0].y = v0.y;
+        vertices[i + 1].x = v1.x;
+        vertices[i + 1].y = v1.y;
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -878,7 +796,7 @@ void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radiu
         ycomp = n_ycomp;
     }
 
-    int indices[(NVERTICES / 2 - 1) * 6];
+    u16 indices[(NVERTICES / 2 - 1) * 6];
     for (int i = 0; i < NVERTICES - 2; i += 2)
     {
         indices[i * 3 + 0] = i + 0;
@@ -889,11 +807,11 @@ void draw_arc(const RenderContext& context, melv::vec2 center, float inner_radiu
         indices[i * 3 + 5] = i + 2;
     }
 
-    SDL_RenderGeometry(context.renderer, NULL, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
+    draw_geometry(context, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
     #undef NVERTICES
 }
 
-void draw_circle_empty(const RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color)
+void draw_circle_empty(RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color)
 {
 	#define NSEGMENTS 32
 	const float angle = CONSTANT_TAU / NSEGMENTS;
@@ -914,21 +832,18 @@ void draw_circle_empty(const RenderContext& context, melv::vec2 position, float 
 	}
 }
 
-void draw_circle(const RenderContext& context, melv::vec2 position, float radius, melv::ColorF color)
+void draw_circle(RenderContext& context, melv::vec2 position, float radius, melv::ColorF color)
 {
-    draw_circle_with_texture(context, position, radius, nullptr, color);
+    draw_circle_with_texture(context, position, radius, GPUTexture(), color);
 }
 
-void draw_circle_with_texture(const RenderContext& context, melv::vec2 position, float radius, SDL_Texture* texture, melv::ColorF color)
+void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float radius, GPUTexture texture, melv::ColorF color)
 {
     // change the number of vertices to use to configure how fine of an approximation we get
     #define NVERTICES 32
-    SDL_Vertex vertices[NVERTICES + 1];
+    Vertex vertices[NVERTICES + 1];
 
-    SDL_Vertex center;
-    center.position = SDL_FPoint { position.x, position.y };
-    center.color = SDL_FColor { COLOR_ARG(color) };
-    center.tex_coord = SDL_FPoint { 0.5, 0.5 };
+    Vertex center = Vertex(position, vec2(0.5, 0.5), color);
 
     // the angle between vertices and it's sin and cos
     const float angle = CONSTANT_TAU / float(NVERTICES);
@@ -939,13 +854,12 @@ void draw_circle_with_texture(const RenderContext& context, melv::vec2 position,
     float ycomp = 0.0;
     for (int i = 1; i <= NVERTICES; i++)
     {
-        vertices[i].position.x = center.position.x + xcomp * radius;
-        vertices[i].position.y = center.position.y + ycomp * radius;
-        vertices[i].color = SDL_FColor { color.r, color.g, color.b, color.a };
-        vertices[i].tex_coord.x = (xcomp + 1.0f) * 0.5f;
-        vertices[i].tex_coord.y = (ycomp + 1.0f) * 0.5f;
-
-        vertices[i].position = context.transform_sdl_point(vertices[i].position);
+        float px = center.x + xcomp * radius;
+        float py = center.y + ycomp * radius;
+        vec2 t = context.transformWorld(vec2(px, py));
+        float u = (xcomp + 1.0f) * 0.5f;
+        float v = (ycomp + 1.0f) * 0.5f;
+        vertices[i] = Vertex(vec2(t.x, t.y), vec2(u, v), color);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -955,11 +869,10 @@ void draw_circle_with_texture(const RenderContext& context, melv::vec2 position,
     }
 
     // transform the center later so that the perimeter points get calculated according to the original center before being transformed
-    vertices[0].position = context.transform_sdl_point(center.position);
-    vertices[0].color = center.color;
-    vertices[0].tex_coord = center.tex_coord;
+    vec2 t = context.transformWorld(vec2(center.x, center.y));
+    vertices[0] = Vertex(vec2(t.x, t.y), vec2(center.uvx, center.uvy), center.color());
 
-    int indices[NVERTICES * 3];
+    u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
     {
         indices[i * 3 + 0] = 0;
@@ -971,25 +884,22 @@ void draw_circle_with_texture(const RenderContext& context, melv::vec2 position,
     indices[(NVERTICES - 1) * 3 + 1] = NVERTICES;
     indices[(NVERTICES - 1) * 3 + 2] = 1;
 
-    SDL_RenderGeometry(context.renderer, texture, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
+    draw_geometry_texture(context, texture, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
     #undef NVERTICES
 }
 
-void draw_circle_segment(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color)
+void draw_circle_segment(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color)
 {
-    draw_circle_segment_with_texture(context, position, radius, start_angle, angle, nullptr, color);
+    draw_circle_segment_with_texture(context, position, radius, start_angle, angle, GPUTexture(), color);
 }
 
-void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, SDL_Texture* texture, melv::ColorF color)
+void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, GPUTexture texture, melv::ColorF color)
 {
     // change the number of vertices to use to configure how fine of an approximation we get
     #define NVERTICES 32
-    SDL_Vertex vertices[NVERTICES + 1];
+    Vertex vertices[NVERTICES + 1];
 
-    SDL_Vertex center;
-    center.position = SDL_FPoint { position.x, position.y};
-    center.color = SDL_FColor { COLOR_ARG(color) };
-    center.tex_coord = SDL_FPoint { 0.5, 0.5 };
+    Vertex center = Vertex(position.x, position.y, 0.5, 0.5, COLOR_ARG(color));
 
     // the angle between vertices and it's sin and cos
     // if we have n vertices than we have n - 1 gaps between them so divide the angle by the number of gaps to fill
@@ -1001,13 +911,12 @@ void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 p
     float ycomp = std::sinf(start_angle);
     for (int i = 1; i <= NVERTICES; i++)
     {
-        vertices[i].position.x = center.position.x + xcomp * radius;
-        vertices[i].position.y = center.position.y + ycomp * radius;
-        vertices[i].color = SDL_FColor { color.r, color.g, color.b, color.a };
-        vertices[i].tex_coord.x = (xcomp + 1.0f) * 0.5f;
-        vertices[i].tex_coord.y = (ycomp + 1.0f) * 0.5f;
-
-        vertices[i].position = context.transform_sdl_point(vertices[i].position);
+        float px = center.x + xcomp * radius;
+        float py = center.y + ycomp * radius;
+        vec2 t = context.transformWorld(vec2(px, py));
+        float u = (xcomp + 1.0f) * 0.5f;
+        float v = (ycomp + 1.0f) * 0.5f;
+        vertices[i] = Vertex(t.x, t.y, u, v, color.r, color.g, color.b, color.a);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -1016,11 +925,10 @@ void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 p
         ycomp = n_ycomp;
     }
 
-    vertices[0].position = context.transform_sdl_point(center.position);
-    vertices[0].color = center.color;
-    vertices[0].tex_coord = center.tex_coord;
+    vec2 t = context.transformWorld(vec2(center.x, center.y));
+    vertices[0] = Vertex(vec2(t.x, t.y), vec2(center.uvx, center.uvy), center.color());
 
-    int indices[NVERTICES * 3];
+    u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
     {
         indices[i * 3 + 0] = 0;
@@ -1036,20 +944,19 @@ void draw_circle_segment_with_texture(const RenderContext& context, melv::vec2 p
         indices[(NVERTICES - 1) * 3 + 2] = 1;
     }
 
-    SDL_RenderGeometry(context.renderer, texture, vertices, ARRAY_SIZE(vertices), indices, (fullCircle ? NVERTICES : NVERTICES - 1) * 3);
+    draw_geometry_texture(context, texture, vertices, ARRAY_SIZE(vertices), indices, (fullCircle ? NVERTICES : NVERTICES - 1) * 3);
     #undef NVERTICES
 }
 
-void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color)
+void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color)
 {
     // total number of vertices used for either half circle sides of the capsule shape
     #define NVERTICES 32
-    SDL_Vertex vertices[NVERTICES + 1];
+    Vertex vertices[NVERTICES + 1];
 
     melv::vec2 midpoint = (center0 + center1) / 2;
 
-    vertices[0].position = { midpoint.x, midpoint.y };
-    vertices[0].color = SDL_FColor { COLOR_ARG(color) };
+    vertices[0] = Vertex(midpoint, vec2(0, 0), color);
 
     // the angle between vertices and it's sin and cos
     const float angle = CONSTANT_TAU / float(NVERTICES);
@@ -1064,11 +971,10 @@ void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 c
 
     for (int i = 1; i <= NVERTICES / 2; i++)
     {
-        vertices[i].position.x = center0.x + xcomp * radius;
-        vertices[i].position.y = center0.y + ycomp * radius;
-        vertices[i].color = SDL_FColor { color.r, color.g, color.b, color.a };
-
-        vertices[i].position = context.transform_sdl_point(vertices[i].position);
+        float px = center0.x + xcomp * radius;
+        float py = center0.y + ycomp * radius;
+        vec2 t = context.transformWorld(vec2(px, py));
+        vertices[i] = Vertex(vec2(t.x, t.y), vec2(0, 0), color);
 
         float n_xcomp = xcomp * c - ycomp * s;
         float n_ycomp = xcomp * s + ycomp * c;
@@ -1079,11 +985,10 @@ void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 c
 
     for (int i = NVERTICES / 2 + 1; i <= NVERTICES; i++)
     {
-        vertices[i].position.x = center1.x + xcomp * radius;
-        vertices[i].position.y = center1.y + ycomp * radius;
-        vertices[i].color = SDL_FColor { color.r, color.g, color.b, color.a };
-
-        vertices[i].position = context.transform_sdl_point(vertices[i].position);
+        float px = center1.x + xcomp * radius;
+        float py = center1.y + ycomp * radius;
+        vec2 t = context.transformWorld(vec2(px, py));
+        vertices[i] = Vertex(vec2(t.x, t.y), vec2(0, 0), color);
 
         float n_xcomp = xcomp * c - ycomp * s;
         float n_ycomp = xcomp * s + ycomp * c;
@@ -1092,9 +997,11 @@ void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 c
         ycomp = n_ycomp;
     }
 
-    vertices[0].position = context.transform_sdl_point(vertices[0].position);
+    vec2 t = context.transformWorld(vec2(vertices[0].x, vertices[0].y));
+    vertices[0].x = t.x;
+    vertices[0].y = t.y;
 
-    int indices[NVERTICES * 3];
+    u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
     {
         indices[i * 3 + 0] = 0;
@@ -1106,103 +1013,70 @@ void draw_capsule(const RenderContext& context, melv::vec2 center0, melv::vec2 c
     indices[(NVERTICES - 1) * 3 + 1] = NVERTICES;
     indices[(NVERTICES - 1) * 3 + 2] = 1;
 
-    SDL_RenderGeometry(context.renderer, NULL, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
+    draw_geometry(context,  vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
     #undef NVERTICES
 }
 
-// it needs to be a convex polygon and the points need to be in order they are supposed to be rendered in
-void draw_polygon(RenderContext& context, melv::vec2 points[], int numPoints, melv::ColorF color)
+void draw_quad(RenderContext& context, melv::RectPoints quad, melv::ColorF color)
 {
-    context.vertex_scratch.ensure_size(numPoints + 1);
-    context.index_scratch.ensure_size(numPoints * 3);
-
-    melv::vec2 average = {};
-    for (int i = 0; i < numPoints; i++)
-    {
-        SDL_Vertex vertex = {};
-        vertex.position = context.transform_sdl_point({points[i].x, points[i].y});
-        vertex.color = SDL_FColor { COLOR_ARG(color) };
-        context.vertex_scratch.add(vertex);
-        average += points[i];
-    }
-
-    average /= numPoints;
-
-    SDL_Vertex vertex = {};
-    vertex.position = { average.x, average.y };
-    vertex.color = SDL_FColor { COLOR_ARG(color) };
-    int averageIndex = context.vertex_scratch.add(vertex);
-
-    for (int i = 0; i < numPoints; i++)
-    {
-        context.index_scratch.add(averageIndex);
-        context.index_scratch.add(i);
-        context.index_scratch.add((i + 1) % numPoints);
-    }
-
-    SDL_RenderGeometry(context.renderer, nullptr, context.vertex_scratch.data(), context.vertex_scratch.size(), context.index_scratch.data(), context.index_scratch.size());
-}
-
-void draw_quad(const RenderContext& context, melv::RectPoints quad, melv::ColorF color)
-{
-    SDL_Vertex vertex [4];
+    Vertex vertex [4];
     vertex[0]     = {
-        context.transform_sdl_point(SDL_FPoint { quad.p[0].x, quad.p[0].y }),
-        SDL_FColor { color.r, color.g, color.b, color.a },
-        SDL_FPoint { 0, 1 }
+        context.transformWorld({ quad.p[0].x, quad.p[0].y }),
+        { 0, 1 },
+        { color.r, color.g, color.b, color.a },
     };
     vertex[1]    = {
-        context.transform_sdl_point(SDL_FPoint { quad.p[1].x, quad.p[1].y }),
-        SDL_FColor { color.r, color.g, color.b, color.a },
-        SDL_FPoint { 1, 1 }
+        context.transformWorld({ quad.p[1].x, quad.p[1].y }),
+        { 1, 1 },
+        { color.r, color.g, color.b, color.a },
     };
     vertex[2]  = {
-        context.transform_sdl_point(SDL_FPoint { quad.p[2].x, quad.p[2].y }),
-        SDL_FColor { color.r, color.g, color.b, color.a },
-        SDL_FPoint { 0, 0 }
+        context.transformWorld({ quad.p[2].x, quad.p[2].y }),
+        { 0, 0 },
+        { color.r, color.g, color.b, color.a },
     };
     vertex[3] = {
-        context.transform_sdl_point(SDL_FPoint { quad.p[3].x, quad.p[3].y }),
-        SDL_FColor{ color.r, color.g, color.b, color.a },
-        SDL_FPoint { 1, 0 }
+        context.transformWorld({ quad.p[3].x, quad.p[3].y }),
+        { 1, 0 },
+        { color.r, color.g, color.b, color.a },
     };
-    int index [6] = {
+    u16 index [6] = {
         0, 3, 1,
         0, 2, 3,
     };
 
-    SDL_RenderGeometry(context.renderer, nullptr, vertex, 4, index, 6);
+    draw_geometry(context, vertex, 4, index, 6);
 }
 
-void draw_quad_with_texture(const RenderContext& context, melv::RectPoints quad, SDL_Texture* texture, melv::ColorF color)
+void draw_quad_with_texture(RenderContext& context, melv::RectPoints quad, GPUTexture texture, melv::ColorF color)
 {
-    SDL_Vertex vertex [4];
+    Vertex vertex [4];
     vertex[melv::QuadTopLeft]     = {
-		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y }),
-		SDL_FColor { color.r, color.g, color.b, color.a },
-		SDL_FPoint { 0, 1 }
+		context.transformWorld({ quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y }),
+		{ 0, 1 },
+		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadTopRight]    = {
-		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y }),
-		SDL_FColor { color.r, color.g, color.b, color.a },
-		SDL_FPoint { 1, 1 }
+		context.transformWorld({ quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y }),
+		{ 1, 1 },
+		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadBottomLeft]  = {
-		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y }),
-		SDL_FColor { color.r, color.g, color.b, color.a },
-		SDL_FPoint { 0, 0 }
+		context.transformWorld({ quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y }),
+		{ 0, 0 },
+		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadBottomRight] = {
-		context.transform_sdl_point(SDL_FPoint { quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y }),
-		SDL_FColor{ color.r, color.g, color.b, color.a },
-		SDL_FPoint { 1, 0 }
+		context.transformWorld({ quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y }),
+		{ 1, 0 },
+		{ color.r, color.g, color.b, color.a },
 	};
-    int index [6] = {
+    u16 index [6] = {
         melv::QuadTopLeft, melv::QuadBottomRight, melv::QuadTopRight,
         melv::QuadTopLeft, melv::QuadBottomLeft, melv::QuadBottomRight,
     };
 
-    SDL_RenderGeometry(context.renderer, texture, vertex, 4, index, 6);
+    draw_geometry_texture(context, texture, vertex, 4, index, 6);
 }
 
 void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color)
@@ -1221,64 +1095,7 @@ void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints
     }
 }
 
-void render_texture(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, bool stretch)
-{
-    float tex_w, tex_h;
-    SDL_GetTextureSize(texture, &tex_w, &tex_h);
-    SDL_FRect src = { 0, 0, tex_w, tex_h };
-    float width = stretch ? area.w : tex_w;
-    float height = stretch ? area.h : tex_h;
-    SDL_FRect dst = { area.x - width / 2, area.y - height / 2, width, height };
-    dst = render.transform_sdl_rectangle(dst);
-    SDL_RenderTexture(render.renderer, texture, &src, &dst);
-}
-
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, float angle, Flip flip, bool strech)
-{
-    float tex_w, tex_h;
-    SDL_GetTextureSize(texture, &tex_w, &tex_h);
-    SDL_FRect src = { 0, 0, tex_w, tex_h };
-    float width = strech ? area.w : tex_w;
-    float height = strech ? area.h : tex_h;
-    SDL_FRect dst = { area.x - width / 2, area.y - height / 2, width, height };
-    dst = render.transform_sdl_rectangle(dst);
-
-    SDL_RenderTextureRotated(render.renderer, texture, &src, &dst, angle * melv::RADIAN_TO_DEGREE_F, nullptr, SDL_FlipMode(flip));
-}
-
-void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, SDL_Texture* texture, melv::Color color, bool strech, bool center) {
-    SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
-    SDL_FRect area = center ?
-        SDL_FRect { rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h } :
-        SDL_FRect { rect.x, rect.y, rect.w, rect.h };
-    SDL_RenderFillRect(render.renderer, &area);
-
-    float tex_w, tex_h;
-    SDL_GetTextureSize(texture, &tex_w, &tex_h);
-    SDL_FRect src = { 0, 0, tex_w, tex_h};
-    float width = strech ? area.w : tex_w;
-    float height = strech ? area.h : tex_h;
-    SDL_FRect dst = { area.x, area.y, width, height };
-    dst = render.transform_sdl_rectangle(dst);
-    SDL_RenderTexture(render.renderer, texture, &src, &dst);
-}
-
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, SDL_Texture* texture, melv::ColorF tint, bool strech)
-{
-    float tex_w, tex_h;
-    SDL_GetTextureSize(texture, &tex_w, &tex_h);
-    SDL_FRect src = { 0, 0, tex_w, tex_h };
-    float width = strech ? area.w : tex_w;
-    float height = strech ? area.h : tex_h;
-    SDL_FRect dst = { area.x - width / 2, area.y - height / 2, width, height };
-    dst = render.transform_sdl_rectangle(dst);
-
-    SDL_SetTextureColorModFloat(texture, tint.r, tint.g, tint.b);
-    SDL_SetTextureAlphaModFloat(texture, tint.a);
-    SDL_RenderTexture(render.renderer, texture, &src, &dst);
-}
-
-void draw_quadratic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color)
+void draw_quadratic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color)
 {
     melv::vec2 prev = p0;
 
@@ -1294,7 +1111,7 @@ void draw_quadratic_bezier(const RenderContext& context, melv::vec2 p0, melv::ve
     }
 }
 
-void draw_cubic_bezier(const RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color)
+void draw_cubic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color)
 {
     melv::vec2 prev = p0;
 

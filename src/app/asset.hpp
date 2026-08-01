@@ -61,7 +61,7 @@ struct Asset {
     AssetId identifier = {};
     union {
         Font font;
-        SDL_Texture* image;
+        TextureHandle image;
         MIX_Audio* audio;
         Shader shader;
     } data = {};
@@ -154,22 +154,22 @@ struct AssetCatalog {
         return true;
     }
 
-    SDL_Texture* get_image(AssetId id) const
+    TextureHandle get_image(AssetId id) const
     {
         if (!id.is_valid())
         {
-            return nullptr;
+            return TextureHandle();
         }
 
         const Asset& asset = assets.get(id.id);
         if (!compare_asset_kind(ASSET_KIND_IMAGE, asset.kind))
         {
-            return nullptr;
+            return TextureHandle();
         }
 
         if (!compare_asset_generation(asset.identifier.generation, id.generation))
         {
-            return nullptr;
+            return TextureHandle();
         }
 
         return asset.data.image;

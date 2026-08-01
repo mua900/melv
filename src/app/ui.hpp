@@ -71,20 +71,20 @@ struct ImageButton {
     UiElementId id = {};
     UiElementInfo info = {};
     UiUserData data = {};
-    SDL_Texture* image = {};
+    TextureHandle image = {};
     melv::vec2 position = {};
     melv::vec2 scale = {};
     melv::Color background = {};
 
     ImageButton() {}
-    ImageButton(SDL_Texture* image, melv::vec2 pos, melv::vec2 sca, melv::Color back, bool visible = true) : info(visible), image(image), position(pos), scale(sca), background(back) {}
+    ImageButton(TextureHandle image, melv::vec2 pos, melv::vec2 sca, melv::Color back, bool visible = true) : info(visible), image(image), position(pos), scale(sca), background(back) {}
 };
 
 struct ButtonGroup {
     UiElementId id = {};
     UiElementInfo info = {};
     UiUserData user = {};
-    DArray<SDL_Texture*> buttons = {};
+    DArray<TextureHandle> buttons = {};
     melv::vec2 button_scale = {};
     melv::vec2 position = {};
     melv::vec2 scale = {};
@@ -194,7 +194,7 @@ struct Text_Field
     float mouse_y;
 
     float m_font_size = 0.0;
-    SDL_Texture* m_texture = nullptr;  // cached texture the text is rendered on, updated every text input event
+    TextureHandle m_texture = {};  // cached texture the text is rendered on, updated every text input event
 
     Text_Field() {}
 
@@ -257,15 +257,15 @@ struct Text_Field
         }
     }
 
-    bool set_and_render_text(SDL_Renderer* renderer, Font font, String s, bool wrapped)
+    bool set_and_render_text(RenderContext& render, Font font, String s, bool wrapped)
     {
-        set_string(s);
-        return update_text(renderer, font, wrapped);
+        set_string(s, render);
+        return update_text(render, font, wrapped);
     }
 
-    void set_string(String s)
+    void set_string(String s, RenderContext& render)
     {
-        clear();
+        clear(render);
         m_buffer.append(s, 0);
         text_gap = m_buffer.gap_index;
     }
@@ -289,15 +289,15 @@ struct Text_Field
         m_selection_point = m_cursor;
     }
 
-    bool update_text(SDL_Renderer* renderer, Font font, bool wrapped)
+    bool update_text(RenderContext& render, Font font, bool wrapped)
     {
-        return render_text_field_texture(renderer, font, text_color, wrapped);
+        return render_text_field_texture(render, font, text_color, wrapped);
     }
 
-    void clear() {
+    void clear(RenderContext& render) {
         m_buffer.remove(0, m_buffer.length);
-        SDL_DestroyTexture(m_texture);
-        m_texture = nullptr;
+        render.destroy_texture(m_texture);
+        m_texture = {};
         m_cursor_pixel_x = 0;
         m_cursor_pixel_y = 0;
         m_cursor_line = 0;
@@ -308,9 +308,9 @@ struct Text_Field
         text_gap = 0;
     }
 
-    void reset()
+    void reset(RenderContext& render)
     {
-        clear();
+        clear(render);
         m_buffer.reset();
         m_text.free_buffer();
         text_gap = 0;
@@ -389,13 +389,13 @@ struct Text_Field
     void calculate_cursor_from_selection(String string, Font font, bool wrapped);
     size_t calculate_cursor_from_mouse(melv::vec2 mouse_position, String string, Font font, bool wrapped);
 
-    bool render_text_field_texture(SDL_Renderer* renderer, Font font, melv::Color color, bool wrapped);
+    bool render_text_field_texture(RenderContext& render, Font font, melv::Color color, bool wrapped);
 };
 
 struct TextEditor {
     Text_Field field = {};
     MutableString name = {};
-    SDL_Texture* title_texture = nullptr;  // rendered name or something else
+    TextureHandle title_texture = {};  // rendered name or something else
     float title_height = 0;
     melv::Color title_color = melv::Color();  // color of the title text
     melv::Color title_bar_color = melv::Color();
@@ -427,7 +427,7 @@ struct TextEditor {
         title_bar_color(titleBarColor)
     {}
 
-    void rescale(melv::vec2 scale, const RenderContext& render, const AssetCatalog& catalog);
+    void rescale(melv::vec2 scale, RenderContext& render, const AssetCatalog& catalog);
 
     melv::Rectangle get_title_area() const {
         return melv::Rectangle(field.m_area.x, field.m_area.y - (field.m_area.h + title_height) / 2, field.m_area.w, title_height);
@@ -546,12 +546,13 @@ struct Drop_Down_List {
         return melv::Rectangle(pos.x, pos.y + scale.y * (i+1), scale.x, scale.y);
     }
 
-    void remove_option(int index) {
+    void remove_option(int index, RenderContext& render) {
         if (index == selected)
         {
             selected = DROP_DOWN_LIST_SELECTED_SENTINEL;
         }
         options.get_ref(index).label.clear();
+        render.destroy_texture(options.get_ref(index).label.texture);
         options.remove_shift(index);
     }
 
@@ -667,47 +668,7 @@ struct ValuePanel {
     melv::Rectangle get_tab_header_area(int index) const;
     float get_field_width() const { return area.w * 0.95; }
     melv::Rectangle get_field_area(int tab, int field, const UiState* ui) const;
-    melv::Rectangle get_field_title_area(int tab, int field) const;
-};
-
-// @todo remove
-struct ControlMenu {
-    DragInfo drag = {};
-    melv::vec2* anchorPosition = nullptr;
-    melv::vec2 position = {};
-    melv::vec2 scale = {};
-    DArray<Entry> buttons = {};
-    melv::Color background = {};
-    bool visible = false;
-
-    void add_button(Text text, void* data) {
-        buttons.add(Entry(text, data));
-    }
-
-    void add_button(Text text, int index) {
-        buttons.add(Entry(text, index));
-    }
-
-    Text get_button_text(int index) const {
-        return buttons.get(index).label;
-    }
-
-    String get_button_name(int index) const {
-        return buttons.get(index).label.string;
-    }
-
-    void* get_button_data(int index) const {
-        return buttons.get(index).data;
-    }
-
-    int get_button_data_index(int index) const {
-        return buttons.get(index).index;
-    }
-
-    void remove_button(int index) {
-        buttons.get_ref(index).label.clear();
-        buttons.remove_shift(index);
-    }
+    melv::Rectangle get_field_title_area(RenderContext& render, int tab, int field) const;
 };
 
 struct DiscreteSlider {
@@ -719,7 +680,7 @@ struct DiscreteSlider {
     int selected = 0;
     float element_gap = 0;
     bool vertical = false;
-    SDL_Texture* texture = nullptr;
+    TextureHandle texture = {};
     melv::ColorF outlineColor = {};
     melv::ColorF buttonColor = {};
     melv::ColorF inactiveColor = {};
@@ -770,7 +731,6 @@ struct UiState {
     DArray<Label> label = {};
     DArray<Panel> panel = {};
     DArray<ValuePanel> value_panel = {};
-    DArray<ControlMenu> control = {};
     DArray<DiscreteSlider> discrete_slider = {};
     DArray<ButtonGroup> button_group = {};
 
@@ -781,7 +741,7 @@ struct UiState {
 
     void reinit_text(RenderContext& render, Font font);
 
-    void update_state(melv::vec2 window_size, const RenderContext& render, const AssetCatalog& catalog);
+    void update_state(melv::vec2 window_size, RenderContext& render, const AssetCatalog& catalog);
 
     Text_Field* get_selected_text_field();
 

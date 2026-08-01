@@ -5,11 +5,13 @@
 #include "util/string_util.hpp"
 #include <SDL3_ttf/SDL_ttf.h>
 
+#include "draw_types.hpp"
+
 namespace melv
 {
 
 struct Font {
-    TTF_Font* font = NULL;
+    TTF_Font* font = nullptr;
     float size = 0;
 };
 
@@ -22,22 +24,18 @@ union UiUserData {
 };
 
 struct Text {
-    SDL_Texture* texture = NULL;
+    TextureHandle texture = {};
     String string = {};
     melv::Color color = {};
 
     Text() {}
-    Text(SDL_Texture* p_texture, String p_string, melv::Color col)
+    Text(TextureHandle p_texture, String p_string, melv::Color col)
         : texture(p_texture), string(p_string), color(col)
     {}
 
     void clear()
     {
-        if (texture)
-        {
-            SDL_DestroyTexture(texture);
-            texture = nullptr;
-        }
+        texture = {};
 
         string.data = NULL;
         string.size = 0;
@@ -47,11 +45,11 @@ struct Text {
 };
 
 struct Icon {
-    SDL_Texture* texture = nullptr;
+    TextureHandle texture = {};
     melv::Color background = {};
 
     Icon () {}
-    Icon (SDL_Texture* tex, melv::Color bground) : texture(tex), background(bground) {}
+    Icon (TextureHandle tex, melv::Color bground) : texture(tex), background(bground) {}
 };
 
 struct IconButton {
@@ -59,11 +57,11 @@ struct IconButton {
     UiUserData data = {};
 
     IconButton() {}
-    IconButton(SDL_Texture* tex, melv::Color background) : icon(tex, background) {}
-    IconButton(SDL_Texture* tex, melv::Color background, s64 n) : icon(tex, background) {
+    IconButton(TextureHandle tex, melv::Color background) : icon(tex, background) {}
+    IconButton(TextureHandle tex, melv::Color background, s64 n) : icon(tex, background) {
         data.number = n;
     }
-    IconButton(SDL_Texture* tex, melv::Color background, void* ptr) : icon(tex, background) {
+    IconButton(TextureHandle tex, melv::Color background, void* ptr) : icon(tex, background) {
         data.ptr = ptr;
     }
 };
