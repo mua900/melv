@@ -943,15 +943,12 @@ void Application::draw()
         return;
     }
 
-    render.start_render_pass();
-
 	if (user.draw)
 	{
 		user.draw(user.userdata, this);
 	}
 
-	render.end_render_pass(window.window);
-	end_frame(render);
+	end_frame(render, window.window);
 }
 
 bool Application::is_minimized() const

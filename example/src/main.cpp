@@ -123,8 +123,8 @@ void draw(void *userdata, Application *app)
 {
 	State* state = (State*) userdata;
 
-	melv::draw_mesh(app->render, state->references.get(0));
-	melv::draw_mesh(app->render, state->references.get(1));
+	melv::queue_draw_mesh(app->render, state->references.get(0));
+	melv::queue_draw_mesh(app->render, state->references.get(1));
 
 	// draw known per frame geometry
 	melv::draw_arc(app->render, vec2(200, 200), 100, 150, 0, CONSTANT_PI, ColorF(1, 0, 1, 0));

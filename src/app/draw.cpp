@@ -21,7 +21,46 @@ bool start_frame(RenderContext& context, SDL_Window* window) {
     return true;
 }
 
-void end_frame(RenderContext& context) {
+void end_frame(RenderContext& context, SDL_Window* window) {
+    SDL_GPUTexture* swapchain = nullptr;
+    u32 swapchain_width = 0;
+    u32 swapchain_height = 0;
+    SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
+
+    if (!swapchain)
+    {
+        return;
+    }
+
+    if (!context.start_copy_pass())
+    {
+        return;
+    }
+
+    TransferData transfer = add_to_transfer_buffer_ref(context, context.frameGeometry);
+    DArray<MeshReference> frameRefs = upload_mesh_data_buffers(context, transfer, context.vertex_buffer, context.index_buffer);
+
+    context.end_copy_pass();
+
+    if (!context.start_render_pass())
+    {
+        return;
+    }
+
+    for (auto ref : frameRefs)
+    {
+        draw_mesh_buffers(context, ref, context.vertex_buffer, context.index_buffer);
+    }
+
+    for (auto ref : context.frameMeshDraw)
+    {
+        draw_mesh(context, ref);
+    }
+
+    context.end_render_pass();
+
+    context.copy_to_swapchain(swapchain, swapchain_width, swapchain_height);
+
     if (context.frame.command_buffer)
     {
         SDL_SubmitGPUCommandBuffer(context.frame.command_buffer);
@@ -30,6 +69,9 @@ void end_frame(RenderContext& context) {
 
     context.frame_vertex.discard_data();
     context.frame_index.discard_data();
+
+    context.frameMeshDraw.discard_data();
+    context.frameGeometry.discard_data();
 }
 
 
@@ -87,36 +129,14 @@ bool RenderContext::start_render_pass() {
     return render_pass ? true : false;
 }
 
-void RenderContext::end_render_pass(SDL_Window* window) {
-    // this or record render commands and do all the rendering here
-
+void RenderContext::end_render_pass() {
     ASSERT(frame.render_pass);
     SDL_EndGPURenderPass(frame.render_pass);
     frame.render_pass = nullptr;
-
-    copy_to_swapchain(window);
 }
 
-DArray<MeshReference> RenderContext::copy_frame_geometry()
+void RenderContext::copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height)
 {
-    TransferData transfer = add_to_transfer_buffer_ref(*this, frameGeometry);
-    DArray<MeshReference> frame_refs = upload_mesh_data_buffers(*this, transfer, vertex_buffer, index_buffer);
-    transfer.meshes.reset();
-    return frame_refs;
-}
-
-void RenderContext::copy_to_swapchain(SDL_Window* window)
-{
-    SDL_GPUTexture* swapchain = nullptr;
-    u32 swapchain_width = 0;
-    u32 swapchain_height = 0;
-    SDL_WaitAndAcquireGPUSwapchainTexture(frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
-
-    if (!swapchain)
-    {
-        return;
-    }
-
     SDL_GPUBlitRegion rt_region = {};
     rt_region.texture = render_target;
     rt_region.x = 0;
@@ -602,6 +622,11 @@ bool RenderContext::is_texture_handle_valid(TextureHandle handle)
 {
     // @todo
     return textures.in_bounds(handle);
+}
+
+void queue_draw_mesh(RenderContext& render, MeshReference mesh)
+{
+    render.frameMeshDraw.add(mesh);
 }
 
 void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)

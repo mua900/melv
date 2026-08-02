@@ -188,6 +188,8 @@ struct RenderContext {
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
+    DArray<MeshReference> frameMeshDraw = {};
+
     DArray<MeshDataRef> frameGeometry = {};
     DArray<Vertex> frame_vertex = {};
     DArray<u16> frame_index = {};
@@ -208,7 +210,7 @@ struct RenderContext {
     melv::vec2 get_center() const { return render_size / 2; }
 
     bool start_render_pass();
-    void end_render_pass(SDL_Window* window);
+    void end_render_pass();
 
     bool start_copy_pass();
     void end_copy_pass();
@@ -225,8 +227,7 @@ struct RenderContext {
 
     bool set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
-    DArray<MeshReference> copy_frame_geometry();
-    void copy_to_swapchain(SDL_Window* window);
+    void copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height);
 
     // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
@@ -266,7 +267,7 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
 bool start_frame(RenderContext& context, SDL_Window* window);
-void end_frame(RenderContext& context);
+void end_frame(RenderContext& context, SDL_Window* window);
 
 GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
@@ -275,8 +276,12 @@ TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataR
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
+// draw calls
 void draw_mesh(RenderContext& render, MeshReference mesh);
 void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
+// user functions
+void queue_draw_mesh(RenderContext& render, MeshReference mesh);
 
 void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
 void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
