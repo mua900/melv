@@ -14,29 +14,6 @@ bool initialize(void *userdata, Application *app)
 	State* state = (State*) userdata;
 	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
 
-	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
-	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
-	AssetId fragTexId = get_asset(String("FragTexture"), app->catalog);
-
-	Shader vertex = app->catalog.get_shader(vertexId);
-	Shader fragment = app->catalog.get_shader(fragmentId);
-	Shader frag_texture = app->catalog.get_shader(fragTexId);
-
-	if (vertex.numUniformBuffers != 1 ||
-		frag_texture.numSamplers != 1 ||
-		frag_texture.numStorageTextures != 1
-		)
-	{
-		log_error("Wrong number of uniform buffers");
-		return false;
-	}
-
-	if (!app->render.set_shaders(vertex.shader, fragment.shader))
-	{
-		log_error("Couldn't set shaders");
-		return false;
-	}
-
 	TransferData triangle, quad;
 
 	float scale = 100;

@@ -9,6 +9,5 @@ struct PSInput {
 
 void main(PSInput input, out float4 fragColor : SV_Target)
 {
-    // @todo tint with input color?
     fragColor = colorTexture.Sample(colorSampler, input.uv);
 }

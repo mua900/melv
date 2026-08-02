@@ -4,6 +4,8 @@
 #include "util/log.hpp"
 #include "util/file_util.hpp"
 
+#include "bundle/bundle_shaders.h"
+
 namespace melv
 {
 
@@ -308,17 +310,29 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     return pipeline;
 }
 
-bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
 {
+    DefaultShaders shaders = {};
+    if (!create_default_shaders(render->device, &shaders))
+    {
+        return false;
+    }
+
     GraphicsPipelineParameters pipeline_parameters;
     if (!get_default_graphics_pipeline_parameters(&pipeline_parameters, render->device, window))
     {
         return false;
     }
 
-    SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&pipeline_parameters, render, vertex, fragment);
+    SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
     if (!pipeline) {
         log_error("Failed to create graphics pipeline: %s", SDL_GetError());
+        return false;
+    }
+
+    SDL_GPUGraphicsPipeline* pipeline_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
+    if (!pipeline_texture)
+    {
         return false;
     }
 
@@ -382,11 +396,86 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     }
 
     render->graphics = { pipeline_parameters, pipeline };
+    render->graphics_texture = { pipeline_parameters, pipeline_texture };
     render->vertex_buffer = { vertex_buffer, GPUBufferVertex, buffer_size, 0 };
     render->index_buffer = { index_buffer, GPUBufferIndex, buffer_size, 0 };
     render->render_target = render_target;
     render->sampler = sampler;
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
+
+    return true;
+}
+
+bool create_default_shaders(SDL_GPUDevice* device, DefaultShaders* shaders)
+{
+    SDL_GPUShaderCreateInfo vertexInfo = {};
+    SDL_GPUShaderCreateInfo fragmentInfo = {};
+    SDL_GPUShaderCreateInfo fragmentTextureInfo = {};
+
+    vertexInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+    fragmentInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+    fragmentTextureInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+
+    vertexInfo.entrypoint = "main";
+    fragmentInfo.entrypoint = "main";
+    fragmentTextureInfo.entrypoint = "main";
+
+    // mvp
+    vertexInfo.num_uniform_buffers = 1;
+
+    fragmentTextureInfo.num_storage_textures = 1;
+    fragmentTextureInfo.num_samplers = 1;
+
+    // @todo other shader formats
+    // @todo i am not sure about the behavior of this on a system that might support multiple shader formats
+    // like on windows maybe
+    // we probably want to prioritize something like a native format
+
+    SDL_GPUShaderFormat shaderFormat = SDL_GetGPUShaderFormats(device);
+    if (shaderFormat & SDL_GPU_SHADERFORMAT_DXIL)
+    {
+        vertexInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+        fragmentInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+        fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+
+        vertexInfo.code_size = vertex_dxil_len;
+        vertexInfo.code = vertex_dxil;
+        fragmentInfo.code_size = fragment_dxil_len;
+        fragmentInfo.code = fragment_dxil;
+        fragmentTextureInfo.code_size = fragment_texture_dxil_len;
+        fragmentTextureInfo.code = fragment_texture_dxil;
+    }
+    else if (shaderFormat & SDL_GPU_SHADERFORMAT_SPIRV)
+    {
+        vertexInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        fragmentInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+        fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+
+        vertexInfo.code_size = vertex_spv_len;
+        vertexInfo.code = vertex_spv;
+        fragmentInfo.code_size = fragment_spv_len;
+        fragmentInfo.code = fragment_spv;
+        fragmentTextureInfo.code_size = fragment_texture_spv_len;
+        fragmentTextureInfo.code = fragment_texture_spv;
+    }
+    else
+    {
+        log_info("No supported shader formats");
+        return false;
+    }
+
+    SDL_GPUShader *vertex = SDL_CreateGPUShader(device, &vertexInfo);
+    SDL_GPUShader *fragment = SDL_CreateGPUShader(device, &fragmentInfo);
+    SDL_GPUShader *fragment_texture = SDL_CreateGPUShader(device, &fragmentTextureInfo);
+
+    if (!(vertex && fragment && fragment_texture))
+    {
+        return false;
+    }
+
+    shaders->vertex = vertex;
+    shaders->fragment = fragment;
+    shaders->fragmentTexture = fragment_texture;
 
     return true;
 }

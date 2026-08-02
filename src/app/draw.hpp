@@ -162,6 +162,13 @@ enum CoordinateSpace
     World,
 };
 
+struct DefaultShaders
+{
+    SDL_GPUShader* vertex = {};
+    SDL_GPUShader* fragment = {};
+    SDL_GPUShader* fragmentTexture = {};
+};
+
 struct RenderContext {
     melv::vec2 render_size = {};
 
@@ -185,6 +192,7 @@ struct RenderContext {
     // @todo
     // GraphicsPipeline user_pipeline = {};
     GraphicsPipeline graphics = {};
+    GraphicsPipeline graphics_texture = {};
 
     SDL_GPUTexture* render_target = nullptr;
 
@@ -271,11 +279,13 @@ enum Flip {
     FlipHorizontalAndVertical = SDL_FLIP_HORIZONTAL_AND_VERTICAL,
 };
 
+bool create_default_shaders(SDL_GPUDevice* device, DefaultShaders* info);
+
 bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parameters, SDL_GPUDevice* device, SDL_Window* window);
 SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
 bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
-bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
+bool init_gpu_renderer(RenderContext* render, SDL_Window* window);
 
 bool start_frame(RenderContext& context, SDL_Window* window);
 void end_frame(RenderContext& context, SDL_Window* window);
