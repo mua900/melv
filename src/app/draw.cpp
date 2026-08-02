@@ -15,21 +15,11 @@ const int RenderTargetHeight = 810;
 bool start_frame(RenderContext& context, SDL_Window* window) {
     context.frame.command_buffer = nullptr;
 
-    if (!context.get_command_buffer())
-    {
-        return false;
-    }
-
     return true;
 }
 
 void end_frame(RenderContext& context, SDL_Window* window) {
-    SDL_GPUTexture* swapchain = nullptr;
-    u32 swapchain_width = 0;
-    u32 swapchain_height = 0;
-    SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
-
-    if (!swapchain)
+    if (!context.get_command_buffer())
     {
         return;
     }
@@ -39,15 +29,64 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
-    for (auto upload_cmd : context.upload)
+    /*
+    if (context.upload.size() > 0)
     {
-        // @todo
+        int index = context.upload.size() - 1;
+        auto upload_cmd = context.upload.get(index);
+
+        GPUTexture texture = context.get_texture(upload_cmd.target);
+        SDL_GPUTextureTransferInfo source = {};
+        SDL_GPUTextureRegion destination = {};
+
+        u32 width = upload_cmd.src->w;
+        u32 height = upload_cmd.src->h;
+
+        ASSERT(texture.width == width);
+        ASSERT(texture.height == height);
+
+        void *memory = SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer, false);
+        if (!memory)
+        {
+            return;
+        }
+        memcpy(memory, upload_cmd.src->pixels, SDL_CalculateGPUTextureFormatSize(texture.format, width, height, 1));
+        SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer);
+
+        source.transfer_buffer = context.transfer_buffer_image.buffer;
+        source.offset = context.transfer_buffer_image.used;
+        source.pixels_per_row = upload_cmd.src->w;   // The number of pixels from one row to the next.
+        source.rows_per_layer = 0;                   // The number of rows from one layer/depth-slice to the next.
+
+        destination.texture = texture.texture;
+        destination.mip_level = 0;
+        destination.x = 0;
+        destination.y = 0;
+        destination.w = texture.width;
+        destination.h = texture.height;
+
+        SDL_UploadToGPUTexture(context.frame.copy_pass, &source, &destination, false);
+
+        log_info("Loaded texture");
+
+        context.upload.remove(index);
     }
+    */
 
     TransferData transfer = add_to_transfer_buffer_ref(context, context.frameGeometry);
     DArray<MeshReference> frameRefs = upload_mesh_data_buffers(context, transfer, context.vertex_buffer, context.index_buffer);
 
     context.end_copy_pass();
+
+    SDL_GPUTexture* swapchain = nullptr;
+    u32 swapchain_width = 0;
+    u32 swapchain_height = 0;
+    SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
+
+    if (!swapchain)
+    {
+        return;
+    }
 
     if (!context.start_render_pass())
     {
@@ -699,6 +738,7 @@ TextureHandle RenderContext::queue_upload_texture(SDL_Surface* surface)
     TextureFormat format = SDL_GetGPUTextureFormatFromPixelFormat(surface->format);
     if (!SDL_GPUTextureSupportsFormat(device, format, SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_SAMPLER))
     {
+        log_error("Texture format isn't supported: %s", SDL_GetPixelFormatName(surface->format));
         return TextureHandle();
     }
     TextureHandle texture = create_texture(format, surface->w, surface->h);
@@ -726,7 +766,7 @@ TextureHandle RenderContext::create_texture_verbose(TextureFormat format, Textur
     ci.num_levels = mip_levels;
     ci.sample_count = SDL_GPUSampleCount(sampleCount);
     SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture(device, &ci);
-    GPUTexture texture = GPUTexture(nullptr, width, height);
+    GPUTexture texture = GPUTexture(nullptr, format, width, height);
     return textures.add(texture);
 }
 

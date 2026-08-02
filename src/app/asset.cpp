@@ -505,7 +505,7 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
             TextureHandle handle = load_context.render->queue_upload_texture(surface);
             asset.data.image = handle;
 
-            return false;
+            return true;
         }
         case ASSET_KIND_AUDIO: {
             MIX_Audio* audio = MIX_LoadAudio(load_context.audio->mixer, path.c_string(), true);

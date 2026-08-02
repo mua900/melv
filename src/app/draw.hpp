@@ -113,10 +113,14 @@ struct GPUTexture {
     u32 width = 0;
     u32 height = 0;
 
+    TextureFormat format = {};
     u32 sampler = 0;
 
     GPUTexture() {}
-    GPUTexture(SDL_GPUTexture *tex, u32 w, u32 h) : texture(tex), width(w), height(h) {}
+    GPUTexture(SDL_GPUTexture *tex, TextureFormat fm, u32 w, u32 h)
+        :
+        texture(tex), format(fm), width(w), height(h)
+    {}
 };
 
 struct GPUUploadData
@@ -141,6 +145,7 @@ struct GPUBuffer {
 struct TransferBuffer {
     SDL_GPUTransferBuffer* buffer = nullptr;
     u32 size = 0;
+    u32 used = 0;
 };
 
 struct FrameContext {
@@ -196,7 +201,11 @@ struct RenderContext {
 
     SDL_GPUTexture* render_target = nullptr;
 
+    // for vertex data
+    // reset every frame
     TransferBuffer transfer_buffer = {};
+    // for image data
+    TransferBuffer transfer_buffer_image = {};
 
     FrameContext frame = {};
 
