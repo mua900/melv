@@ -41,6 +41,8 @@ bool initialize(void *userdata, Application *app)
 
 	float scale = 100;
 
+	// define persistent custom geometry
+
 	Vertex vertices[3] = {
 		{ 1,     0,     0, 0, 1, 0, 0, 1},
 		{ -0.5,  0.866, 0, 0, 1, 0, 0, 1},
@@ -124,6 +126,7 @@ void draw(void *userdata, Application *app)
 	melv::draw_mesh(app->render, state->references.get(0));
 	melv::draw_mesh(app->render, state->references.get(1));
 
+	// draw known per frame geometry
 	melv::draw_arc(app->render, vec2(200, 200), 100, 150, 0, CONSTANT_PI, ColorF(1, 0, 1, 0));
 }
 

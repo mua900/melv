@@ -289,13 +289,11 @@ void destroy_texture(GPUTexture *texture);
 TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 
-// @todo
 void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech = false);
 void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech = false);
 void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech = false, bool center = true);
 void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech = false);
 
-// @todo
 void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
 void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color);
 void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color);

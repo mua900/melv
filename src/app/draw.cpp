@@ -94,34 +94,6 @@ void RenderContext::end_render_pass(SDL_Window* window) {
     SDL_EndGPURenderPass(frame.render_pass);
     frame.render_pass = nullptr;
 
-    /*
-    if (!start_copy_pass())
-    {
-        log_error("Couldn't begin copy pass at the end of frame %s", SDL_GetError());
-        return;
-    }
-
-    auto frame_refs = copy_frame_geometry();
-
-    end_copy_pass();
-
-    if (!start_render_pass())
-    {
-        log_error("Couldn't start render pass at the end of frame");
-        return;
-    }
-
-    for (auto mesh : frame_refs)
-    {
-        draw_mesh_buffers(*this, mesh, vertex_buffer, index_buffer);
-    }
-
-    SDL_EndGPURenderPass(frame.render_pass);
-    frame.render_pass = nullptr;
-
-    frame_refs.reset();
-    */
-
     copy_to_swapchain(window);
 }
 
@@ -787,10 +759,10 @@ void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, floa
 
     Vertex vertices[4];
     u16 indices[6];
-    vertices[0] = Vertex(context.transformWorld({ sleft.x, sleft.y }), {0, 0}, color);
-    vertices[1] = Vertex(context.transformWorld({ sright.x, sright.y }), {0, 0}, color);
-    vertices[2] = Vertex(context.transformWorld({ eleft.x, eleft.y }), {0, 0}, color);
-    vertices[3] = Vertex(context.transformWorld({ eright.x, eright.y }), {0, 0}, color);
+    vertices[0] = Vertex({ sleft.x, sleft.y }, {0, 0}, color);
+    vertices[1] = Vertex({ sright.x, sright.y }, {0, 0}, color);
+    vertices[2] = Vertex({ eleft.x, eleft.y }, {0, 0}, color);
+    vertices[3] = Vertex({ eright.x, eright.y }, {0, 0}, color);
 
     indices[0] = 0;
     indices[1] = 1;
@@ -827,18 +799,18 @@ void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float 
     melv::vec2 head_start = end - dir * head_size;
     melv::vec2 arrow_left = head_start + ortho * head_width;
     melv::vec2 arrow_right = head_start - ortho * head_width;
-    vertices[0] = Vertex(context.transformWorld({ end.x, end.y }), vec2(0, 0), color);
-    vertices[1] = Vertex(context.transformWorld({ arrow_left.x, arrow_left.y }), vec2(0, 0), color);
-    vertices[2] = Vertex(context.transformWorld({ arrow_right.x, arrow_right.y }), vec2(0, 0), color);
+    vertices[0] = Vertex({ end.x, end.y }, vec2(0, 0), color);
+    vertices[1] = Vertex({ arrow_left.x, arrow_left.y }, vec2(0, 0), color);
+    vertices[2] = Vertex({ arrow_right.x, arrow_right.y }, vec2(0, 0), color);
 
     melv::vec2 upper_base_left = head_start + ortho * base_width;
     melv::vec2 upper_base_right = head_start - ortho * base_width;
     melv::vec2 lower_base_left = upper_base_left - dir * total_length * (1.0 - head_percentage);
     melv::vec2 lower_base_right = upper_base_right - dir * total_length * (1.0 - head_percentage);
-    vertices[3] = Vertex(context.transformWorld({ upper_base_left.x, upper_base_left.y }), vec2(0, 0), color);
-    vertices[4] = Vertex(context.transformWorld({ upper_base_right.x, upper_base_right.y }), vec2(0, 0), color);
-    vertices[5] = Vertex(context.transformWorld({ lower_base_left.x, lower_base_left.y }), vec2(0, 0), color);
-    vertices[6] = Vertex(context.transformWorld({ lower_base_right.x, lower_base_right.y }), vec2(0, 0), color);
+    vertices[3] = Vertex({ upper_base_left.x, upper_base_left.y }, vec2(0, 0), color);
+    vertices[4] = Vertex({ upper_base_right.x, upper_base_right.y }, vec2(0, 0), color);
+    vertices[5] = Vertex({ lower_base_left.x, lower_base_left.y }, vec2(0, 0), color);
+    vertices[6] = Vertex({ lower_base_right.x, lower_base_right.y }, vec2(0, 0), color);
 
     const u16 indices[9] = {
         0, 1, 2,  // head
@@ -872,12 +844,14 @@ void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, flo
         float py1 = center.y + ycomp * outer_radius;
         vertices[i + 1] = Vertex(px1, py1, 0, 0, COLOR_ARG(color));
 
+        /*
         vec2 v0 = context.transformWorld(vertices[i + 0].position());
         vec2 v1 = context.transformWorld(vertices[i + 1].position());
         vertices[i + 0].x = v0.x;
         vertices[i + 0].y = v0.y;
         vertices[i + 1].x = v1.x;
         vertices[i + 1].y = v1.y;
+        */
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -946,10 +920,10 @@ void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float
     {
         float px = center.x + xcomp * radius;
         float py = center.y + ycomp * radius;
-        vec2 t = context.transformWorld(vec2(px, py));
+        // vec2 t = context.transformWorld(vec2(px, py));
         float u = (xcomp + 1.0f) * 0.5f;
         float v = (ycomp + 1.0f) * 0.5f;
-        vertices[i] = Vertex(vec2(t.x, t.y), vec2(u, v), color);
+        vertices[i] = Vertex(vec2(px, py), vec2(u, v), color);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -959,8 +933,8 @@ void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float
     }
 
     // transform the center later so that the perimeter points get calculated according to the original center before being transformed
-    vec2 t = context.transformWorld(vec2(center.x, center.y));
-    vertices[0] = Vertex(vec2(t.x, t.y), vec2(center.uvx, center.uvy), center.color());
+    // vec2 t = context.transformWorld(vec2(center.x, center.y));
+    vertices[0] = Vertex(vec2(center.x, center.y), vec2(center.uvx, center.uvy), center.color());
 
     u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
@@ -1003,10 +977,10 @@ void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 positio
     {
         float px = center.x + xcomp * radius;
         float py = center.y + ycomp * radius;
-        vec2 t = context.transformWorld(vec2(px, py));
+        // vec2 t = context.transformWorld(vec2(px, py));
         float u = (xcomp + 1.0f) * 0.5f;
         float v = (ycomp + 1.0f) * 0.5f;
-        vertices[i] = Vertex(t.x, t.y, u, v, color.r, color.g, color.b, color.a);
+        vertices[i] = Vertex(px, py, u, v, color.r, color.g, color.b, color.a);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -1015,8 +989,8 @@ void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 positio
         ycomp = n_ycomp;
     }
 
-    vec2 t = context.transformWorld(vec2(center.x, center.y));
-    vertices[0] = Vertex(vec2(t.x, t.y), vec2(center.uvx, center.uvy), center.color());
+    // vec2 t = context.transformWorld(vec2(center.x, center.y));
+    vertices[0] = Vertex(vec2(center.x, center.y), vec2(center.uvx, center.uvy), center.color());
 
     u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
@@ -1063,8 +1037,8 @@ void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1
     {
         float px = center0.x + xcomp * radius;
         float py = center0.y + ycomp * radius;
-        vec2 t = context.transformWorld(vec2(px, py));
-        vertices[i] = Vertex(vec2(t.x, t.y), vec2(0, 0), color);
+        // vec2 t = context.transformWorld(vec2(px, py));
+        vertices[i] = Vertex(vec2(px, py), vec2(0, 0), color);
 
         float n_xcomp = xcomp * c - ycomp * s;
         float n_ycomp = xcomp * s + ycomp * c;
@@ -1077,8 +1051,8 @@ void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1
     {
         float px = center1.x + xcomp * radius;
         float py = center1.y + ycomp * radius;
-        vec2 t = context.transformWorld(vec2(px, py));
-        vertices[i] = Vertex(vec2(t.x, t.y), vec2(0, 0), color);
+        // vec2 t = context.transformWorld(vec2(px, py));
+        vertices[i] = Vertex(vec2(px, py), vec2(0, 0), color);
 
         float n_xcomp = xcomp * c - ycomp * s;
         float n_ycomp = xcomp * s + ycomp * c;
@@ -1087,9 +1061,11 @@ void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1
         ycomp = n_ycomp;
     }
 
+    /*
     vec2 t = context.transformWorld(vec2(vertices[0].x, vertices[0].y));
     vertices[0].x = t.x;
     vertices[0].y = t.y;
+    */
 
     u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
@@ -1111,22 +1087,22 @@ void draw_quad(RenderContext& context, melv::RectPoints quad, melv::ColorF color
 {
     Vertex vertex [4];
     vertex[0]     = {
-        context.transformWorld({ quad.p[0].x, quad.p[0].y }),
+        { quad.p[0].x, quad.p[0].y },
         { 0, 1 },
         { color.r, color.g, color.b, color.a },
     };
     vertex[1]    = {
-        context.transformWorld({ quad.p[1].x, quad.p[1].y }),
+        { quad.p[1].x, quad.p[1].y },
         { 1, 1 },
         { color.r, color.g, color.b, color.a },
     };
     vertex[2]  = {
-        context.transformWorld({ quad.p[2].x, quad.p[2].y }),
+        { quad.p[2].x, quad.p[2].y },
         { 0, 0 },
         { color.r, color.g, color.b, color.a },
     };
     vertex[3] = {
-        context.transformWorld({ quad.p[3].x, quad.p[3].y }),
+        { quad.p[3].x, quad.p[3].y },
         { 1, 0 },
         { color.r, color.g, color.b, color.a },
     };
@@ -1142,22 +1118,22 @@ void draw_quad_with_texture(RenderContext& context, melv::RectPoints quad, GPUTe
 {
     Vertex vertex [4];
     vertex[melv::QuadTopLeft]     = {
-		context.transformWorld({ quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y }),
+		{ quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y },
 		{ 0, 1 },
 		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadTopRight]    = {
-		context.transformWorld({ quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y }),
+		{ quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y },
 		{ 1, 1 },
 		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadBottomLeft]  = {
-		context.transformWorld({ quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y }),
+		{ quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y },
 		{ 0, 0 },
 		{ color.r, color.g, color.b, color.a },
 	};
     vertex[melv::QuadBottomRight] = {
-		context.transformWorld({ quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y }),
+		{ quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y },
 		{ 1, 0 },
 		{ color.r, color.g, color.b, color.a },
 	};
