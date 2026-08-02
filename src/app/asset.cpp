@@ -502,9 +502,20 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
                 return false;
             }
 
-            TextureHandle handle = load_context.render->queue_upload_texture(surface);
-            asset.data.image = handle;
+            TextureUpload upload = {};
+            if (!load_context.render->make_texture_upload(surface, &upload))
+            {
+                SDL_DestroySurface(surface);
+                return false;
+            }
+            TextureHandle handle = {};
+            if (!upload_texture_data_auto(load_context.render, upload, &handle))
+            {
+                SDL_DestroySurface(surface);
+                return false;
+            }
 
+            asset.data.image = handle;
             return true;
         }
         case ASSET_KIND_AUDIO: {

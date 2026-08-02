@@ -108,7 +108,8 @@ struct TransferData {
     TransferData(DArray<MeshDataSize> meshInfo) : meshes(meshInfo) {}
 };
 
-struct GPUTexture {
+struct GPUTexture
+{
     SDL_GPUTexture* texture = nullptr;
     u32 width = 0;
     u32 height = 0;
@@ -123,7 +124,7 @@ struct GPUTexture {
     {}
 };
 
-struct GPUUploadData
+struct TextureUpload
 {
     TextureHandle target = 0;
     SDL_Surface *src = nullptr;
@@ -220,14 +221,14 @@ struct RenderContext {
 
     DArray<GPUTexture> textures = {};
 
-    DArray<GPUUploadData> upload = {};
+    DArray<TextureUpload> upload = {};
 
     bool gpu_inited() const
     {
         return device && graphics.pipeline && render_target;
     }
 
-    TextureHandle queue_upload_texture(SDL_Surface *surface);
+    bool make_texture_upload(SDL_Surface* surface, TextureUpload* upload);
     TextureHandle create_texture(TextureFormat format, u32 width, u32 height);
     TextureHandle create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
     void destroy_texture(TextureHandle handle);
@@ -305,6 +306,9 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
 TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data);
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
+bool upload_texture_data(RenderContext& context, TextureUpload upload_cmd);
+bool upload_texture_data_auto(RenderContext* context, TextureUpload upload_cmd, TextureHandle* handle);
 
 // draw calls
 // do not call these from user code

@@ -29,50 +29,6 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
-    /*
-    if (context.upload.size() > 0)
-    {
-        int index = context.upload.size() - 1;
-        auto upload_cmd = context.upload.get(index);
-
-        GPUTexture texture = context.get_texture(upload_cmd.target);
-        SDL_GPUTextureTransferInfo source = {};
-        SDL_GPUTextureRegion destination = {};
-
-        u32 width = upload_cmd.src->w;
-        u32 height = upload_cmd.src->h;
-
-        ASSERT(texture.width == width);
-        ASSERT(texture.height == height);
-
-        void *memory = SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer, false);
-        if (!memory)
-        {
-            return;
-        }
-        memcpy(memory, upload_cmd.src->pixels, SDL_CalculateGPUTextureFormatSize(texture.format, width, height, 1));
-        SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer);
-
-        source.transfer_buffer = context.transfer_buffer_image.buffer;
-        source.offset = context.transfer_buffer_image.used;
-        source.pixels_per_row = upload_cmd.src->w;   // The number of pixels from one row to the next.
-        source.rows_per_layer = 0;                   // The number of rows from one layer/depth-slice to the next.
-
-        destination.texture = texture.texture;
-        destination.mip_level = 0;
-        destination.x = 0;
-        destination.y = 0;
-        destination.w = texture.width;
-        destination.h = texture.height;
-
-        SDL_UploadToGPUTexture(context.frame.copy_pass, &source, &destination, false);
-
-        log_info("Loaded texture");
-
-        context.upload.remove(index);
-    }
-    */
-
     TransferData transfer = add_to_transfer_buffer_ref(context, context.frameGeometry);
     DArray<MeshReference> frameRefs = upload_mesh_data_buffers(context, transfer, context.vertex_buffer, context.index_buffer);
 
@@ -122,7 +78,6 @@ void end_frame(RenderContext& context, SDL_Window* window) {
     context.frameMeshDraw.discard_data();
     context.frameGeometry.discard_data();
 }
-
 
 bool RenderContext::get_command_buffer()
 {
@@ -673,6 +628,61 @@ TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataR
     return TransferData(meshes);
 }
 
+bool upload_texture_data_auto(RenderContext* context, TextureUpload upload_cmd, TextureHandle* handle)
+{
+    if (!context->start_copy_pass())
+    {
+        return false;
+    }
+
+    if (!upload_texture_data(*context, upload_cmd))
+    {
+        context->end_copy_pass();
+        return false;
+    }
+
+    context->end_copy_pass();
+
+    *handle = upload_cmd.target;
+    return true;
+}
+
+bool upload_texture_data(RenderContext& context, TextureUpload upload_cmd)
+{
+    GPUTexture texture = context.get_texture(upload_cmd.target);
+    SDL_GPUTextureTransferInfo source = {};
+    SDL_GPUTextureRegion destination = {};
+
+    u32 width = upload_cmd.src->w;
+    u32 height = upload_cmd.src->h;
+
+    ASSERT(texture.width == width);
+    ASSERT(texture.height == height);
+
+    void *memory = SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer, false);
+    if (!memory)
+    {
+        return false;
+    }
+    memcpy(memory, upload_cmd.src->pixels, SDL_CalculateGPUTextureFormatSize(texture.format, width, height, 1));
+    SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer_image.buffer);
+
+    source.transfer_buffer = context.transfer_buffer_image.buffer;
+    source.offset = context.transfer_buffer_image.used;
+    source.pixels_per_row = upload_cmd.src->w;   // The number of pixels from one row to the next.
+    source.rows_per_layer = 0;                   // The number of rows from one layer/depth-slice to the next.
+
+    destination.texture = texture.texture;
+    destination.mip_level = 0;
+    destination.x = 0;
+    destination.y = 0;
+    destination.w = texture.width;
+    destination.h = texture.height;
+
+    SDL_UploadToGPUTexture(context.frame.copy_pass, &source, &destination, false);
+    return true;
+}
+
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data)
 {
     return upload_mesh_data_buffers(context, data, context.buffers.get_ref(context.active_vertex_buffer), context.buffers.get_ref(context.active_index_buffer));
@@ -733,20 +743,21 @@ DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferD
     return refs;
 }
 
-TextureHandle RenderContext::queue_upload_texture(SDL_Surface* surface)
+bool RenderContext::make_texture_upload(SDL_Surface* surface, TextureUpload* upload)
 {
     TextureFormat format = SDL_GetGPUTextureFormatFromPixelFormat(surface->format);
     if (!SDL_GPUTextureSupportsFormat(device, format, SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_SAMPLER))
     {
         log_error("Texture format isn't supported: %s", SDL_GetPixelFormatName(surface->format));
-        return TextureHandle();
+        return false;
     }
     TextureHandle texture = create_texture(format, surface->w, surface->h);
-    GPUUploadData data = {};
+    TextureUpload data = {};
     data.target = texture;
     data.src = surface;
-    upload.add(data);
-    return texture;
+
+    *upload = data;
+    return true;
 }
 
 TextureHandle RenderContext::create_texture(TextureFormat format, u32 width, u32 height)
