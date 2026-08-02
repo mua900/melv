@@ -37,6 +37,11 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
+    for (auto upload_cmd : context.upload)
+    {
+        // @todo
+    }
+
     TransferData transfer = add_to_transfer_buffer_ref(context, context.frameGeometry);
     DArray<MeshReference> frameRefs = upload_mesh_data_buffers(context, transfer, context.vertex_buffer, context.index_buffer);
 
@@ -69,6 +74,9 @@ void end_frame(RenderContext& context, SDL_Window* window) {
 
     context.frame_vertex.discard_data();
     context.frame_index.discard_data();
+
+    context.vertex_buffer.used = 0;
+    context.index_buffer.used = 0;
 
     context.frameMeshDraw.discard_data();
     context.frameGeometry.discard_data();
@@ -597,10 +605,38 @@ DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferD
     return refs;
 }
 
-TextureHandle RenderContext::create_texture(u32 width, u32 height)
+TextureHandle RenderContext::queue_upload_texture(SDL_Surface* surface)
 {
-    // @todo
-    // SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture();
+    TextureFormat format = SDL_GetGPUTextureFormatFromPixelFormat(surface->format);
+    if (!SDL_GPUTextureSupportsFormat(device, format, SDL_GPU_TEXTURETYPE_2D, SDL_GPU_TEXTUREUSAGE_SAMPLER))
+    {
+        return TextureHandle();
+    }
+    TextureHandle texture = create_texture(format, surface->w, surface->h);
+    GPUUploadData data = {};
+    data.target = texture;
+    data.src = surface;
+    upload.add(data);
+    return texture;
+}
+
+TextureHandle RenderContext::create_texture(TextureFormat format, u32 width, u32 height)
+{
+    return create_texture_verbose(format, TextureUsageSampler, width, height, 1, SampleCount1);
+}
+
+TextureHandle RenderContext::create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount)
+{
+    SDL_GPUTextureCreateInfo ci = {};
+    ci.type = SDL_GPU_TEXTURETYPE_2D;
+    ci.format = SDL_GPUTextureFormat(format);
+    ci.usage = SDL_GPUTextureUsageFlags(usage);
+    ci.width = width;
+    ci.height = height;
+    ci.layer_count_or_depth = 1;
+    ci.num_levels = mip_levels;
+    ci.sample_count = SDL_GPUSampleCount(sampleCount);
+    SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture(device, &ci);
     GPUTexture texture = GPUTexture(nullptr, width, height);
     return textures.add(texture);
 }

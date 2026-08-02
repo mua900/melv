@@ -119,6 +119,13 @@ struct GPUTexture {
     GPUTexture(SDL_GPUTexture *tex, u32 w, u32 h) : texture(tex), width(w), height(h) {}
 };
 
+struct GPUUploadData
+{
+    TextureHandle target = 0;
+    SDL_Surface *src = nullptr;
+    bool done = false;
+};
+
 enum GPUBufferUsage {
     GPUBufferVertex = SDL_GPU_BUFFERUSAGE_VERTEX,
     GPUBufferIndex = SDL_GPU_BUFFERUSAGE_INDEX,
@@ -196,12 +203,16 @@ struct RenderContext {
 
     DArray<GPUTexture> textures = {};
 
+    DArray<GPUUploadData> upload = {};
+
     bool gpu_inited() const
     {
         return device && graphics.pipeline && render_target;
     }
 
-    TextureHandle create_texture(u32 width, u32 height);
+    TextureHandle queue_upload_texture(SDL_Surface *surface);
+    TextureHandle create_texture(TextureFormat format, u32 width, u32 height);
+    TextureHandle create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
     void destroy_texture(TextureHandle handle);
     bool is_texture_handle_valid(TextureHandle handle);
 
@@ -277,6 +288,7 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& dat
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 // draw calls
+// do not call these from user code
 void draw_mesh(RenderContext& render, MeshReference mesh);
 void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 

@@ -495,17 +495,15 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            // @todo load_texture
-            /*
-            SDL_Texture* texture = IMG_LoadTexture(load_context.render->renderer, path.c_string());
-            if (!texture)
+            SDL_Surface* surface = IMG_Load(path.c_string());
+            if (!surface)
             {
                 asset.identifier.id = -1;
                 return false;
             }
 
-            asset.data.image = texture;
-            */
+            TextureHandle handle = load_context.render->queue_upload_texture(surface);
+            asset.data.image = handle;
 
             return false;
         }
