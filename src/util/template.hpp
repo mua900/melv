@@ -69,7 +69,7 @@ public:
 		return &m_data[index];
 	}
 
-	int add(T& elem)	{
+	int add(const T& elem)	{
 		int ret_index = m_size;
 		if (m_size + 1 > m_cap)
 		{

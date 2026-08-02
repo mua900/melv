@@ -18,50 +18,18 @@ bool start_frame(RenderContext& context, SDL_Window* window) {
         return false;
     }
 
-    context.frame.swapchain = {};
-
-    SDL_GPUTexture* swapchain = nullptr;
-    u32 swapchain_width = 0;
-    u32 swapchain_height = 0;
-    SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
-
-    if (!swapchain)
-    {
-        return false;
-    }
-
-    context.frame.swapchain = { swapchain, swapchain_width, swapchain_height };
     return true;
 }
 
 void end_frame(RenderContext& context) {
-
-    /*
-    // copy the result in the render target to the swapchain
-    {
-        SDL_GPUColorTargetInfo color_targets[1] = {};
-        color_targets[0].texture = context.frame.swapchain.texture;
-        color_targets[0].mip_level = 0;
-        color_targets[0].layer_or_depth_plane = 0;
-        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(context.clear_color) };
-        color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
-        color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
-        color_targets[0].resolve_texture = nullptr;
-        color_targets[0].resolve_mip_level = 0;
-        color_targets[0].resolve_layer = 0;
-        color_targets[0].cycle = true;
-        color_targets[0].cycle_resolve_texture = false;
-        SDL_GPURenderPass *swapchain_render_pass = SDL_BeginGPURenderPass(context.frame.command_buffer, color_targets, 1, nullptr);
-
-        SDL_EndGPURenderPass(swapchain_render_pass);
-    }
-    */
-
     if (context.frame.command_buffer)
     {
         SDL_SubmitGPUCommandBuffer(context.frame.command_buffer);
         context.frame.command_buffer = nullptr;
     }
+
+    context.frame_vertex.discard_data();
+    context.frame_index.discard_data();
 }
 
 
@@ -86,68 +54,110 @@ void RenderContext::submit_command_buffer()
 bool RenderContext::start_render_pass() {
     SDL_GPURenderPass* render_pass = nullptr;
 
-    // no point if we didn't get the swapchain texture
-    if (frame.swapchain.texture)
-    {
-        SDL_GPUColorTargetInfo color_targets[1] = {};
-        // @todo
-        color_targets[0].texture = render_target;
-        // color_targets[0].texture = frame.swapchain.texture;
-        color_targets[0].mip_level = 0;
-        color_targets[0].layer_or_depth_plane = 0;
-        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
-        color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
-        color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
-        color_targets[0].resolve_texture = nullptr;
-        color_targets[0].resolve_mip_level = 0;
-        color_targets[0].resolve_layer = 0;
-        color_targets[0].cycle = true;
-        color_targets[0].cycle_resolve_texture = false;
+    SDL_GPUColorTargetInfo color_targets[1] = {};
+    color_targets[0].texture = render_target;
+    color_targets[0].mip_level = 0;
+    color_targets[0].layer_or_depth_plane = 0;
+    color_targets[0].clear_color = SDL_FColor { COLOR_ARG(clear_color) };
+    color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
+    color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
+    color_targets[0].resolve_texture = nullptr;
+    color_targets[0].resolve_mip_level = 0;
+    color_targets[0].resolve_layer = 0;
+    color_targets[0].cycle = true;
+    color_targets[0].cycle_resolve_texture = false;
 
-        render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
+    render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
 
-        SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
+    SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
 
-        float half_width = RenderTargetWidth/2;
-        float half_height = RenderTargetHeight/2;
-        melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
-                                                                         -half_height, half_height,
-                                                                          0.0, 1.0);
+    float half_width = RenderTargetWidth/2;
+    float half_height = RenderTargetHeight/2;
+    melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
+                                                                     -half_height, half_height,
+                                                                      0.0, 1.0);
 
-        // @todo actually read this from the camera
-        melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
+    // @todo actually read this from the camera
+    melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
 
-        mat4mul(&mvp, &orthographic, &camera);
-        SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
-    }
+    mat4mul(&mvp, &orthographic, &camera);
+    SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
 
     frame.render_pass = render_pass;
     return render_pass ? true : false;
 }
 
-void RenderContext::end_render_pass() {
+void RenderContext::end_render_pass(SDL_Window* window) {
+    // this or record render commands and do all the rendering here
+
     ASSERT(frame.render_pass);
     SDL_EndGPURenderPass(frame.render_pass);
     frame.render_pass = nullptr;
 
-    copy_to_swapchain();
+    /*
+    if (!start_copy_pass())
+    {
+        log_error("Couldn't begin copy pass at the end of frame %s", SDL_GetError());
+        return;
+    }
+
+    auto frame_refs = copy_frame_geometry();
+
+    end_copy_pass();
+
+    if (!start_render_pass())
+    {
+        log_error("Couldn't start render pass at the end of frame");
+        return;
+    }
+
+    for (auto mesh : frame_refs)
+    {
+        draw_mesh_buffers(*this, mesh, vertex_buffer, index_buffer);
+    }
+
+    SDL_EndGPURenderPass(frame.render_pass);
+    frame.render_pass = nullptr;
+
+    frame_refs.reset();
+    */
+
+    copy_to_swapchain(window);
 }
 
-void RenderContext::copy_to_swapchain()
+DArray<MeshReference> RenderContext::copy_frame_geometry()
 {
+    TransferData transfer = add_to_transfer_buffer_ref(*this, frameGeometry);
+    DArray<MeshReference> frame_refs = upload_mesh_data_buffers(*this, transfer, vertex_buffer, index_buffer);
+    transfer.meshes.reset();
+    return frame_refs;
+}
+
+void RenderContext::copy_to_swapchain(SDL_Window* window)
+{
+    SDL_GPUTexture* swapchain = nullptr;
+    u32 swapchain_width = 0;
+    u32 swapchain_height = 0;
+    SDL_WaitAndAcquireGPUSwapchainTexture(frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
+
+    if (!swapchain)
+    {
+        return;
+    }
+
     SDL_GPUBlitRegion rt_region = {};
-    rt_region.texture = render_target;      /**< The texture. */
-    rt_region.x = 0;                     /**< The left offset of the region. */
-    rt_region.y = 0;                     /**< The top offset of the region.  */
-    rt_region.w = RenderTargetWidth;                     /**< The width of the region. */
-    rt_region.h = RenderTargetHeight;                     /**< The height of the region. */
+    rt_region.texture = render_target;
+    rt_region.x = 0;
+    rt_region.y = 0;
+    rt_region.w = RenderTargetWidth;
+    rt_region.h = RenderTargetHeight;
 
     SDL_GPUBlitRegion sc_region = {};
-    sc_region.texture = frame.swapchain.texture;      /**< The texture. */
-    sc_region.x = 0;                     /**< The left offset of the region. */
-    sc_region.y = 0;                     /**< The top offset of the region.  */
-    sc_region.w = render_size.x;                     /**< The width of the region. */
-    sc_region.h = render_size.y;                     /**< The height of the region. */
+    sc_region.texture = swapchain;
+    sc_region.x = 0;
+    sc_region.y = 0;
+    sc_region.w = swapchain_width;
+    sc_region.h = swapchain_height;
 
     SDL_GPUBlitInfo blit_info = {};
     blit_info.source = rt_region;       /**< The source region for the blit. */
@@ -312,15 +322,24 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
         return false;
     }
 
-    SDL_GPUBuffer* vertex_buffer = nullptr;
-    SDL_GPUBuffer* index_buffer = nullptr;
-
     // @todo a way to allocate and reallocate gpu buffers in the api
 
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     transferInfo.size = 1024;  // @todo
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
+
+    const int buffer_size = 2048;
+    SDL_GPUBufferCreateInfo vertexBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, buffer_size };
+    SDL_GPUBufferCreateInfo indexBufferCI = { SDL_GPU_BUFFERUSAGE_INDEX, buffer_size };
+
+    SDL_GPUBuffer* vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertexBufferCI);
+    SDL_GPUBuffer* index_buffer = SDL_CreateGPUBuffer(render->device, &indexBufferCI);
+
+    if (!(vertex_buffer && index_buffer))
+    {
+        return false;
+    }
 
     SDL_GPUSamplerCreateInfo samplerCI = {};
     samplerCI.min_filter = SDL_GPU_FILTER_LINEAR;                  /**< The minification filter to apply to lookups. */
@@ -363,6 +382,8 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window, SDL_GPUShader*
     }
 
     render->graphics = { pipeline_parameters, pipeline };
+    render->vertex_buffer = { vertex_buffer, GPUBufferVertex, buffer_size, 0 };
+    render->index_buffer = { index_buffer, GPUBufferIndex, buffer_size, 0 };
     render->render_target = render_target;
     render->sampler = sampler;
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
@@ -476,7 +497,60 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
     return TransferData(meshes);
 }
 
+TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data)
+{
+    if (data.size() == 0)
+    {
+        return TransferData();
+    }
+
+    int vcount = 0;
+    int icount = 0;
+    for (auto mesh : data)
+    {
+        vcount += mesh.vertex_count;
+        icount += mesh.index_count;
+    }
+
+    size_t total = vcount * sizeof(Vertex) + icount * sizeof(u16);
+    if (total > context.transfer_buffer.size)
+    {
+        return TransferData();
+    }
+
+    u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, true);
+    if (!memory)
+    {
+        return TransferData();
+    }
+
+    size_t offset = 0;
+
+    DArray<MeshDataSize> meshes = {};
+
+    for (auto mesh : data)
+    {
+        size_t vertex_byte = mesh.vertex_count * sizeof(Vertex);
+        size_t index_byte = mesh.index_count * sizeof(u16);
+        memcpy(memory + offset, context.frame_vertex.data() + mesh.vertex_offset, vertex_byte);
+        offset += vertex_byte;
+        memcpy(memory + offset, context.frame_index.data() + mesh.index_offset, index_byte);
+        offset += index_byte;
+
+        meshes.add(MeshDataSize(mesh.vertex_count, mesh.index_count));
+    }
+
+    SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer.buffer);
+
+    return TransferData(meshes);
+}
+
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data)
+{
+    return upload_mesh_data_buffers(context, data, context.buffers.get_ref(context.active_vertex_buffer), context.buffers.get_ref(context.active_index_buffer));
+}
+
+DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
 {
     SDL_GPUCommandBuffer* command_buffer = context.frame.command_buffer;
 
@@ -486,9 +560,6 @@ DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& dat
     DArray<MeshReference> refs = {};
 
     size_t transfer_offset = 0;
-
-    GPUBuffer& vertex_buffer = context.buffers.get_ref(context.active_vertex_buffer);
-    GPUBuffer& index_buffer = context.buffers.get_ref(context.active_index_buffer);
 
     for (auto mesh : data.meshes)
     {
@@ -563,7 +634,21 @@ bool RenderContext::is_texture_handle_valid(TextureHandle handle)
 
 void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
 {
-    // @todo
+    MeshDataRef ref = {};
+    ref.vertex_offset = render.frame_vertex.size();
+    ref.index_offset = render.frame_index.size();
+    ref.vertex_count = vertex_count;
+    ref.index_count = index_count;
+    for (int i = 0; i < vertex_count; i++)
+    {
+        render.frame_vertex.add(vertices[i]);
+    }
+    for (int i = 0; i < index_count; i++)
+    {
+        render.frame_index.add(indices[i]);
+    }
+
+    render.frameGeometry.add(ref);
 }
 
 void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
@@ -573,15 +658,20 @@ void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vert
 
 void draw_mesh(RenderContext& render, MeshReference mesh)
 {
+    draw_mesh_buffers(render, mesh, render.buffers.get_ref(mesh.vertex_buffer), render.buffers.get_ref(mesh.index_buffer));
+}
+
+void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
+{
     ASSERT(render.frame.render_pass);
 
     SDL_GPUBufferBinding vertex_binding = {};
     SDL_GPUBufferBinding index_binding = {};
 
-    vertex_binding.buffer = render.buffers.get_ref(mesh.vertex_buffer).buffer;
+    vertex_binding.buffer = vertex_buffer.buffer;
     vertex_binding.offset = mesh.vertex_offset;
 
-    index_binding.buffer = render.buffers.get_ref(mesh.index_buffer).buffer;
+    index_binding.buffer = index_buffer.buffer;
     index_binding.offset = mesh.index_offset;
 
     SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, &vertex_binding, 1);

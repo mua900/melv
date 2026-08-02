@@ -950,7 +950,7 @@ void Application::draw()
 		user.draw(user.userdata, this);
 	}
 
-	render.end_render_pass();
+	render.end_render_pass(window.window);
 	end_frame(render);
 }
 

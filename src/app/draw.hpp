@@ -73,6 +73,14 @@ struct MeshData
     DArray<u16> indices;
 };
 
+struct MeshDataRef
+{
+    int vertex_offset = 0;
+    int vertex_count = 0;
+    int index_offset = 0;
+    int index_count = 0;
+};
+
 struct MeshReference
 {
     int vertex_count = 0;
@@ -132,7 +140,6 @@ struct FrameContext {
     SDL_GPUCommandBuffer* command_buffer = nullptr;
     SDL_GPURenderPass* render_pass = nullptr;
     SDL_GPUCopyPass* copy_pass = nullptr;
-    GPUTexture swapchain = {};
 };
 
 // you should set this to the correct value before drawing something
@@ -178,14 +185,12 @@ struct RenderContext {
 
     FrameContext frame = {};
 
-    // @todo
-    // use these to store and draw once per frame stuff
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
-    DArray<MeshReference> frameGeometry = {};
-    DArray<Vertex> vertex_scratch = {};
-    DArray<u16> index_scratch = {};
+    DArray<MeshDataRef> frameGeometry = {};
+    DArray<Vertex> frame_vertex = {};
+    DArray<u16> frame_index = {};
 
     DArray<GPUTexture> textures = {};
 
@@ -203,7 +208,7 @@ struct RenderContext {
     melv::vec2 get_center() const { return render_size / 2; }
 
     bool start_render_pass();
-    void end_render_pass();
+    void end_render_pass(SDL_Window* window);
 
     bool start_copy_pass();
     void end_copy_pass();
@@ -220,7 +225,8 @@ struct RenderContext {
 
     bool set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
-    void copy_to_swapchain();
+    DArray<MeshReference> copy_frame_geometry();
+    void copy_to_swapchain(SDL_Window* window);
 
     // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
@@ -265,9 +271,12 @@ void end_frame(RenderContext& context);
 GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
+TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data);
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
+DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 void draw_mesh(RenderContext& render, MeshReference mesh);
+void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
 void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
