@@ -495,27 +495,12 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            SDL_Surface* surface = IMG_Load(path.c_string());
-            if (!surface)
+            TextureHandle texture = load_context.render->load_gpu_texture(path.c_string());
+            if (texture == TEXTURE_HANDLE_INVALID)
             {
-                asset.identifier.id = -1;
                 return false;
             }
-
-            TextureUpload upload = {};
-            if (!load_context.render->make_texture_upload(surface, &upload))
-            {
-                SDL_DestroySurface(surface);
-                return false;
-            }
-            TextureHandle handle = {};
-            if (!upload_texture_data_auto(load_context.render, upload, &handle))
-            {
-                SDL_DestroySurface(surface);
-                return false;
-            }
-
-            asset.data.image = handle;
+            asset.data.image = texture;
             return true;
         }
         case ASSET_KIND_AUDIO: {

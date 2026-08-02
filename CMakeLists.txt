@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 4.0)
 
 project(melv)
 
-add_library(melv
+add_library(melv STATIC
 	src/util/common.hpp
 	src/util/common.cpp
 	src/util/template.hpp

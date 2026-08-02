@@ -205,8 +205,6 @@ struct RenderContext {
     // for vertex data
     // reset every frame
     TransferBuffer transfer_buffer = {};
-    // for image data
-    TransferBuffer transfer_buffer_image = {};
 
     FrameContext frame = {};
 
@@ -232,6 +230,7 @@ struct RenderContext {
     TextureHandle create_texture(TextureFormat format, u32 width, u32 height);
     TextureHandle create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
     void destroy_texture(TextureHandle handle);
+    TextureHandle load_gpu_texture(const char* path);
     bool is_texture_handle_valid(TextureHandle handle);
 
     GPUTexture get_texture(TextureHandle handle);
@@ -250,7 +249,7 @@ struct RenderContext {
 
     bool get_command_buffer();
     void submit_command_buffer();
-    void cancel_command_buffer(); // @todo
+    void cancel_command_buffer();
 
     void set_viewport(Viewport viewport);
 
@@ -304,11 +303,9 @@ GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
 TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data);
+
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
-
-bool upload_texture_data(RenderContext& context, TextureUpload upload_cmd);
-bool upload_texture_data_auto(RenderContext* context, TextureUpload upload_cmd, TextureHandle* handle);
 
 // draw calls
 // do not call these from user code

@@ -9,6 +9,8 @@ namespace melv {
 using TextureHandle = u32;
 using BufferHandle = u32;
 
+#define TEXTURE_HANDLE_INVALID u32(-1)
+
 using TextureFormat = SDL_GPUTextureFormat;
 
 enum SampleCount

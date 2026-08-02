@@ -101,6 +101,11 @@ bool Application::initialize(InitConfiguration conf)
         input.mouse.cursor.resize_ns = resize_ns;
     }
 
+    if (!init_gpu_renderer(&render, window.window))
+    {
+        return false;
+    }
+
     if (!load_assets())
     {
         return false;
@@ -116,11 +121,6 @@ bool Application::initialize(InitConfiguration conf)
         input.keyboard.keys = SDL_GetKeyboardState(&num_keys);
         input.keyboard.num_keys = num_keys;
         input.keyboard.do_input = true;
-    }
-
-    if (!init_gpu_renderer(&render, window.window))
-    {
-        return false;
     }
 
 	if (user.init)
