@@ -109,6 +109,8 @@ bool Application::initialize(InitConfiguration conf)
 		cam = init_camera();
     }
 
+    input.gamepad_stick_epsilon = 1e-4;
+
     {
         int num_keys = 0;
         input.keyboard.keys = SDL_GetKeyboardState(&num_keys);
@@ -308,7 +310,7 @@ void Application::handle_events()
                         log_error("Couldn't open gamepad: %s", SDL_GetError());
                         return;
                     }
-                    input.gamepads[input.gamepad_count].gamepad = gamepad;
+                    input.gamepads[input.gamepad_count].init(gamepad, input.gamepad_stick_epsilon);
                     input.gamepad_count += 1;
                 }
                 break;

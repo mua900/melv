@@ -14,7 +14,13 @@ namespace melv {
 float snap_value(float val, float bound1, float bound2, float threshold);
 
 struct ivec2 {
-    int x, y;
+    int x = 0;
+    int y = 0;
+
+    ivec2() {}
+    ivec2(int px, int py)
+        : x(px), y(py)
+    {}
 };
 
 enum Direction {
@@ -385,7 +391,7 @@ struct Rectangle {
     }
 
     vec2 get_point_at_direction(Direction dir) const;
-    
+
     vec2 get_position() const {
         return vec2(x, y);
     }
@@ -416,7 +422,7 @@ struct RectPoints {
 };
 
 RectPoints get_rotated_points(Rectangle rect, float rot);
-	
+
 struct RectangleRot {
     float x = {};
     float y = {};

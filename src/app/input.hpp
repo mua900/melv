@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/math_util.hpp"
+#include "util/common.hpp"
 
 #include <SDL3/SDL.h>
 
@@ -67,12 +68,50 @@ struct MouseState {
 #define INPUT_MAX_GAMEPADS 8
 struct GamepadState {
     SDL_Gamepad *gamepad = nullptr;
+    float epsilon = 0;
 
+    void init(SDL_Gamepad* pad, float eps)
+    {
+        gamepad = pad;
+        epsilon = eps;
+    }
+
+    bool is_connected() const;
+    bool has_axis(SDL_GamepadAxis axis) const;
+    bool has_button(SDL_GamepadButton button) const;
+
+    s16 get_axis_raw(SDL_GamepadAxis axis) const;
+    float get_axis_normalized(SDL_GamepadAxis axis, float range) const;
+    float get_axis(SDL_GamepadAxis axis) const;
+
+    ivec2 get_left_raw() const;
+    ivec2 get_right_raw() const;
+    vec2 get_left_normalized(float range) const;
+    vec2 get_right_normalized(float range) const;
+    vec2 get_left() const;
+    vec2 get_right() const;
+
+    bool get_button(SDL_GamepadButton button) const;
+
+    // case by case of get_button
     bool south() const;
     bool north() const;
     bool west() const;
     bool east() const;
+    bool dpad_up() const;
+    bool dpad_down() const;
+    bool dpad_left() const;
+    bool dpad_right() const;
+    bool left_shoulder() const;
+    bool right_shoulder() const;
+    bool right_stick() const;
+    bool left_stick() const;
+    bool start() const;
+    bool back() const;
+    bool guide() const;
 };
+
+const char* get_gamepad_button_name(SDL_GamepadButton button);
 
 struct Input {
     KeyboardState keyboard = {};
@@ -80,6 +119,7 @@ struct Input {
 
     GamepadState gamepads [INPUT_MAX_GAMEPADS] = {};
     int gamepad_count = 0;
+    float gamepad_stick_epsilon = 0;
 };
 
 typedef void (*KeyboardCallback)(void *userdata, KeyboardState *keyboard);

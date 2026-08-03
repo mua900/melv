@@ -21,6 +21,27 @@ bool initialize(void *userdata, Application *app)
 void draw(void *userdata, Application *app)
 {
 	melv::draw_rectangle(app->render, Rectangle(100, 100, 100, 100), ColorF(1, 1, 0));
+
+	if (app->input.gamepad_count > 0)
+	{
+		auto& gpad = app->input.gamepads[0];
+
+		auto left = app->render.render_size / 2 - vec2(200, 0);
+		auto right = app->render.render_size / 2 + vec2(200, 0);
+		float rad = 60;
+		auto color_back = ColorF(0.2, 0.2, 0.2);
+		melv::draw_circle(app->render, left, rad, color_back);
+		melv::draw_circle(app->render, right, rad, color_back);
+
+		auto gleft = gpad.get_left();
+		auto gright = gpad.get_right();
+
+		vec2 diff_left  = gleft * rad;
+		vec2 diff_right = gright * rad;
+		auto color_stick = ColorF(0.7, 0.7, 0.2);
+		melv::draw_circle(app->render, left + diff_left, rad, color_stick);
+		melv::draw_circle(app->render, right + diff_right, rad, color_stick);
+	}
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
@@ -38,14 +59,13 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 	}
 	else if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
 	{
-		if (app->input.gamepad_count > 0)
-		{
-			GamepadState& gpad = app->input.gamepads[0];
-			log_info("South: %d", gpad.south());
-			log_info("North: %d", gpad.north());
-			log_info("West: %d", gpad.west());
-			log_info("East: %d", gpad.east());
-		}
+		ASSERT(app->input.gamepad_count > 0);
+		// log_info("Gamepad Button: %s", get_gamepad_button_name(SDL_GamepadButton(event.gbutton.button)));
+	}
+	else if (event.type == SDL_EVENT_GAMEPAD_AXIS_MOTION)
+	{
+		ASSERT(app->input.gamepad_count > 0);
+		// log_info("Axis motion: %d", event.gaxis.value);
 	}
 
 	return false;
@@ -54,6 +74,11 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 void handleInput(void* userdata, Application* app)
 {
 	vec2 mouse_pos = app->input.mouse.pos;
+
+	if (app->input.gamepad_count > 0)
+	{
+		auto& gpad = app->input.gamepads[0];
+	}
 }
 
 void updateFunc(void *userdata, Application *app)
