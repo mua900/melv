@@ -3,21 +3,18 @@
 
 using namespace melv;
 
+struct Player
+{
+	vec2 position = {};
+};
+
+struct State
+{
+	Player player;
+};
+
 bool initialize(void *userdata, Application *app)
 {
-	// example of loading assets
-
-	AssetId vtx = get_asset(String("Vertex"), app->catalog);
-	AssetId frag = get_asset(String("Fragment"), app->catalog);
-
-	if (!(vtx.is_valid() && frag.is_valid()))
-	{
-		return false;
-	}
-
-	SDL_GPUShader* vertex = app->catalog.get_shader(vtx);
-	SDL_GPUShader* fragment = app->catalog.get_shader(frag);
-
 	return true;
 }
 
@@ -39,6 +36,17 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 			}
 		}
 	}
+	else if (event.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
+	{
+		if (app->input.gamepad_count > 0)
+		{
+			GamepadState& gpad = app->input.gamepads[0];
+			log_info("South: %d", gpad.south());
+			log_info("North: %d", gpad.north());
+			log_info("West: %d", gpad.west());
+			log_info("East: %d", gpad.east());
+		}
+	}
 
 	return false;
 }
@@ -46,49 +54,40 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 void handleInput(void* userdata, Application* app)
 {
 	vec2 mouse_pos = app->input.mouse.pos;
-
-	if ((mouse_pos - vec2(100, 100)).magnitude() < 100)
-	{
-		log_info("Heyyyy");
-	}
 }
 
 void updateFunc(void *userdata, Application *app)
 {
-	float *number = (float*) userdata;
-
 	float dt = app->timeInfo.deltaTimeSeconds;
-	*number = dt;
 }
 
 void fixedUpdate(void *userdata, Application *app)
 {
-	float *number = (float*) userdata;
+	State* state = (State*) userdata;
 
 	float dt = app->user.update_state->calculateTimeStep() * app->user.update_state->timeScale;
-
-	*number = dt;
 }
 
 int main()
 {
 	melv::Application app;
-
-	float number = 0;
+	State state = {};
 
 	UpdateState update = {};
 
 	update.fixedUpdate = fixedUpdate;
 	update.update = updateFunc;
 
-	app.user.userdata = &number;
+	app.user.userdata = &state;
 	app.user.init = initialize;
 	app.user.draw = draw;
 	app.user.event = handleEvent;
 	app.user.input = handleInput;
 	app.user.update_state = &update;
 
-	if (!app.initialize(melv::get_default_init_configuration()))
+	auto conf = melv::get_default_init_configuration();
+	conf.flags |= SDL_INIT_GAMEPAD;
+	if (!app.initialize(conf))
 	{
 		return 1;
 	}

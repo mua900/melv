@@ -64,11 +64,22 @@ struct MouseState {
     bool drag = false;
 };
 
-// @todo gamepad support
+#define INPUT_MAX_GAMEPADS 8
+struct GamepadState {
+    SDL_Gamepad *gamepad = nullptr;
+
+    bool south() const;
+    bool north() const;
+    bool west() const;
+    bool east() const;
+};
 
 struct Input {
-    KeyboardState keyboard;
-    MouseState mouse;
+    KeyboardState keyboard = {};
+    MouseState mouse = {};
+
+    GamepadState gamepads [INPUT_MAX_GAMEPADS] = {};
+    int gamepad_count = 0;
 };
 
 typedef void (*KeyboardCallback)(void *userdata, KeyboardState *keyboard);

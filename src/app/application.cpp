@@ -12,7 +12,7 @@ namespace melv
 InitConfiguration get_default_init_configuration()
 {
 	InitConfiguration conf;
-	
+
 	conf.flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
 
 	conf.window_width = 1440;
@@ -125,7 +125,7 @@ bool Application::initialize(InitConfiguration conf)
 			return false;
 		}
 	}
-	
+
     return true;
 }
 
@@ -225,7 +225,7 @@ void Application::handle_events()
 				// continue;
 			}
 		}
-		
+
         switch (e.type)
         {
             case SDL_EVENT_QUIT:
@@ -298,6 +298,35 @@ void Application::handle_events()
                 }
                 break;
             }
+            case SDL_EVENT_GAMEPAD_ADDED:
+            {
+                if (input.gamepad_count < INPUT_MAX_GAMEPADS)
+                {
+                    SDL_Gamepad* gamepad = SDL_OpenGamepad(e.gdevice.which);
+                    if (!gamepad)
+                    {
+                        log_error("Couldn't open gamepad: %s", SDL_GetError());
+                        return;
+                    }
+                    input.gamepads[input.gamepad_count].gamepad = gamepad;
+                    input.gamepad_count += 1;
+                }
+                break;
+            }
+            case SDL_EVENT_GAMEPAD_REMOVED:
+            {
+                for (int i = 0; i < input.gamepad_count; i++)
+                {
+                    if (SDL_GetGamepadID(input.gamepads[i].gamepad) == e.gdevice.which)
+                    {
+                        SDL_CloseGamepad(input.gamepads[i].gamepad);
+                        input.gamepads[i] = input.gamepads[input.gamepad_count];
+                        input.gamepad_count -= 1;
+                        return;
+                    }
+                }
+                break;
+            }
             default:
             {
                 break;
@@ -308,7 +337,7 @@ void Application::handle_events()
     update_keyboard_state();
 
 	if (user.input)
-	{		
+	{
 		user.input(user.userdata, this);
 	}
 }
@@ -756,7 +785,7 @@ void Application::user_update()
 	{
 		return;
 	}
-	
+
 	constexpr int maxIterationsPerFrame = 50;
     int iterations = 0;
 	double timeStep = user.update_state->calculateTimeStep();
@@ -856,7 +885,7 @@ void Application::cleanup()
 	{
 		user.before_cleanup(user.userdata, this);
 	}
-	
+
     MIX_Quit();
     SDL_Quit();
     TTF_Quit();
@@ -873,7 +902,7 @@ bool Application::init_render()
     {
         return false;
     }
-	
+
     return true;
 }
 
@@ -896,7 +925,7 @@ void Application::draw()
 	{
 		user.draw(user.userdata, this);
 	}
-	
+
     SDL_RenderPresent(renderer);
 }
 
