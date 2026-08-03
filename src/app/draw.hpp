@@ -65,7 +65,7 @@ struct InstanceData
     float y = 0;
     float rotation = 0;
     float scalex = 0;
-    float scaley;
+    float scaley = 0;
     u32 color = 0;
 };
 
@@ -184,6 +184,7 @@ enum CoordinateSpace
 struct DefaultShaders
 {
     SDL_GPUShader* vertex = {};
+    SDL_GPUShader* vertex_instance = {};
     SDL_GPUShader* fragment = {};
     SDL_GPUShader* fragmentTexture = {};
 };
@@ -229,10 +230,12 @@ struct RenderContext {
 
     // for predefined meshes
     MeshReference mesh_common[MeshCount] = {};
+    GPUBuffer instance_buffer = {};
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
     DArray<MeshReference> frameMeshDraw = {};
+    DArray<InstanceData> frameInstanceDraw = {};
 
     DArray<GPUTexture> textures = {};
 
@@ -263,6 +266,8 @@ struct RenderContext {
     u32 allocate_gpu_buffer(GPUBufferUsage usage, u32 size);
     bool set_vertex_buffer(u32 buffer);
     bool set_index_buffer(u32 buffer);
+
+    bool upload_common_mesh_data();
 
     bool get_command_buffer();
     void submit_command_buffer();
@@ -320,8 +325,12 @@ GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
 
+bool copy_frame_instance_data(RenderContext& render);
+
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
+void upload_frame_instance_data(RenderContext& render);
 
 // draw calls
 // do not call these from user code
@@ -329,6 +338,7 @@ void draw_mesh(RenderContext& render, MeshReference mesh);
 void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 // user functions
+void queue_draw_quad(RenderContext& render, InstanceData instance);
 void queue_draw_mesh(RenderContext& render, MeshReference mesh);
 
 void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
