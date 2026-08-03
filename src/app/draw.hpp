@@ -73,14 +73,6 @@ struct MeshData
     DArray<u16> indices;
 };
 
-struct MeshDataRef
-{
-    int vertex_offset = 0;
-    int vertex_count = 0;
-    int index_offset = 0;
-    int index_count = 0;
-};
-
 struct MeshReference
 {
     int vertex_count = 0;
@@ -175,6 +167,14 @@ struct DefaultShaders
     SDL_GPUShader* fragmentTexture = {};
 };
 
+enum MeshCommon
+{
+    MeshQuad,
+    MeshCircle,
+
+    MeshCount
+};
+
 struct RenderContext {
     melv::vec2 render_size = {};
 
@@ -198,24 +198,22 @@ struct RenderContext {
     // @todo
     // GraphicsPipeline user_pipeline = {};
     GraphicsPipeline graphics = {};
+    GraphicsPipeline graphics_instance = {};
     GraphicsPipeline graphics_texture = {};
+    GraphicsPipeline graphics_instance_texture = {};
 
     SDL_GPUTexture* render_target = nullptr;
 
-    // for vertex data
-    // reset every frame
     TransferBuffer transfer_buffer = {};
 
     FrameContext frame = {};
 
+    // for predefined meshes
+    MeshReference mesh_common[MeshCount] = {};
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
     DArray<MeshReference> frameMeshDraw = {};
-
-    DArray<MeshDataRef> frameGeometry = {};
-    DArray<Vertex> frame_vertex = {};
-    DArray<u16> frame_index = {};
 
     DArray<GPUTexture> textures = {};
 
@@ -302,7 +300,6 @@ void end_frame(RenderContext& context, SDL_Window* window);
 GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
-TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data);
 
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
@@ -331,21 +328,9 @@ void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GP
 void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech = false, bool center = true);
 void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech = false);
 
-void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color);
-void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color);
-void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color);
-void draw_circle_empty(RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color);
-void draw_circle(RenderContext& context, melv::vec2 position, float radius, melv::ColorF color);
-void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float radius, GPUTexture texture, melv::ColorF color);
-void draw_circle_segment(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color);
-void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, GPUTexture texture, melv::ColorF color);
-void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color);
-void draw_quad(RenderContext& context, melv::RectPoints quad, melv::ColorF color);
-void draw_quad_with_texture(RenderContext& context, melv::RectPoints quad, GPUTexture texture, melv::ColorF color);
-void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
-void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color);
-void draw_quadratic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color);
-void draw_cubic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color);
+// failure if the size of the arrays don't match what's expected
+bool generate_quad_mesh(Array<Vertex> out_vertex, Array<u16> out_index);
+bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index);
 
 } // namespace
 

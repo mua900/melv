@@ -26,16 +26,6 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
-    if (!context.start_copy_pass())
-    {
-        return;
-    }
-
-    TransferData transfer = add_to_transfer_buffer_ref(context, context.frameGeometry);
-    DArray<MeshReference> frameRefs = upload_mesh_data_buffers(context, transfer, context.vertex_buffer, context.index_buffer);
-
-    context.end_copy_pass();
-
     SDL_GPUTexture* swapchain = nullptr;
     u32 swapchain_width = 0;
     u32 swapchain_height = 0;
@@ -51,11 +41,6 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
-    for (auto ref : frameRefs)
-    {
-        draw_mesh_buffers(context, ref, context.vertex_buffer, context.index_buffer);
-    }
-
     for (auto ref : context.frameMeshDraw)
     {
         draw_mesh(context, ref);
@@ -65,20 +50,12 @@ void end_frame(RenderContext& context, SDL_Window* window) {
 
     context.copy_to_swapchain(swapchain, swapchain_width, swapchain_height);
 
-    if (context.frame.command_buffer)
-    {
-        SDL_SubmitGPUCommandBuffer(context.frame.command_buffer);
-        context.frame.command_buffer = nullptr;
-    }
-
-    context.frame_vertex.discard_data();
-    context.frame_index.discard_data();
+    context.submit_command_buffer();
 
     context.vertex_buffer.used = 0;
     context.index_buffer.used = 0;
 
     context.frameMeshDraw.discard_data();
-    context.frameGeometry.discard_data();
 }
 
 bool RenderContext::get_command_buffer()
@@ -335,17 +312,27 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
         return false;
     }
 
+    SDL_GPUGraphicsPipeline* pipeline_instance = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
+    if (!pipeline_instance)
+    {
+        return false;
+    }
+
     SDL_GPUGraphicsPipeline* pipeline_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
     if (!pipeline_texture)
     {
         return false;
     }
 
-    // @todo a way to allocate and reallocate gpu buffers in the api
+    SDL_GPUGraphicsPipeline* pipeline_instance_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
+    if (!pipeline_instance_texture)
+    {
+        return false;
+    }
 
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transferInfo.size = 1024;  // @todo parameter
+    transferInfo.size = 16 * 1024;  // @todo parameter
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
     if (!transfer_buffer)
@@ -354,7 +341,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
         return false;
     }
 
-    const int buffer_size = 2048;
+    const int buffer_size = 16 * 1024;
     SDL_GPUBufferCreateInfo vertexBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, buffer_size };
     SDL_GPUBufferCreateInfo indexBufferCI = { SDL_GPU_BUFFERUSAGE_INDEX, buffer_size };
 
@@ -628,54 +615,6 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
     return TransferData(meshes);
 }
 
-TransferData add_to_transfer_buffer_ref(RenderContext& context, DArray<MeshDataRef>& data)
-{
-    if (data.size() == 0)
-    {
-        return TransferData();
-    }
-
-    int vcount = 0;
-    int icount = 0;
-    for (auto mesh : data)
-    {
-        vcount += mesh.vertex_count;
-        icount += mesh.index_count;
-    }
-
-    size_t total = vcount * sizeof(Vertex) + icount * sizeof(u16);
-    if (total > context.transfer_buffer.size)
-    {
-        return TransferData();
-    }
-
-    u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, true);
-    if (!memory)
-    {
-        return TransferData();
-    }
-
-    size_t offset = 0;
-
-    DArray<MeshDataSize> meshes = {};
-
-    for (auto mesh : data)
-    {
-        size_t vertex_byte = mesh.vertex_count * sizeof(Vertex);
-        size_t index_byte = mesh.index_count * sizeof(u16);
-        memcpy(memory + offset, context.frame_vertex.data() + mesh.vertex_offset, vertex_byte);
-        offset += vertex_byte;
-        memcpy(memory + offset, context.frame_index.data() + mesh.index_offset, index_byte);
-        offset += index_byte;
-
-        meshes.add(MeshDataSize(mesh.vertex_count, mesh.index_count));
-    }
-
-    SDL_UnmapGPUTransferBuffer(context.device, context.transfer_buffer.buffer);
-
-    return TransferData(meshes);
-}
-
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data)
 {
     return upload_mesh_data_buffers(context, data, context.buffers.get_ref(context.active_vertex_buffer), context.buffers.get_ref(context.active_index_buffer));
@@ -802,30 +741,6 @@ void queue_draw_mesh(RenderContext& render, MeshReference mesh)
     render.frameMeshDraw.add(mesh);
 }
 
-void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
-{
-    MeshDataRef ref = {};
-    ref.vertex_offset = render.frame_vertex.size();
-    ref.index_offset = render.frame_index.size();
-    ref.vertex_count = vertex_count;
-    ref.index_count = index_count;
-    for (int i = 0; i < vertex_count; i++)
-    {
-        render.frame_vertex.add(vertices[i]);
-    }
-    for (int i = 0; i < index_count; i++)
-    {
-        render.frame_index.add(indices[i]);
-    }
-
-    render.frameGeometry.add(ref);
-}
-
-void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count)
-{
-    // @todo
-}
-
 void draw_mesh(RenderContext& render, MeshReference mesh)
 {
     draw_mesh_buffers(render, mesh, render.buffers.get_ref(mesh.vertex_buffer), render.buffers.get_ref(mesh.index_buffer));
@@ -935,177 +850,52 @@ bool RenderContext::set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech)
 {
 }
+
 void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech)
 {
 }
+
 void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech, bool center)
 {
 }
+
 void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech)
 {
 }
 
-void draw_segment(RenderContext& context, melv::vec2 start, melv::vec2 end, float thick, melv::ColorF color)
+bool generate_quad_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
 {
-    melv::vec2 dir = (end - start).normalized();
-    melv::vec2 perp = melv::vec2(-dir.y, dir.x);
-
-    melv::vec2 sleft = start + perp * thick;
-    melv::vec2 sright = start - perp * thick;
-    melv::vec2 eleft = end + perp * thick;
-    melv::vec2 eright = end - perp * thick;
-
-    Vertex vertices[4];
-    u16 indices[6];
-    vertices[0] = Vertex({ sleft.x, sleft.y }, {0, 0}, color);
-    vertices[1] = Vertex({ sright.x, sright.y }, {0, 0}, color);
-    vertices[2] = Vertex({ eleft.x, eleft.y }, {0, 0}, color);
-    vertices[3] = Vertex({ eright.x, eright.y }, {0, 0}, color);
-
-    indices[0] = 0;
-    indices[1] = 1;
-    indices[2] = 2;
-    indices[3] = 2;
-    indices[4] = 1;
-    indices[5] = 3;
-
-    draw_geometry(context, vertices, 4, indices, 6);
-}
-
-void draw_arrow(RenderContext& context, melv::vec2 start, melv::vec2 end, float thickness, melv::ColorF color)
-{
-    // 3 for the arrow head, 4 for the quadrilateral below
-    Vertex vertices[7];
-
-    melv::vec2 dir = end - start;
-    float total_length = dir.magnitude();
-
-    if (total_length < 1)
+    if (out_vertex.count != 4 || out_index.count != 6)
     {
-        // subpixel arrow?
-        return;
+        return false;
     }
 
-    const float head_percentage = 0.2;  // 1 / 5 of the length is head
-    const float head_width = thickness * 2;
-    const float base_width = thickness;
+    out_vertex[0] = Vertex(-0.5, -0.5, 0, 1, 0, 0, 0, 0);
+    out_vertex[1] = Vertex(0.5, -0.5, 1, 1, 0, 0, 0, 0);
+    out_vertex[2] = Vertex(-0.5, 0.5, 0, 0, 0, 0, 0, 0);
+    out_vertex[3] = Vertex(0.5, 0.5, 1, 0, 0, 0, 0, 0);
 
-    float head_size = total_length * head_percentage;
-    dir = dir.normalized();
-    melv::vec2 ortho = melv::vec2(-dir.y, dir.x);
+    out_index[0] = 0;
+    out_index[1] = 3;
+    out_index[2] = 1;
+    out_index[3] = 0;
+    out_index[4] = 2;
+    out_index[5] = 3;
 
-    melv::vec2 head_start = end - dir * head_size;
-    melv::vec2 arrow_left = head_start + ortho * head_width;
-    melv::vec2 arrow_right = head_start - ortho * head_width;
-    vertices[0] = Vertex({ end.x, end.y }, vec2(0, 0), color);
-    vertices[1] = Vertex({ arrow_left.x, arrow_left.y }, vec2(0, 0), color);
-    vertices[2] = Vertex({ arrow_right.x, arrow_right.y }, vec2(0, 0), color);
-
-    melv::vec2 upper_base_left = head_start + ortho * base_width;
-    melv::vec2 upper_base_right = head_start - ortho * base_width;
-    melv::vec2 lower_base_left = upper_base_left - dir * total_length * (1.0 - head_percentage);
-    melv::vec2 lower_base_right = upper_base_right - dir * total_length * (1.0 - head_percentage);
-    vertices[3] = Vertex({ upper_base_left.x, upper_base_left.y }, vec2(0, 0), color);
-    vertices[4] = Vertex({ upper_base_right.x, upper_base_right.y }, vec2(0, 0), color);
-    vertices[5] = Vertex({ lower_base_left.x, lower_base_left.y }, vec2(0, 0), color);
-    vertices[6] = Vertex({ lower_base_right.x, lower_base_right.y }, vec2(0, 0), color);
-
-    const u16 indices[9] = {
-        0, 1, 2,  // head
-        3, 5, 4,
-        4, 5, 6
-    };
-
-    draw_geometry(context, vertices, 7, indices, ARRAY_SIZE(indices));
+    return true;
 }
 
-void draw_arc(RenderContext& context, melv::vec2 center, float inner_radius, float outer_radius, float start_angle, float arc, melv::ColorF color)
+bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
 {
-    // resolution
-    #define NVERTICES 64
-    Vertex vertices[NVERTICES];
+    constexpr int NVERTICES = 32;
 
-    // the angle between vertices and it's sin and cos
-    const float angle = arc / float(NVERTICES / 2 - 1);
-    const float c = std::cosf(angle);
-    const float s = std::sinf(angle);
-
-    float xcomp = std::cosf(start_angle);
-    float ycomp = std::sinf(start_angle);
-    for (int i = 0; i < NVERTICES; i += 2)
+    if (out_vertex.count != NVERTICES + 1 || out_index.count != NVERTICES * 3)
     {
-        float px0 = center.x + xcomp * inner_radius;
-        float py0 = center.y + ycomp * inner_radius;
-        vertices[i + 0] = Vertex(px0, py0, 0, 0, COLOR_ARG(color));
-
-        float px1 = center.x + xcomp * outer_radius;
-        float py1 = center.y + ycomp * outer_radius;
-        vertices[i + 1] = Vertex(px1, py1, 0, 0, COLOR_ARG(color));
-
-        /*
-        vec2 v0 = context.transformWorld(vertices[i + 0].position());
-        vec2 v1 = context.transformWorld(vertices[i + 1].position());
-        vertices[i + 0].x = v0.x;
-        vertices[i + 0].y = v0.y;
-        vertices[i + 1].x = v1.x;
-        vertices[i + 1].y = v1.y;
-        */
-
-        // rotate the vector
-        float n_xcomp = xcomp * c - ycomp * s;
-        float n_ycomp = xcomp * s + ycomp * c;
-        xcomp = n_xcomp;
-        ycomp = n_ycomp;
+        return false;
     }
 
-    u16 indices[(NVERTICES / 2 - 1) * 6];
-    for (int i = 0; i < NVERTICES - 2; i += 2)
-    {
-        indices[i * 3 + 0] = i + 0;
-        indices[i * 3 + 1] = i + 1;
-        indices[i * 3 + 2] = i + 2;
-        indices[i * 3 + 3] = i + 1;
-        indices[i * 3 + 4] = i + 3;
-        indices[i * 3 + 5] = i + 2;
-    }
-
-    draw_geometry(context, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
-    #undef NVERTICES
-}
-
-void draw_circle_empty(RenderContext& context, melv::vec2 position, float radius, float thick, melv::ColorF color)
-{
-	#define NSEGMENTS 32
-	const float angle = CONSTANT_TAU / NSEGMENTS;
-	const float c = std::cosf(angle);
-	const float s = std::sinf(angle);
-
-	float xcomp = 1.0f;
-	float ycomp = 0.0f;
-	for (int i = 0; i < NSEGMENTS; i++)
-	{
-		float new_xcomp = c * xcomp - s * ycomp;
-		float new_ycomp = c * ycomp + s * xcomp;
-
-		draw_segment(context, position + melv::vec2(xcomp * radius, ycomp * radius), position + melv::vec2(new_xcomp * radius, new_ycomp * radius), thick, color);
-
-		xcomp = new_xcomp;
-		ycomp = new_ycomp;
-	}
-}
-
-void draw_circle(RenderContext& context, melv::vec2 position, float radius, melv::ColorF color)
-{
-    draw_circle_with_texture(context, position, radius, GPUTexture(), color);
-}
-
-void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float radius, GPUTexture texture, melv::ColorF color)
-{
-    // change the number of vertices to use to configure how fine of an approximation we get
-    #define NVERTICES 32
-    Vertex vertices[NVERTICES + 1];
-
-    Vertex center = Vertex(position, vec2(0.5, 0.5), color);
+    Vertex center = Vertex (0, 0, 0.5, 0.5, 0, 0, 0, 0);
+    out_vertex[0] = center;
 
     // the angle between vertices and it's sin and cos
     const float angle = CONSTANT_TAU / float(NVERTICES);
@@ -1116,12 +906,11 @@ void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float
     float ycomp = 0.0;
     for (int i = 1; i <= NVERTICES; i++)
     {
-        float px = center.x + xcomp * radius;
-        float py = center.y + ycomp * radius;
-        // vec2 t = context.transformWorld(vec2(px, py));
+        float px = center.x + xcomp;
+        float py = center.y + ycomp;
         float u = (xcomp + 1.0f) * 0.5f;
         float v = (ycomp + 1.0f) * 0.5f;
-        vertices[i] = Vertex(vec2(px, py), vec2(u, v), color);
+        out_vertex[i] = Vertex(px, py, u, v, 0, 0, 0, 0);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -1130,265 +919,18 @@ void draw_circle_with_texture(RenderContext& context, melv::vec2 position, float
         ycomp = n_ycomp;
     }
 
-    // transform the center later so that the perimeter points get calculated according to the original center before being transformed
-    // vec2 t = context.transformWorld(vec2(center.x, center.y));
-    vertices[0] = Vertex(vec2(center.x, center.y), vec2(center.uvx, center.uvy), center.color());
-
-    u16 indices[NVERTICES * 3];
     for (int i = 0; i < NVERTICES - 1; i++)
     {
-        indices[i * 3 + 0] = 0;
-        indices[i * 3 + 1] = i + 1;
-        indices[i * 3 + 2] = i + 2;
+        out_index[i * 3 + 0] = 0;
+        out_index[i * 3 + 1] = i + 1;
+        out_index[i * 3 + 2] = i + 2;
     }
 
-    indices[(NVERTICES - 1) * 3 + 0] = 0;
-    indices[(NVERTICES - 1) * 3 + 1] = NVERTICES;
-    indices[(NVERTICES - 1) * 3 + 2] = 1;
+    out_index[(NVERTICES - 1) * 3 + 0] = 0;
+    out_index[(NVERTICES - 1) * 3 + 1] = NVERTICES;
+    out_index[(NVERTICES - 1) * 3 + 2] = 1;
 
-    draw_geometry_texture(context, texture, vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
-    #undef NVERTICES
-}
-
-void draw_circle_segment(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, melv::ColorF color)
-{
-    draw_circle_segment_with_texture(context, position, radius, start_angle, angle, GPUTexture(), color);
-}
-
-void draw_circle_segment_with_texture(RenderContext& context, melv::vec2 position, float radius, float start_angle, float angle, GPUTexture texture, melv::ColorF color)
-{
-    // change the number of vertices to use to configure how fine of an approximation we get
-    #define NVERTICES 32
-    Vertex vertices[NVERTICES + 1];
-
-    Vertex center = Vertex(position.x, position.y, 0.5, 0.5, COLOR_ARG(color));
-
-    // the angle between vertices and it's sin and cos
-    // if we have n vertices than we have n - 1 gaps between them so divide the angle by the number of gaps to fill
-    const float step_angle = angle / float(NVERTICES - 1);
-    const float c = std::cosf(step_angle);
-    const float s = std::sinf(step_angle);
-
-    float xcomp = std::cosf(start_angle);
-    float ycomp = std::sinf(start_angle);
-    for (int i = 1; i <= NVERTICES; i++)
-    {
-        float px = center.x + xcomp * radius;
-        float py = center.y + ycomp * radius;
-        // vec2 t = context.transformWorld(vec2(px, py));
-        float u = (xcomp + 1.0f) * 0.5f;
-        float v = (ycomp + 1.0f) * 0.5f;
-        vertices[i] = Vertex(px, py, u, v, color.r, color.g, color.b, color.a);
-
-        // rotate the vector
-        float n_xcomp = xcomp * c - ycomp * s;
-        float n_ycomp = xcomp * s + ycomp * c;
-        xcomp = n_xcomp;
-        ycomp = n_ycomp;
-    }
-
-    // vec2 t = context.transformWorld(vec2(center.x, center.y));
-    vertices[0] = Vertex(vec2(center.x, center.y), vec2(center.uvx, center.uvy), center.color());
-
-    u16 indices[NVERTICES * 3];
-    for (int i = 0; i < NVERTICES - 1; i++)
-    {
-        indices[i * 3 + 0] = 0;
-        indices[i * 3 + 1] = i + 1;
-        indices[i * 3 + 2] = i + 2;
-    }
-
-    bool fullCircle = melv::normalize_angle_radians_f(angle) == 0;
-    if (fullCircle)
-    {
-        indices[(NVERTICES - 1) * 3 + 0] = 0;
-        indices[(NVERTICES - 1) * 3 + 1] = NVERTICES;
-        indices[(NVERTICES - 1) * 3 + 2] = 1;
-    }
-
-    draw_geometry_texture(context, texture, vertices, ARRAY_SIZE(vertices), indices, (fullCircle ? NVERTICES : NVERTICES - 1) * 3);
-    #undef NVERTICES
-}
-
-void draw_capsule(RenderContext& context, melv::vec2 center0, melv::vec2 center1, float radius, melv::ColorF color)
-{
-    // total number of vertices used for either half circle sides of the capsule shape
-    #define NVERTICES 32
-    Vertex vertices[NVERTICES + 1];
-
-    melv::vec2 midpoint = (center0 + center1) / 2;
-
-    vertices[0] = Vertex(midpoint, vec2(0, 0), color);
-
-    // the angle between vertices and it's sin and cos
-    const float angle = CONSTANT_TAU / float(NVERTICES);
-    const float c = std::cosf(angle);
-    const float s = std::sinf(angle);
-
-    melv::vec2 axis = (center1 - center0).normalized();
-
-    // perpendicular vector
-    float xcomp = -axis.y;
-    float ycomp = axis.x;
-
-    for (int i = 1; i <= NVERTICES / 2; i++)
-    {
-        float px = center0.x + xcomp * radius;
-        float py = center0.y + ycomp * radius;
-        // vec2 t = context.transformWorld(vec2(px, py));
-        vertices[i] = Vertex(vec2(px, py), vec2(0, 0), color);
-
-        float n_xcomp = xcomp * c - ycomp * s;
-        float n_ycomp = xcomp * s + ycomp * c;
-
-        xcomp = n_xcomp;
-        ycomp = n_ycomp;
-    }
-
-    for (int i = NVERTICES / 2 + 1; i <= NVERTICES; i++)
-    {
-        float px = center1.x + xcomp * radius;
-        float py = center1.y + ycomp * radius;
-        // vec2 t = context.transformWorld(vec2(px, py));
-        vertices[i] = Vertex(vec2(px, py), vec2(0, 0), color);
-
-        float n_xcomp = xcomp * c - ycomp * s;
-        float n_ycomp = xcomp * s + ycomp * c;
-
-        xcomp = n_xcomp;
-        ycomp = n_ycomp;
-    }
-
-    /*
-    vec2 t = context.transformWorld(vec2(vertices[0].x, vertices[0].y));
-    vertices[0].x = t.x;
-    vertices[0].y = t.y;
-    */
-
-    u16 indices[NVERTICES * 3];
-    for (int i = 0; i < NVERTICES - 1; i++)
-    {
-        indices[i * 3 + 0] = 0;
-        indices[i * 3 + 1] = i + 1;
-        indices[i * 3 + 2] = i + 2;
-    }
-
-    indices[(NVERTICES - 1) * 3 + 0] = 0;
-    indices[(NVERTICES - 1) * 3 + 1] = NVERTICES;
-    indices[(NVERTICES - 1) * 3 + 2] = 1;
-
-    draw_geometry(context,  vertices, ARRAY_SIZE(vertices), indices, ARRAY_SIZE(indices));
-    #undef NVERTICES
-}
-
-void draw_quad(RenderContext& context, melv::RectPoints quad, melv::ColorF color)
-{
-    Vertex vertex [4];
-    vertex[0]     = {
-        { quad.p[0].x, quad.p[0].y },
-        { 0, 1 },
-        { color.r, color.g, color.b, color.a },
-    };
-    vertex[1]    = {
-        { quad.p[1].x, quad.p[1].y },
-        { 1, 1 },
-        { color.r, color.g, color.b, color.a },
-    };
-    vertex[2]  = {
-        { quad.p[2].x, quad.p[2].y },
-        { 0, 0 },
-        { color.r, color.g, color.b, color.a },
-    };
-    vertex[3] = {
-        { quad.p[3].x, quad.p[3].y },
-        { 1, 0 },
-        { color.r, color.g, color.b, color.a },
-    };
-    u16 index [6] = {
-        0, 3, 1,
-        0, 2, 3,
-    };
-
-    draw_geometry(context, vertex, 4, index, 6);
-}
-
-void draw_quad_with_texture(RenderContext& context, melv::RectPoints quad, GPUTexture texture, melv::ColorF color)
-{
-    Vertex vertex [4];
-    vertex[melv::QuadTopLeft]     = {
-		{ quad.p[melv::QuadTopLeft].x, quad.p[melv::QuadTopLeft].y },
-		{ 0, 1 },
-		{ color.r, color.g, color.b, color.a },
-	};
-    vertex[melv::QuadTopRight]    = {
-		{ quad.p[melv::QuadTopRight].x, quad.p[melv::QuadTopRight].y },
-		{ 1, 1 },
-		{ color.r, color.g, color.b, color.a },
-	};
-    vertex[melv::QuadBottomLeft]  = {
-		{ quad.p[melv::QuadBottomLeft].x, quad.p[melv::QuadBottomLeft].y },
-		{ 0, 0 },
-		{ color.r, color.g, color.b, color.a },
-	};
-    vertex[melv::QuadBottomRight] = {
-		{ quad.p[melv::QuadBottomRight].x, quad.p[melv::QuadBottomRight].y },
-		{ 1, 0 },
-		{ color.r, color.g, color.b, color.a },
-	};
-    u16 index [6] = {
-        melv::QuadTopLeft, melv::QuadBottomRight, melv::QuadTopRight,
-        melv::QuadTopLeft, melv::QuadBottomLeft, melv::QuadBottomRight,
-    };
-
-    draw_geometry_texture(context, texture, vertex, 4, index, 6);
-}
-
-void draw_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color)
-{
-    for (int i = 0; i < numPoints - 1; i++)
-    {
-        draw_segment(context, points[i], points[i + 1], thick, color);
-    }
-}
-
-void draw_closed_path(RenderContext& context, melv::vec2 points[], int numPoints, float thick, melv::ColorF color)
-{
-    for (int i = 0; i < numPoints; i++)
-    {
-        draw_segment(context, points[i], points[(i + 1) % numPoints], thick, color);
-    }
-}
-
-void draw_quadratic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, float thick, melv::ColorF color)
-{
-    melv::vec2 prev = p0;
-
-    const int resolution = 32;
-
-    for (int i = 0; i < resolution; i++)
-    {
-        float t = float(i) / float(resolution);
-        float it = 1.0f - t;
-        melv::vec2 p = (it * it * p0) + (2.0f * it * t * p1) + (t * t * p2);
-        draw_segment(context, prev, p, thick, color);
-        prev = p;
-    }
-}
-
-void draw_cubic_bezier(RenderContext& context, melv::vec2 p0, melv::vec2 p1, melv::vec2 p2, melv::vec2 p3, float thick, melv::ColorF color)
-{
-    melv::vec2 prev = p0;
-
-    const int resolution = 32;
-
-    for (int i = 0; i < resolution; i++)
-    {
-        float t = float(i) / float(resolution);
-        float it = 1.0f - t;
-        melv::vec2 p = (it * it * it * p0) + (3.0f * it * it * t * p1) + (3.0f * it * t * t * p2) + (t * t * t * p3);
-        draw_segment(context, prev, p, thick, color);
-        prev = p;
-    }
+    return true;
 }
 
 bool unloadShader(RenderContext& context, Shader& shader)
