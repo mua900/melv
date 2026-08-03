@@ -20,7 +20,13 @@ struct VSOutput {
 VSOutput main(VSInput input)
 {
     VSOutput output;
-    float2 pos = input.position + input.instance_position;
+    float2 p = input.position;
+    p.x *= input.scale.x;
+    p.y *= input.scale.y;
+    float c = cos(input.rotation);
+    float s = sin(input.rotation);
+    float2 pos = input.instance_position + float2(p.x * c - p.y * s, p.x * s + p.y * s);
+
     output.position = mul(ModelViewProjection, float4(pos, 0.0, 1.0));
     output.uv = input.uv;
     output.color = input.color;
