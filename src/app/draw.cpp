@@ -201,40 +201,101 @@ bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters *parame
     }
 
     parameters->format = texture_format;
+    parameters->input = InputVertex;
 
     return true;
 }
 
 SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 {
-    SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
-    SDL_GPUVertexAttribute vertex_attributes[3] = {};
-    vertex_buffer_description[0].slot = 0;                        /**< The binding slot of the vertex buffer. */
-    vertex_buffer_description[0].pitch = sizeof(Vertex);                       /**< The size of a single element + the offset between elements. */
-    vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;  /**< Whether attribute addressing is a function of the vertex index or instance index. */
-    vertex_buffer_description[0].instance_step_rate = 0;          /**< Reserved for future use. Must be set to 0. */
+    SDL_GPUVertexInputState vertex_input = {};
+    if (parameters->input == InputVertex)
+    {
+        SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
+        SDL_GPUVertexAttribute vertex_attributes[3] = {};
+        vertex_buffer_description[0].slot = 0;                        /**< The binding slot of the vertex buffer. */
+        vertex_buffer_description[0].pitch = sizeof(Vertex);                       /**< The size of a single element + the offset between elements. */
+        vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;  /**< Whether attribute addressing is a function of the vertex index or instance index. */
 
-    vertex_attributes[0].location = 0;                    /**< The shader input location index. */
-    vertex_attributes[0].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
-    vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;  /**< The size and type of the attribute data. */
-    vertex_attributes[0].offset = 0;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
+        vertex_attributes[0].location = 0;                    /**< The shader input location index. */
+        vertex_attributes[0].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
+        vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;  /**< The size and type of the attribute data. */
+        vertex_attributes[0].offset = 0;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
 
-    vertex_attributes[1].location = 1;                    /**< The shader input location index. */
-    vertex_attributes[1].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
-    vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;  /**< The size and type of the attribute data. */
-    vertex_attributes[1].offset = sizeof(float) * 2;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
+        vertex_attributes[1].location = 1;                    /**< The shader input location index. */
+        vertex_attributes[1].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
+        vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;  /**< The size and type of the attribute data. */
+        vertex_attributes[1].offset = sizeof(float) * 2;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
 
-    vertex_attributes[2].location = 2;                    /**< The shader input location index. */
-    vertex_attributes[2].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
-    vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;  /**< The size and type of the attribute data. */
-    vertex_attributes[2].offset = sizeof(float) * 4;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
+        vertex_attributes[2].location = 2;                    /**< The shader input location index. */
+        vertex_attributes[2].buffer_slot = 0;                 /**< The binding slot of the associated vertex buffer. */
+        vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4;  /**< The size and type of the attribute data. */
+        vertex_attributes[2].offset = sizeof(float) * 4;                      /**< The byte offset of this attribute relative to the start of the vertex element. */
 
-    SDL_GPUVertexInputState vertex_input = {
-        vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
-        ARRAY_SIZE(vertex_buffer_description),                          /**< The number of vertex buffer descriptions in the above array. */
-        vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
-        ARRAY_SIZE(vertex_attributes)                          /**< The number of vertex attribute descriptions in the above array. */
-    };
+       vertex_input = {
+            vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
+            ARRAY_SIZE(vertex_buffer_description),                          /**< The number of vertex buffer descriptions in the above array. */
+            vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
+            ARRAY_SIZE(vertex_attributes)                          /**< The number of vertex attribute descriptions in the above array. */
+        };
+    }
+    else
+    {
+        SDL_GPUVertexBufferDescription vertex_buffer_description[2] = {};
+        SDL_GPUVertexAttribute vertex_attributes[6] = {};
+
+        vertex_buffer_description[0].slot = 0;
+        vertex_buffer_description[0].pitch = sizeof(VertexInstance);
+        vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+
+        vertex_buffer_description[1].slot = 1;
+        vertex_buffer_description[1].pitch = sizeof(InstanceData);
+        vertex_buffer_description[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+
+        // vertex position
+        vertex_attributes[0].location = 0;
+        vertex_attributes[0].buffer_slot = 0;
+        vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        vertex_attributes[0].offset = 0;
+
+        // uv
+        vertex_attributes[1].location = 1;
+        vertex_attributes[1].buffer_slot = 0;
+        vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        vertex_attributes[1].offset = sizeof(float) * 2;
+
+        // instance position
+        vertex_attributes[2].location = 2;
+        vertex_attributes[2].buffer_slot = 1;
+        vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        vertex_attributes[2].offset = 0;
+
+        // rotation
+        vertex_attributes[3].location = 3;
+        vertex_attributes[3].buffer_slot = 1;
+        vertex_attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+        vertex_attributes[3].offset = sizeof(float) * 2;
+
+        // scale
+        vertex_attributes[4].location = 4;
+        vertex_attributes[4].buffer_slot = 1;
+        vertex_attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        vertex_attributes[4].offset = sizeof(float) * 3;
+
+        // color
+        vertex_attributes[5].location = 5;
+        vertex_attributes[5].buffer_slot = 1;
+        vertex_attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+        vertex_attributes[5].offset = sizeof(float) * 5;
+
+        vertex_input = {
+            vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
+            ARRAY_SIZE(vertex_buffer_description),                          /**< The number of vertex buffer descriptions in the above array. */
+            vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
+            ARRAY_SIZE(vertex_attributes)                          /**< The number of vertex attribute descriptions in the above array. */
+        };
+    }
+
     SDL_GPURasterizerState rasterizer = {};
     rasterizer.fill_mode = SDL_GPU_FILLMODE_FILL;         /**< Whether polygons will be filled in or drawn as lines. */
     rasterizer.cull_mode = SDL_GPU_CULLMODE_NONE;         /**< The facing direction in which triangles will be culled. */
@@ -312,14 +373,16 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
         return false;
     }
 
-    SDL_GPUGraphicsPipeline* pipeline_instance = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
-    if (!pipeline_instance)
+    SDL_GPUGraphicsPipeline* pipeline_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
+    if (!pipeline_texture)
     {
         return false;
     }
 
-    SDL_GPUGraphicsPipeline* pipeline_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
-    if (!pipeline_texture)
+    pipeline_parameters.input = InputInstance;
+
+    SDL_GPUGraphicsPipeline* pipeline_instance = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
+    if (!pipeline_instance)
     {
         return false;
     }
@@ -378,8 +441,6 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
 
     SDL_GPUTextureCreateInfo renderTargetCI = {};
     renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
-    // @todo this needs to change if swapchain changes
-    // or create it in a known format
     renderTargetCI.format = SDL_GetGPUSwapchainTextureFormat(render->device, window);
     renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
     renderTargetCI.width = RenderTargetWidth;

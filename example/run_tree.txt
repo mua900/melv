@@ -1,6 +1,6 @@
 shader file Vertex shader/binary/vertex.spv stage=vertex nUniforms=1
 shader file Fragment shader/binary/fragment.spv stage=fragment
-
+shader file VertexInstance shader/binary/vertex_instance.spv nUniforms=1
 shader file FragTexture shader/binary/fragment_texture.spv stage=fragment nSamplers=1 nTextures=1
 
 image file Battery image/Battery.svg

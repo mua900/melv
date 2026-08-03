@@ -51,12 +51,33 @@ struct Vertex {
     }
 };
 
-// @todo maybe a function to validate this
+struct VertexInstance
+{
+    float x = 0;
+    float y = 0;
+    float uvx = 0;
+    float uvy = 0;
+};
+
+struct InstanceData
+{
+    float x = 0;
+    float y = 0;
+    float rotation = 0;
+    float scalex = 0;
+    float scaley;
+    u32 color = 0;
+};
+
+enum VertexInputType
+{
+    InputVertex,
+    InputInstance,
+};
+
 struct GraphicsPipelineParameters
 {
-    // @todo
-    // vertex description
-    // and anything else as we need them
+    VertexInputType input = {};
     SDL_GPUTextureFormat format = {};
 };
 
@@ -195,8 +216,6 @@ struct RenderContext {
 
     SDL_GPUSampler* sampler = nullptr;
 
-    // @todo
-    // GraphicsPipeline user_pipeline = {};
     GraphicsPipeline graphics = {};
     GraphicsPipeline graphics_instance = {};
     GraphicsPipeline graphics_texture = {};

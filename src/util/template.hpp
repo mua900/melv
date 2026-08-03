@@ -4,6 +4,48 @@
 #include "util/string_util.hpp"
 #include "util/log.hpp"
 
+template<typename T>
+struct Array {
+	T* data = nullptr;
+	size_t count = 0;
+
+	bool in_bounds(int index) {
+		return index >= 0 && index < count;
+	}
+
+	T& get(int index) {
+		if (!in_bounds(index))
+		{
+			panic("Out of bounds array access");
+		}
+		return data[index];
+	}
+	T& operator[](int index) { return data[index]; }
+
+	Array() {}
+	Array(T* d, size_t c) : data(d), count(c) {}
+
+	T* begin()
+	{
+		return data;
+	}
+
+	T* end()
+	{
+		return data + count;
+	}
+
+	const T* begin() const
+	{
+		return data;
+	}
+
+	const T* end() const
+	{
+		return data + count;
+	}
+};
+
 template <typename T>
 struct DArray {
 private:
@@ -14,6 +56,11 @@ private:
 public:
 	const T * data() const { return m_data; }
 	int size() const { return m_size; }
+
+	Array<T> to_array()
+	{
+		return Array<T>(m_data, m_size);
+	}
 
 	DArray() {}
 	DArray(int cap) {
@@ -280,48 +327,6 @@ void sort_array(DArray<T>& array, bool (*CompareFunc)(T& a, T& b))
 		array.switch_items(i, minIndex);
 	}
 }
-
-template<typename T>
-struct Array {
-	T* data = nullptr;
-	size_t count = 0;
-
-	bool in_bounds(int index) {
-		return index >= 0 && index < count;
-	}
-
-	T& get(int index) {
-		if (!in_bounds(index))
-		{
-			panic("Out of bounds array access");
-		}
-		return data[index];
-	}
-	T& operator[](int index) { return data[index]; }
-
-	Array() {}
-	Array(T* d, size_t c) : data(d), count(c) {}
-
-	T* begin()
-	{
-		return data;
-	}
-
-	T* end()
-	{
-		return data + count;
-	}
-
-	const T* begin() const
-	{
-		return data;
-	}
-
-	const T* end() const
-	{
-		return data + count;
-	}
-};
 
 template<typename T>
 struct BucketList {
