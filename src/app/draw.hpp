@@ -336,6 +336,7 @@ void upload_frame_instance_data(RenderContext& render);
 // do not call these from user code
 void draw_mesh(RenderContext& render, MeshReference mesh);
 void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+void draw_quads(RenderContext& render);
 
 // user functions
 void queue_draw_quad(RenderContext& render, InstanceData instance);

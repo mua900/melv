@@ -55,10 +55,14 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         return;
     }
 
+    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics.pipeline);
     for (auto ref : context.frameMeshDraw)
     {
         draw_mesh(context, ref);
     }
+
+    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance.pipeline);
+    draw_quads(context);
 
     context.end_render_pass();
 
@@ -1006,6 +1010,27 @@ void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& ver
     SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
     SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, mesh.index_count, 1, 0, 0, 0);
+}
+
+void draw_quads(RenderContext& render)
+{
+    ASSERT(render.frame.render_pass);
+
+    SDL_GPUBufferBinding vertex_bindings[2] = {};
+    SDL_GPUBufferBinding index_binding = {};
+
+    vertex_bindings[0].buffer = render.vertex_buffer.buffer;
+    vertex_bindings[0].offset = 0;
+
+    vertex_bindings[1].buffer = render.instance_buffer.buffer;
+    vertex_bindings[1].offset = 0;
+
+    index_binding.buffer = render.index_buffer.buffer;
+    index_binding.offset = 0;
+
+    SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, vertex_bindings, 2);
+    SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, render.frameInstanceDraw.size(), 0, 0, 0);
 }
 
 melv::vec2 RenderContext::transformWorld(melv::vec2 p) const

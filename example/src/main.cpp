@@ -102,6 +102,15 @@ void draw(void *userdata, Application *app)
 
 	melv::queue_draw_mesh(app->render, state->references.get(0));
 	melv::queue_draw_mesh(app->render, state->references.get(1));
+
+	InstanceData q = {};
+	q.x = 100;
+	q.y = 100;
+	q.rotation = 0;
+	q.scalex = 100;
+	q.scaley = 100;
+	q.color = 0xFFFFFFFF;
+	melv::queue_draw_quad(app->render, q);
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
