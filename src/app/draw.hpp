@@ -12,7 +12,7 @@
 namespace melv
 {
 
-#define GRAPHICS_DEBUG 0
+#define GRAPHICS_DEBUG 1
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
 
@@ -57,6 +57,12 @@ struct VertexInstance
     float y = 0;
     float uvx = 0;
     float uvy = 0;
+
+    VertexInstance() {}
+    VertexInstance(float px, float py, float u, float v)
+        :
+        x(px), y(py), uvx(u), uvy(v)
+    {}
 };
 
 struct InstanceData
@@ -271,11 +277,15 @@ struct RenderContext {
 
     bool get_command_buffer();
     void submit_command_buffer();
+    SDL_GPUFence* submit_command_buffer_and_get_fence();
     void cancel_command_buffer();
+
+    void wait_on_fence(SDL_GPUFence* fence);
+    void release_fence(SDL_GPUFence* fence);
 
     void set_viewport(Viewport viewport);
 
-    bool set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment);
+    bool set_shaders(GraphicsPipeline* gp, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
     void copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height);
 
@@ -359,8 +369,8 @@ void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect
 void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech = false);
 
 // failure if the size of the arrays don't match what's expected
-bool generate_quad_mesh(Array<Vertex> out_vertex, Array<u16> out_index);
-bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index);
+void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
+void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
 
 } // namespace
 

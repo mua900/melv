@@ -95,6 +95,22 @@ void RenderContext::submit_command_buffer()
     }
 }
 
+SDL_GPUFence* RenderContext::submit_command_buffer_and_get_fence()
+{
+    ASSERT(frame.command_buffer);
+    return SDL_SubmitGPUCommandBufferAndAcquireFence(frame.command_buffer);
+}
+
+void RenderContext::wait_on_fence(SDL_GPUFence* fence)
+{
+    SDL_WaitForGPUFences(device, true, &fence, 1);
+}
+
+void RenderContext::release_fence(SDL_GPUFence* fence)
+{
+    SDL_ReleaseGPUFence(device, fence);
+}
+
 void RenderContext::cancel_command_buffer()
 {
     if (frame.command_buffer)
@@ -189,11 +205,24 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
     SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, enableGpuDebug, nullptr);
     if (!device)
     {
+        log_error("Couldn't create gpu device: %s", SDL_GetError());
         return false;
     }
 
+#if GRAPHICS_DEBUG
+    int driver_count = SDL_GetNumGPUDrivers();
+    log_info("Available SDL GPU driver count: %d", driver_count);
+    for (int i = 0;  i < driver_count; i++)
+    {
+        log_info("%s", SDL_GetGPUDriver(i));
+    }
+
+    log_info("Created a device using: %s", SDL_GetGPUDeviceDriver(device));
+#endif // GRAPHICS_DEBUG
+
     if (!SDL_ClaimWindowForGPUDevice(device, window))
     {
+        log_error("Couldn't claim gpu device");
         return false;
     }
 
@@ -377,14 +406,22 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     DefaultShaders shaders = {};
     if (!create_default_shaders(render->device, &shaders))
     {
+        log_error("Couldn't create default shaders");
         return false;
     }
 
     GraphicsPipelineParameters pipeline_parameters;
-    if (!get_default_graphics_pipeline_parameters(&pipeline_parameters, render->device, window))
+    GraphicsPipelineParameters pipeline_parameters_instance;
+    if (!(
+        get_default_graphics_pipeline_parameters(&pipeline_parameters, render->device, window) &&
+        get_default_graphics_pipeline_parameters(&pipeline_parameters_instance, render->device, window)
+        ))
     {
+        log_error("Couldn't get default pipeline parameters");
         return false;
     }
+
+    pipeline_parameters_instance.input = InputInstance;
 
     SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
     if (!pipeline) {
@@ -395,20 +432,21 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     SDL_GPUGraphicsPipeline* pipeline_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
     if (!pipeline_texture)
     {
+        log_error("Failed to create graphics pipeline: %s", SDL_GetError());
         return false;
     }
 
-    pipeline_parameters.input = InputInstance;
-
-    SDL_GPUGraphicsPipeline* pipeline_instance = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
+    SDL_GPUGraphicsPipeline* pipeline_instance = create_gpu_graphics_pipeline(&pipeline_parameters_instance, render, shaders.vertex_instance, shaders.fragment);
     if (!pipeline_instance)
     {
+        log_error("Failed to create graphics pipeline: %s", SDL_GetError());
         return false;
     }
 
-    SDL_GPUGraphicsPipeline* pipeline_instance_texture = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragmentTexture);
+    SDL_GPUGraphicsPipeline* pipeline_instance_texture = create_gpu_graphics_pipeline(&pipeline_parameters_instance, render, shaders.vertex_instance, shaders.fragmentTexture);
     if (!pipeline_instance_texture)
     {
+        log_error("Failed to create graphics pipeline: %s", SDL_GetError());
         return false;
     }
 
@@ -473,11 +511,14 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
 
     if (!render_target)
     {
+        log_error("Couldn't create render target: %s", SDL_GetError());
         return false;
     }
 
     render->graphics = { pipeline_parameters, pipeline };
     render->graphics_texture = { pipeline_parameters, pipeline_texture };
+    render->graphics_instance = { pipeline_parameters_instance, pipeline_instance };
+    render->graphics_instance_texture = { pipeline_parameters_instance, pipeline_instance_texture };
     render->vertex_buffer = { vertex_buffer, GPUBufferVertex, buffer_size, 0 };
     render->index_buffer = { index_buffer, GPUBufferIndex, buffer_size, 0 };
     render->instance_buffer = { instance_buffer, GPUBufferVertex, buffer_size, 0 };
@@ -487,6 +528,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
 
     if (!render->upload_common_mesh_data())
     {
+        log_error("Couldn't upload mesh data: %s", SDL_GetError());
         return false;
     }
 
@@ -633,15 +675,15 @@ u32 RenderContext::allocate_gpu_buffer(GPUBufferUsage usage, u32 size)
 
 bool RenderContext::upload_common_mesh_data()
 {
-    DArray<Vertex> quad = {};
+    DArray<VertexInstance> quad = {};
     DArray<u16> quad_indices = {};
-    DArray<Vertex> circle = {};
+    DArray<VertexInstance> circle = {};
     DArray<u16> circle_indices = {};
 
     MeshReference mesh[MeshCount] = {};
 
-    generate_quad_mesh(quad.to_array(), quad_indices.to_array());
-    generate_circle_mesh(circle.to_array(), circle_indices.to_array());
+    generate_quad_mesh(quad, quad_indices);
+    generate_circle_mesh(circle, circle_indices);
 
     mesh[MeshQuad].vertex_count = quad.size();
     mesh[MeshQuad].index_count = quad_indices.size();
@@ -655,13 +697,13 @@ bool RenderContext::upload_common_mesh_data()
 
     // vertex
     mesh[MeshQuad].vertex_offset = vertex_offset;
-    auto size = sizeof(Vertex) * quad.size();
+    auto size = sizeof(VertexInstance) * quad.size();
     memcpy(memory + offset, quad.data(), size);
     offset += size;
     vertex_offset += size;
 
     mesh[MeshCircle].vertex_offset = vertex_offset;
-    size = sizeof(Vertex) * circle.size();
+    size = sizeof(VertexInstance) * circle.size();
     memcpy(memory + offset, circle.data(), size);
     offset += size;
     vertex_offset += size;
@@ -683,11 +725,13 @@ bool RenderContext::upload_common_mesh_data()
 
     if (!get_command_buffer())
     {
+        log_error("Couldn't get command buffer to upload common mesh data: %s", SDL_GetError());
         return false;
     }
 
     if (!start_copy_pass())
     {
+        log_error("Couldn't start a copy pass to upload common mesh data: %s", SDL_GetError());
         return false;
     }
 
@@ -725,7 +769,10 @@ bool RenderContext::upload_common_mesh_data()
     circle.reset();
     circle_indices.reset();
 
-    memcpy(mesh_common, mesh, sizeof(mesh_common));
+    for (int i = 0; i < MeshCount; i++)
+    {
+        mesh_common[i] = mesh[i];
+    }
 
     return true;
 }
@@ -781,7 +828,7 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
         return TransferData();
     }
 
-    u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, true);
+    u8* memory = (u8*) SDL_MapGPUTransferBuffer(context.device, context.transfer_buffer.buffer, false);
     if (!memory)
     {
         return TransferData();
@@ -1094,23 +1141,23 @@ Text create_text(RenderContext& render, String text, Font font, melv::Color colo
     return Text(texture, text, color);
 }
 
-bool RenderContext::set_shaders(SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+bool RenderContext::set_shaders(GraphicsPipeline* gp, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 {
-    if (!this->graphics.pipeline)
+    if (!gp->pipeline)
     {
         return false;
     }
 
-    SDL_GPUGraphicsPipeline *pipeline = create_gpu_graphics_pipeline(&graphics.parameters, this, vertex, fragment);
+    SDL_GPUGraphicsPipeline *pipeline = create_gpu_graphics_pipeline(&gp->parameters, this, vertex, fragment);
 
     if (!pipeline)
     {
         return false;
     }
 
-    SDL_ReleaseGPUGraphicsPipeline(this->device, this->graphics.pipeline);
+    SDL_ReleaseGPUGraphicsPipeline(this->device, gp->pipeline);
 
-    this->graphics.pipeline = pipeline;
+    gp->pipeline = pipeline;
     return true;
 }
 
@@ -1131,17 +1178,15 @@ void render_texture_with_tint(const RenderContext& render, melv::Rectangle area,
 {
 }
 
-bool generate_quad_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
+void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index)
 {
-    if (out_vertex.count != 4 || out_index.count != 6)
-    {
-        return false;
-    }
+    out_vertex = DArray<VertexInstance> (4, true);
+    out_index = DArray<u16> (6, true);
 
-    out_vertex[0] = Vertex(-0.5, -0.5, 0, 1, 0, 0, 0, 0);
-    out_vertex[1] = Vertex(0.5, -0.5, 1, 1, 0, 0, 0, 0);
-    out_vertex[2] = Vertex(-0.5, 0.5, 0, 0, 0, 0, 0, 0);
-    out_vertex[3] = Vertex(0.5, 0.5, 1, 0, 0, 0, 0, 0);
+    out_vertex[0] = VertexInstance(-0.5, -0.5, 0, 1);
+    out_vertex[1] = VertexInstance(0.5, -0.5, 1, 1);
+    out_vertex[2] = VertexInstance(-0.5, 0.5, 0, 0);
+    out_vertex[3] = VertexInstance(0.5, 0.5, 1, 0);
 
     out_index[0] = 0;
     out_index[1] = 3;
@@ -1149,20 +1194,16 @@ bool generate_quad_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
     out_index[3] = 0;
     out_index[4] = 2;
     out_index[5] = 3;
-
-    return true;
 }
 
-bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
+void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index)
 {
     constexpr int NVERTICES = 32;
 
-    if (out_vertex.count != NVERTICES + 1 || out_index.count != NVERTICES * 3)
-    {
-        return false;
-    }
+    out_vertex = DArray<VertexInstance> (NVERTICES + 1);
+    out_index = DArray<u16> (NVERTICES * 3);
 
-    Vertex center = Vertex (0, 0, 0.5, 0.5, 0, 0, 0, 0);
+    VertexInstance center = VertexInstance (0, 0, 0.5, 0.5);
     out_vertex[0] = center;
 
     // the angle between vertices and it's sin and cos
@@ -1178,7 +1219,7 @@ bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
         float py = center.y + ycomp;
         float u = (xcomp + 1.0f) * 0.5f;
         float v = (ycomp + 1.0f) * 0.5f;
-        out_vertex[i] = Vertex(px, py, u, v, 0, 0, 0, 0);
+        out_vertex[i] = VertexInstance(px, py, u, v);
 
         // rotate the vector
         float n_xcomp = xcomp * c - ycomp * s;
@@ -1197,8 +1238,6 @@ bool generate_circle_mesh(Array<Vertex> out_vertex, Array<u16> out_index)
     out_index[(NVERTICES - 1) * 3 + 0] = 0;
     out_index[(NVERTICES - 1) * 3 + 1] = NVERTICES;
     out_index[(NVERTICES - 1) * 3 + 2] = 1;
-
-    return true;
 }
 
 bool unloadShader(RenderContext& context, Shader& shader)

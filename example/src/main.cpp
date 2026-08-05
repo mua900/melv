@@ -9,10 +9,34 @@ struct State
 	DArray<MeshReference> references = {};
 };
 
+#define CHANGE_SHADERS 0
+
 bool initialize(void *userdata, Application *app)
 {
 	State* state = (State*) userdata;
 	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
+
+	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
+	AssetId vertexInstId = get_asset(String("VertexInstance"), app->catalog);
+	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
+	AssetId fragmentTexId = get_asset(String("FragTexture"), app->catalog);
+
+	Shader vertex = app->catalog.get_shader(vertexId);
+	Shader fragment = app->catalog.get_shader(fragmentId);
+	Shader vertexInst = app->catalog.get_shader(vertexInstId);
+	Shader fragmentTex = app->catalog.get_shader(fragmentTexId);
+
+#if CHANGE_SHADERS
+	if (!app->render.set_shaders(&app->render.graphics, vertex.shader, fragment.shader))
+	{
+		return false;
+	}
+
+	if (!app->render.set_shaders(&app->render.graphics_instance, vertexInst.shader, fragment.shader))
+	{
+		return false;
+	}
+#endif
 
 	TransferData triangle, quad;
 
@@ -110,6 +134,9 @@ void draw(void *userdata, Application *app)
 	q.scalex = 100;
 	q.scaley = 100;
 	q.color = 0xFFFFFFFF;
+	melv::queue_draw_quad(app->render, q);
+	q.x += 200;
+	q.color = 0xFF0000FF;
 	melv::queue_draw_quad(app->render, q);
 }
 

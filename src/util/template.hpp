@@ -68,6 +68,16 @@ public:
 		m_cap = cap;
 	}
 
+	DArray(int cap, bool mark)
+	{
+		m_data = new T[cap];
+		m_cap = cap;
+		if (mark)
+		{
+			m_size = cap;
+		}
+	}
+
 	// for special use case when you are using this more as an allocator
 	void mark_full() {
 		m_size = m_cap;
