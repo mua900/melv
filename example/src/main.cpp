@@ -10,7 +10,7 @@ struct State
 	TextureHandle texture = {};
 };
 
-#define CHANGE_SHADERS 0
+#define CHANGE_SHADERS 1
 
 bool initialize(void *userdata, Application *app)
 {
@@ -21,7 +21,7 @@ bool initialize(void *userdata, Application *app)
 	AssetId vertexInstId = get_asset(String("VertexInstance"), app->catalog);
 	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
 	AssetId fragmentTexId = get_asset(String("FragTexture"), app->catalog);
-	AssetId texId = get_asset(String("Battery"), app->catalog);
+	AssetId texId = get_asset(String("TestImg"), app->catalog);
 
 	Shader vertex = app->catalog.get_shader(vertexId);
 	Shader fragment = app->catalog.get_shader(fragmentId);
@@ -38,7 +38,17 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 
+	if (!app->render.set_shaders(&app->render.graphics_texture, vertex.shader, fragmentTex.shader))
+	{
+		return false;
+	}
+
 	if (!app->render.set_shaders(&app->render.graphics_instance, vertexInst.shader, fragment.shader))
+	{
+		return false;
+	}
+
+	if (!app->render.set_shaders(&app->render.graphics_instance_texture, vertexInst.shader, fragmentTex.shader))
 	{
 		return false;
 	}
