@@ -61,8 +61,23 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         draw_mesh(context, ref);
     }
 
+    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_texture.pipeline);
+    for (auto draw : context.frameMeshDrawTex)
+    {
+        draw_mesh_texture(context, draw);
+    }
+
     SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance.pipeline);
     draw_quads(context);
+
+
+    /*
+    if (context.textures.size() > 0)
+    {
+        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance_texture.pipeline);
+        draw_quads_texture(context, context.textures.get(0));
+    }
+    */
 
     context.end_render_pass();
 
@@ -880,7 +895,7 @@ bool copy_frame_instance_data(RenderContext& render)
 
     for (int i = 0; i < render.frameInstanceDraw.size(); i++)
     {
-        memory[i] = render.frameInstanceDraw[i];
+        memory[i] = render.frameInstanceDraw[i].data;
     }
 
     SDL_UnmapGPUTransferBuffer(render.device, render.transfer_buffer.buffer);
@@ -1030,9 +1045,19 @@ void queue_draw_mesh(RenderContext& render, MeshReference mesh)
     render.frameMeshDraw.add(mesh);
 }
 
+void queue_draw_mesh_texture(RenderContext &render, MeshReference mesh, TextureHandle texture)
+{
+    render.frameMeshDrawTex.add({mesh, texture});
+}
+
 void queue_draw_quad(RenderContext& render, InstanceData instance)
 {
-    render.frameInstanceDraw.add(instance);
+    render.frameInstanceDraw.add(InstanceDraw(instance, TEXTURE_HANDLE_INVALID));
+}
+
+void queue_draw(RenderContext& render, InstanceDraw draw)
+{
+    render.frameInstanceDraw.add(draw);
 }
 
 void draw_mesh(RenderContext& render, MeshReference mesh)
@@ -1059,12 +1084,79 @@ void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& ver
     SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, mesh.index_count, 1, 0, 0, 0);
 }
 
+void draw_mesh_texture(RenderContext& render, MeshDraw draw)
+{
+    draw_mesh_texture_buffers(render, draw, render.buffers.get_ref(draw.mesh.vertex_buffer), render.buffers.get_ref(draw.mesh.index_buffer));
+}
+
+void draw_mesh_texture_buffers(RenderContext& render, MeshDraw draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
+{
+    ASSERT(render.frame.render_pass);
+
+    GPUTexture texture = render.textures.get(draw.texture);
+
+    SDL_GPUTextureSamplerBinding sampler_binding = {};
+    sampler_binding.texture = texture.texture;
+    sampler_binding.sampler = render.sampler;
+
+    SDL_BindGPUFragmentStorageTextures(render.frame.render_pass, 0, &texture.texture, 1);
+    SDL_BindGPUFragmentSamplers(render.frame.render_pass, 0, &sampler_binding, 1);
+
+    SDL_GPUBufferBinding vertex_binding = {};
+    SDL_GPUBufferBinding index_binding = {};
+
+    vertex_binding.buffer = vertex_buffer.buffer;
+    vertex_binding.offset = draw.mesh.vertex_offset;
+
+    index_binding.buffer = index_buffer.buffer;
+    index_binding.offset = draw.mesh.index_offset;
+
+    SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, &vertex_binding, 1);
+    SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+
+    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, draw.mesh.index_count, 1, 0, 0, 0);
+}
+
 void draw_quads(RenderContext& render)
 {
     ASSERT(render.frame.render_pass);
 
     SDL_GPUBufferBinding vertex_bindings[2] = {};
     SDL_GPUBufferBinding index_binding = {};
+
+    // quad is at the start of the buffer
+
+    vertex_bindings[0].buffer = render.vertex_buffer.buffer;
+    vertex_bindings[0].offset = 0;
+
+    vertex_bindings[1].buffer = render.instance_buffer.buffer;
+    vertex_bindings[1].offset = 0;
+
+    index_binding.buffer = render.index_buffer.buffer;
+    index_binding.offset = 0;
+
+    SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, vertex_bindings, 2);
+    SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, render.frameInstanceDraw.size(), 0, 0, 0);
+}
+
+void draw_quads_texture(RenderContext& render, TextureDrawBatch draw)
+{
+    ASSERT(render.frame.render_pass);
+
+    GPUTexture texture = render.textures.get(draw.texture);
+
+    SDL_GPUTextureSamplerBinding sampler_binding = {};
+    sampler_binding.texture = texture.texture;
+    sampler_binding.sampler = render.sampler;
+
+    SDL_BindGPUFragmentStorageTextures(render.frame.render_pass, 0, &texture.texture, 1);
+    SDL_BindGPUFragmentSamplers(render.frame.render_pass, 0, &sampler_binding, 1);
+
+    SDL_GPUBufferBinding vertex_bindings[2] = {};
+    SDL_GPUBufferBinding index_binding = {};
+
+    // quad is at the start of the buffer
 
     vertex_bindings[0].buffer = render.vertex_buffer.buffer;
     vertex_bindings[0].offset = 0;

@@ -75,6 +75,18 @@ struct InstanceData
     u32 color = 0;
 };
 
+struct InstanceDraw
+{
+    InstanceData data = {};
+    TextureHandle texture = {};
+
+    InstanceDraw() {}
+    InstanceDraw(InstanceData d, TextureHandle t)
+        :
+        data(d), texture(t)
+    {}
+};
+
 enum VertexInputType
 {
     InputVertex,
@@ -109,6 +121,12 @@ struct MeshReference
 
     int vertex_buffer = 0;
     int index_buffer = 0;
+};
+
+struct MeshDraw
+{
+    MeshReference mesh = {};
+    TextureHandle texture = {};
 };
 
 struct MeshDataSize
@@ -148,6 +166,12 @@ struct TextureUpload
     TextureHandle target = 0;
     SDL_Surface *src = nullptr;
     bool done = false;
+};
+
+struct TextureDrawBatch
+{
+    DArray<InstanceData> data = {};
+    TextureHandle texture = {};
 };
 
 enum GPUBufferUsage {
@@ -240,12 +264,14 @@ struct RenderContext {
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
+    // @todo rename
     DArray<MeshReference> frameMeshDraw = {};
-    DArray<InstanceData> frameInstanceDraw = {};
+    DArray<MeshDraw> frameMeshDrawTex = {};
+
+    DArray<InstanceDraw> frameInstanceDraw = {};
+    DArray<TextureDrawBatch> frameTextureInstanceDraw = {};
 
     DArray<GPUTexture> textures = {};
-
-    DArray<TextureUpload> upload = {};
 
     bool gpu_inited() const
     {
@@ -346,14 +372,18 @@ void upload_frame_instance_data(RenderContext& render);
 // do not call these from user code
 void draw_mesh(RenderContext& render, MeshReference mesh);
 void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+void draw_mesh_texture(RenderContext& render, MeshDraw draw);
+void draw_mesh_texture_buffers(RenderContext& render, MeshDraw draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
 void draw_quads(RenderContext& render);
+void draw_quads_texture(RenderContext& render, TextureDrawBatch draw);
+
 
 // user functions
 void queue_draw_quad(RenderContext& render, InstanceData instance);
+void queue_draw(RenderContext& render, InstanceDraw draw);
 void queue_draw_mesh(RenderContext& render, MeshReference mesh);
-
-void draw_geometry(RenderContext& render, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
-void draw_geometry_texture(RenderContext& render, GPUTexture texture, const Vertex vertices[], int vertex_count, const u16 indices[], int index_count);
+void queue_draw_mesh_texture(RenderContext &render, MeshReference mesh, TextureHandle texture);
 
 bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);

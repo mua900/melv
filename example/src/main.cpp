@@ -7,6 +7,7 @@ struct State
 {
 	float number = 0;
 	DArray<MeshReference> references = {};
+	TextureHandle texture = {};
 };
 
 #define CHANGE_SHADERS 0
@@ -20,11 +21,16 @@ bool initialize(void *userdata, Application *app)
 	AssetId vertexInstId = get_asset(String("VertexInstance"), app->catalog);
 	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
 	AssetId fragmentTexId = get_asset(String("FragTexture"), app->catalog);
+	AssetId texId = get_asset(String("Battery"), app->catalog);
 
 	Shader vertex = app->catalog.get_shader(vertexId);
 	Shader fragment = app->catalog.get_shader(fragmentId);
 	Shader vertexInst = app->catalog.get_shader(vertexInstId);
 	Shader fragmentTex = app->catalog.get_shader(fragmentTexId);
+
+	TextureHandle texture = app->catalog.get_image(texId);
+
+	ASSERT(texture != TEXTURE_HANDLE_INVALID);
 
 #if CHANGE_SHADERS
 	if (!app->render.set_shaders(&app->render.graphics, vertex.shader, fragment.shader))
@@ -125,7 +131,13 @@ void draw(void *userdata, Application *app)
 	State* state = (State*) userdata;
 
 	melv::queue_draw_mesh(app->render, state->references.get(0));
-	melv::queue_draw_mesh(app->render, state->references.get(1));
+	// melv::queue_draw_mesh(app->render, state->references.get(1));
+
+	melv::queue_draw_mesh_texture(app->render, state->references.get(1), state->texture);
+
+#define RED   0xFF0000FF
+#define GREEN 0xFF00FF00
+#define BLUE  0xFFFF0000
 
 	InstanceData q = {};
 	q.x = 100;
@@ -136,6 +148,7 @@ void draw(void *userdata, Application *app)
 	q.color = 0xFFFFFFFF;
 	melv::queue_draw_quad(app->render, q);
 	q.x += 200;
+	q.y += 150;
 	q.color = 0xFF0000FF;
 	melv::queue_draw_quad(app->render, q);
 }
