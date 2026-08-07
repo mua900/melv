@@ -8,6 +8,7 @@ namespace melv {
 
 using TextureHandle = u32;
 using BufferHandle = u32;
+using DrawGroupId = u32;
 
 #define TEXTURE_HANDLE_INVALID u32(-1)
 

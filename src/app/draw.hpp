@@ -83,7 +83,8 @@ struct InstanceDraw
     InstanceDraw() {}
     InstanceDraw(InstanceData d, TextureHandle t)
         :
-        data(d), texture(t)
+        data(d),
+        texture(t)
     {}
 };
 
@@ -168,10 +169,12 @@ struct TextureUpload
     bool done = false;
 };
 
-struct TextureDrawBatch
+struct DrawGroup
 {
-    DArray<InstanceData> data = {};
     TextureHandle texture = {};
+    int offset = 0;
+    int capacity = 0;
+    int used = 0;  // reset every frame
 };
 
 enum GPUBufferUsage {
@@ -255,12 +258,14 @@ struct RenderContext {
     SDL_GPUTexture* render_target = nullptr;
 
     TransferBuffer transfer_buffer = {};
+    TransferBuffer group_transfer_buffer = {};
 
     FrameContext frame = {};
 
     // for predefined meshes
     MeshReference mesh_common[MeshCount] = {};
     GPUBuffer instance_buffer = {};
+    GPUBuffer group_instance_buffer = {};
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
@@ -269,7 +274,8 @@ struct RenderContext {
     DArray<MeshDraw> frameMeshDrawTex = {};
 
     DArray<InstanceDraw> frameInstanceDraw = {};
-    DArray<TextureDrawBatch> frameTextureInstanceDraw = {};
+    DArray<InstanceData> groupDraw = {};
+    DArray<DrawGroup> drawGroups = {};
 
     DArray<GPUTexture> textures = {};
 
@@ -298,6 +304,9 @@ struct RenderContext {
     u32 allocate_gpu_buffer(GPUBufferUsage usage, u32 size);
     bool set_vertex_buffer(u32 buffer);
     bool set_index_buffer(u32 buffer);
+
+    DrawGroupId make_draw_group(TextureHandle texture, int size);
+    void add_to_draw_group(DrawGroupId group, InstanceData data);
 
     bool upload_common_mesh_data();
 
@@ -376,14 +385,14 @@ void draw_mesh_texture(RenderContext& render, MeshDraw draw);
 void draw_mesh_texture_buffers(RenderContext& render, MeshDraw draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 void draw_quads(RenderContext& render);
-void draw_quads_texture(RenderContext& render, TextureDrawBatch draw);
-
+void draw_quads_texture(RenderContext& render, DrawGroup draw);
 
 // user functions
 void queue_draw_quad(RenderContext& render, InstanceData instance);
-void queue_draw(RenderContext& render, InstanceDraw draw);
 void queue_draw_mesh(RenderContext& render, MeshReference mesh);
 void queue_draw_mesh_texture(RenderContext &render, MeshReference mesh, TextureHandle texture);
+// returns false if there is no space left in the group buffer
+bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId);
 
 bool loadShader(RenderContext& context, Shader& shader, const char* path);
 bool unloadShader(RenderContext& context, Shader& shader);

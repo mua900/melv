@@ -61,23 +61,20 @@ void end_frame(RenderContext& context, SDL_Window* window) {
         draw_mesh(context, ref);
     }
 
+    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance.pipeline);
+    draw_quads(context);
+
     SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_texture.pipeline);
     for (auto draw : context.frameMeshDrawTex)
     {
         draw_mesh_texture(context, draw);
     }
 
-    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance.pipeline);
-    draw_quads(context);
-
-
-    /*
-    if (context.textures.size() > 0)
+    SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance_texture.pipeline);
+    for (DrawGroup group : context.drawGroups)
     {
-        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance_texture.pipeline);
-        draw_quads_texture(context, context.textures.get(0));
+        draw_quads_texture(context, group);
     }
-    */
 
     context.end_render_pass();
 
@@ -87,9 +84,16 @@ void end_frame(RenderContext& context, SDL_Window* window) {
 
     context.vertex_buffer.used = 0;
     context.index_buffer.used = 0;
+    context.group_instance_buffer.used = 0;
 
     context.frameMeshDraw.discard_data();
     context.frameInstanceDraw.discard_data();
+    context.groupDraw.discard_data();
+
+    for (auto& group : context.drawGroups)
+    {
+        group.used = 0;
+    }
 }
 
 bool RenderContext::get_command_buffer()
@@ -469,6 +473,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
     transferInfo.size = 16 * 1024;  // @todo parameter
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
+    SDL_GPUTransferBuffer* group_transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
     if (!transfer_buffer)
     {
@@ -484,6 +489,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     SDL_GPUBuffer* vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertexBufferCI);
     SDL_GPUBuffer* index_buffer = SDL_CreateGPUBuffer(render->device, &indexBufferCI);
     SDL_GPUBuffer* instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
+    SDL_GPUBuffer* group_instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
 
     if (!(vertex_buffer && index_buffer && instance_buffer))
     {
@@ -537,9 +543,11 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     render->vertex_buffer = { vertex_buffer, GPUBufferVertex, buffer_size, 0 };
     render->index_buffer = { index_buffer, GPUBufferIndex, buffer_size, 0 };
     render->instance_buffer = { instance_buffer, GPUBufferVertex, buffer_size, 0 };
+    render->group_instance_buffer = { group_instance_buffer, GPUBufferVertex, buffer_size, 0 };
     render->render_target = render_target;
     render->sampler = sampler;
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
+    render->group_transfer_buffer = { group_transfer_buffer, transferInfo.size };
 
     if (!render->upload_common_mesh_data())
     {
@@ -875,30 +883,43 @@ TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& da
 
 bool copy_frame_instance_data(RenderContext& render)
 {
-    if (render.frameInstanceDraw.size() == 0)
+    if (render.frameInstanceDraw.size() > 0)
     {
-        return true;
+        if (render.frameInstanceDraw.size() * sizeof(InstanceData) > render.transfer_buffer.size)
+        {
+            // @todo maybe just resize the transfer buffer
+            return false;
+        }
+
+        InstanceData *memory = (InstanceData*) SDL_MapGPUTransferBuffer(render.device, render.transfer_buffer.buffer, false);
+        if (!memory)
+        {
+            log_error("%s", SDL_GetError());
+            return false;
+        }
+
+        for (int i = 0; i < render.frameInstanceDraw.size(); i++)
+        {
+            memory[i] = render.frameInstanceDraw[i].data;
+        }
+
+        SDL_UnmapGPUTransferBuffer(render.device, render.transfer_buffer.buffer);
     }
 
-    if (render.frameInstanceDraw.size() * sizeof(InstanceData) > render.transfer_buffer.size)
+    InstanceData* memory = (InstanceData*) SDL_MapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer, false);
+    ASSERT(memory);
+    for (auto& group : render.drawGroups)
     {
-        // @todo maybe just resize the transfer buffer
-        return false;
+        for (int i = 0; i < group.used; i++)
+        {
+            memory[group.offset + i] = render.groupDraw[group.offset + i];
+        }
+        for (int i = group.used; i < group.capacity; i++)
+        {
+            memory[group.offset + i] = {};
+        }
     }
-
-    InstanceData *memory = (InstanceData*) SDL_MapGPUTransferBuffer(render.device, render.transfer_buffer.buffer, false);
-    if (!memory)
-    {
-        log_error("%s", SDL_GetError());
-        return false;
-    }
-
-    for (int i = 0; i < render.frameInstanceDraw.size(); i++)
-    {
-        memory[i] = render.frameInstanceDraw[i].data;
-    }
-
-    SDL_UnmapGPUTransferBuffer(render.device, render.transfer_buffer.buffer);
+    SDL_UnmapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer);
 
     return true;
 }
@@ -915,6 +936,21 @@ void upload_frame_instance_data(RenderContext& render)
         destination.buffer = render.instance_buffer.buffer;
         destination.offset = 0;
         destination.size = render.frameInstanceDraw.size() * sizeof(InstanceData);
+        SDL_UploadToGPUBuffer(render.frame.copy_pass, &source, &destination, false);
+    }
+
+    if (render.groupDraw.size() > 0)
+    {
+        SDL_GPUTransferBufferLocation source = {};
+        SDL_GPUBufferRegion destination = {};
+
+        source.transfer_buffer = render.group_transfer_buffer.buffer;
+        source.offset = 0;
+
+        destination.buffer = render.group_instance_buffer.buffer;
+        destination.offset = 0;
+        destination.size = render.groupDraw.size() * sizeof(InstanceData);
+
         SDL_UploadToGPUBuffer(render.frame.copy_pass, &source, &destination, false);
     }
 }
@@ -1040,6 +1076,27 @@ bool RenderContext::is_texture_handle_valid(TextureHandle handle)
     return textures.in_bounds(handle);
 }
 
+DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
+{
+    DrawGroup group = {};
+    group.texture = texture;
+    if (drawGroups.size() > 0)
+    {
+        auto prev = drawGroups.get_last();
+        group.offset = prev->offset + prev->capacity;
+    }
+    else
+    {
+        group.offset = 0;
+    }
+    group.capacity = size;
+    group.used = 0;
+
+    groupDraw.ensure_size(group.offset + size);
+
+    return drawGroups.add(group);
+}
+
 void queue_draw_mesh(RenderContext& render, MeshReference mesh)
 {
     render.frameMeshDraw.add(mesh);
@@ -1055,9 +1112,20 @@ void queue_draw_quad(RenderContext& render, InstanceData instance)
     render.frameInstanceDraw.add(InstanceDraw(instance, TEXTURE_HANDLE_INVALID));
 }
 
-void queue_draw(RenderContext& render, InstanceDraw draw)
+bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId)
 {
-    render.frameInstanceDraw.add(draw);
+    DrawGroup& group = render.drawGroups.get_ref(groupId);
+    if (group.capacity < group.used + 1)
+    {
+        return false;
+    }
+
+    render.groupDraw[group.offset + group.used] = data;
+    group.used += 1;
+
+    render.groupDraw.mark_full();
+
+    return true;
 }
 
 void draw_mesh(RenderContext& render, MeshReference mesh)
@@ -1140,11 +1208,11 @@ void draw_quads(RenderContext& render)
     SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, render.frameInstanceDraw.size(), 0, 0, 0);
 }
 
-void draw_quads_texture(RenderContext& render, TextureDrawBatch draw)
+void draw_quads_texture(RenderContext& render, DrawGroup group)
 {
     ASSERT(render.frame.render_pass);
 
-    GPUTexture texture = render.textures.get(draw.texture);
+    GPUTexture texture = render.textures.get(group.texture);
 
     SDL_GPUTextureSamplerBinding sampler_binding = {};
     sampler_binding.texture = texture.texture;
@@ -1161,15 +1229,15 @@ void draw_quads_texture(RenderContext& render, TextureDrawBatch draw)
     vertex_bindings[0].buffer = render.vertex_buffer.buffer;
     vertex_bindings[0].offset = 0;
 
-    vertex_bindings[1].buffer = render.instance_buffer.buffer;
-    vertex_bindings[1].offset = 0;
+    vertex_bindings[1].buffer = render.group_instance_buffer.buffer;
+    vertex_bindings[1].offset = group.offset;
 
     index_binding.buffer = render.index_buffer.buffer;
     index_binding.offset = 0;
 
     SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, vertex_bindings, 2);
     SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
-    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, render.frameInstanceDraw.size(), 0, 0, 0);
+    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, group.used, 0, 0, 0);
 }
 
 melv::vec2 RenderContext::transformWorld(melv::vec2 p) const

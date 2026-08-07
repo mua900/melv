@@ -126,6 +126,16 @@ public:
 		return &m_data[index];
 	}
 
+	T* get_last() const
+	{
+		if (m_size < 1)
+		{
+			return nullptr;
+		}
+
+		return &m_data[m_size - 1];
+	}
+
 	int add(const T& elem)	{
 		int ret_index = m_size;
 		if (m_size + 1 > m_cap)

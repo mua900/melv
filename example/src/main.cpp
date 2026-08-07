@@ -8,6 +8,7 @@ struct State
 	float number = 0;
 	DArray<MeshReference> references = {};
 	TextureHandle texture = {};
+	DrawGroupId group = {};
 };
 
 #define CHANGE_SHADERS 1
@@ -53,6 +54,8 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 #endif
+
+	state->group = app->render.make_draw_group(texture, 8);
 
 	TransferData triangle, quad;
 
@@ -141,7 +144,6 @@ void draw(void *userdata, Application *app)
 	State* state = (State*) userdata;
 
 	melv::queue_draw_mesh(app->render, state->references.get(0));
-	// melv::queue_draw_mesh(app->render, state->references.get(1));
 
 	melv::queue_draw_mesh_texture(app->render, state->references.get(1), state->texture);
 
@@ -161,6 +163,19 @@ void draw(void *userdata, Application *app)
 	q.y += 150;
 	q.color = 0xFF0000FF;
 	melv::queue_draw_quad(app->render, q);
+
+	q.x = -100;
+	q.y = -400;
+	q.color = 0xFFFFFFFF;
+
+	melv::queue_draw_group(app->render, q, state->group);
+	q.y += 200;
+	melv::queue_draw_group(app->render, q, state->group);
+	q.x += 200;
+	q.y += 150;
+	melv::queue_draw_group(app->render, q, state->group);
+	q.x += 200;
+	melv::queue_draw_group(app->render, q, state->group);
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
