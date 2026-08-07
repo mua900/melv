@@ -84,16 +84,17 @@ struct UserData {
 
 struct InitConfiguration {
 	// 1440, 810
-	int window_width;
-	int window_height;
+	int window_width = 0;
+	int window_height = 0;
 
 	// VIDEO | AUDIO
-	SDL_InitFlags flags;
+	SDL_InitFlags flags = 0;
 
 	// Default Name
-	const char* name;
+	const char* name = nullptr;
 
-	// not a part of this but you probably want to fill out app.update_state and app.user
+    // enable debug layers for the gpu
+    bool gpuDebug = false;
 };
 
 InitConfiguration get_default_init_configuration();
@@ -112,13 +113,12 @@ public:
 
     DArray<UiState> uiStates = {};
 
-    melv::Color clear_color = {};
-
     TimeInfo timeInfo = {};
 
     DArray<Event_Timeout> events = {};
 
     DArray<Camera> cameras = {};
+    Camera active_camera = {};
 
     AssetId font = {};
     AssetId editor_font = {};
@@ -137,9 +137,9 @@ public:
 
     void cleanup();
 
-	Camera init_camera() const;
+    void set_camera(CameraId cam);
 private:
-    bool init_render();
+    bool init_render(bool enableDebug);
 
 	bool load_assets();
     bool reload_assets();
@@ -189,7 +189,6 @@ private:
     void render_text_field(Text_Field& text_field) const;
     void render_text_editor(TextEditor& editor) const;
     void render_dropdown(const Drop_Down_List& list) const;
-    void render_control_menu(const ControlMenu& menu) const;
     void render_discrete_slider(const DiscreteSlider& slider) const;
     void render_panel(const Panel& panel) const;
     void render_value_panel(const UiState& ui, const ValuePanel& panel) const;
@@ -207,4 +206,3 @@ void get_pref_path(String_Builder& builder, const char *org, const char *app);
 } // namespace
 
 #endif // APPLICATION_HPP
-

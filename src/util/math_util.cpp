@@ -178,11 +178,19 @@ mat4x4 orthographic_projection_matrix(float left, float right, float bottom, flo
 mat4x4 camera_matrix(vec2 position, vec2 scale)
 {
     return mat4x4{
-        scale.x, 0,       0, position.x,
-        0,       scale.y, 0, position.y,
+        scale.x, 0,       0, -position.x,
+        0,       scale.y, 0, -position.y,
         0,       0,       1, 0,
         0,       0,       0, 1
     };
+}
+
+void print_mat4(mat4x4* mat)
+{
+    printf("%f %f %f %f\n", mat->m00, mat->m01, mat->m02, mat->m03);
+    printf("%f %f %f %f\n", mat->m10, mat->m11, mat->m12, mat->m13);
+    printf("%f %f %f %f\n", mat->m20, mat->m21, mat->m22, mat->m23);
+    printf("%f %f %f %f\n", mat->m30, mat->m31, mat->m32, mat->m33);
 }
 
 RectPoints get_rotated_points(Rectangle rect, float angle)

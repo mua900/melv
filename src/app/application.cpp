@@ -20,6 +20,8 @@ InitConfiguration get_default_init_configuration()
 
 	conf.name = "Default Name";
 
+	conf.gpuDebug = false;
+
 	return conf;
 }
 
@@ -34,20 +36,20 @@ bool Application::initialize(InitConfiguration conf)
 
     get_base_path(path);
     if (!read_asset_catalog(path)) {
-        log_error("Could not read asset catalog\n");
+        log_error("Could not read asset catalog");
         return false;
     }
 
     {
         if (!TTF_Init())
         {
-            fprintf(stderr, "Could not initialize TTF: %s\n", SDL_GetError());
+            log_error("Could not initialize TTF: %s", SDL_GetError());
             return false;
         }
 
         if (!MIX_Init())
         {
-            fprintf(stderr, "Could not initialize MIX: %s\n", SDL_GetError());
+            log_error("Could not initialize MIX: %s", SDL_GetError());
             return false;
         }
     }
@@ -70,7 +72,7 @@ bool Application::initialize(InitConfiguration conf)
 
         window = { w };
 
-        if (!init_render())
+        if (!init_render(conf.gpuDebug))
         {
             return false;
         }
@@ -99,14 +101,14 @@ bool Application::initialize(InitConfiguration conf)
         input.mouse.cursor.resize_ns = resize_ns;
     }
 
-    if (!load_assets())
+    if (!init_gpu_renderer(&render, window.window))
     {
         return false;
     }
 
-    for (auto& cam : cameras)
+    if (!load_assets())
     {
-		cam = init_camera();
+        return false;
     }
 
     input.gamepad_stick_epsilon = 1e-4;
@@ -118,8 +120,6 @@ bool Application::initialize(InitConfiguration conf)
         input.keyboard.do_input = true;
     }
 
-	quit = false;
-
 	if (user.init)
 	{
 		if (!user.init(user.userdata, this))
@@ -128,19 +128,14 @@ bool Application::initialize(InitConfiguration conf)
 		}
 	}
 
+	quit = false;
+
     return true;
 }
 
-Camera Application::init_camera() const
+void Application::set_camera(CameraId cam)
 {
-    melv::vec2 center = render.get_center();
-	Camera cam;
-	// this weird inverted signs are because of coordinate system mismatch between
-	// render.get_center which is is screen space and the camera position which is in world space
-	cam.position = melv::vec2(-center.x, center.y);
-	cam.zoom = 1;
-	cam.rotation = 0;
-	return cam;
+    active_camera = cameras.get_ref(cam);
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
@@ -277,8 +272,7 @@ void Application::handle_events()
             case SDL_EVENT_WINDOW_RESIZED:
             {
 				int render_size_x, render_size_y;
-				SDL_GetRenderOutputSize(render.renderer, &render_size_x, &render_size_y);
-				render.render_size = melv::vec2(render_size_x, render_size_y);
+				SDL_GetWindowSize(window.window, &render_size_x, &render_size_y);
 
                 update_ui_state(melv::vec2(render_size_x, render_size_y));
 
@@ -296,7 +290,7 @@ void Application::handle_events()
                     Font editorFont = catalog.get_font(editor_font);
 
                     text_field->append_string(input_text);
-                    text_field->update_text(render.renderer, editorFont, true);
+                    text_field->update_text(render, editorFont, true);
                 }
                 break;
             }
@@ -503,7 +497,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                         field->delete_text();
                     }
 
-                    field->update_text(render.renderer, catalog.get_font(field->fontId), true);
+                    field->update_text(render, catalog.get_font(field->fontId), true);
                 }
             }
             return true;
@@ -523,7 +517,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     {
                         field->delete_text();
                     }
-                    field->update_text(render.renderer, catalog.get_font(field->fontId), true);
+                    field->update_text(render, catalog.get_font(field->fontId), true);
                 }
                 return true;
             }
@@ -540,7 +534,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_selection_point = 0;
 
                     Font f = catalog.get_font(field->fontId);
-                    field->update_text(render.renderer, f, true);
+                    field->update_text(render, f, true);
                 }
                 return true;
             }
@@ -557,7 +551,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_selection_point = field->m_buffer.length;
 
                     Font f = catalog.get_font(field->fontId);
-                    field->update_text(render.renderer, f, true);
+                    field->update_text(render, f, true);
                 }
                 return true;
             }
@@ -575,7 +569,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_cursor = MAX(0, field->m_cursor - step);
 
                     Font f = catalog.get_font(field->fontId);
-                    field->update_text(render.renderer, f, true);
+                    field->update_text(render, f, true);
 
                     if (input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
                     {
@@ -602,7 +596,7 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
                     field->m_cursor = MIN(field->m_cursor + step, field->m_buffer.length);
 
                     Font f = catalog.get_font(field->fontId);
-                    field->update_text(render.renderer, f, true);
+                    field->update_text(render, f, true);
 
                     if (input.keyboard.mod_state & KEYMOD_LEFT_SHIFT)
                     {
@@ -898,9 +892,9 @@ void Application::cleanup()
 	}
 }
 
-bool Application::init_render()
+bool Application::init_render(bool enableDebug)
 {
-    if (!initialize_render_context(&render, window.window))
+    if (!initialize_render_context(&render, window.window, enableDebug))
     {
         return false;
     }
@@ -910,25 +904,23 @@ bool Application::init_render()
 
 void Application::draw()
 {
-    SDL_Renderer* renderer = render.renderer;
-
     if (SDL_GetWindowFlags(window.window) & SDL_WINDOW_MINIMIZED) {
         // don't draw anything if the window is minimized
         return;
     }
 
-	// @todo user defined
-    melv::Color edit_color = melv::Color(0x77, 0x55, 0x66);
-    melv::Color background = doing_text_input ? edit_color : clear_color;
-    SDL_SetRenderDrawColor(renderer, COLOR_ARG(background));
-    SDL_RenderClear(renderer);
+    if (!start_frame(render, window.window))
+    {
+        // couldn't get command buffer or the swapchain texture
+        return;
+    }
 
 	if (user.draw)
 	{
 		user.draw(user.userdata, this);
 	}
 
-    SDL_RenderPresent(renderer);
+	end_frame(render, window.window);
 }
 
 bool Application::is_minimized() const
@@ -981,7 +973,7 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), button.text.texture, button.background, true);
+            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), render.get_texture(button.text.texture), button.background, true);
         }
     }
 
@@ -989,18 +981,13 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), button.image, button.background, true);
+            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), render.get_texture(button.image), button.background, true);
         }
     }
 
     for (const Label& label : state.label)
     {
-        render_textured_rectangle(render, melv::Rectangle(label.position, label.scale), label.text.texture, label.background, false);
-    }
-
-    for (const ControlMenu& menu : state.control)
-    {
-        render_control_menu(menu);
+        render_textured_rectangle(render, melv::Rectangle(label.position, label.scale), render.get_texture(label.text.texture), label.background, false);
     }
 
     for (const DiscreteSlider& slider : state.discrete_slider)
@@ -1026,31 +1013,39 @@ void Application::draw_ui_state(UiState& state)
         }
     }
 
-	float hoverWidth, hoverHeight = 0;
-	SDL_GetTextureSize(state.hoverText.text.texture, &hoverWidth, &hoverHeight);
-	render_textured_rectangle(render, melv::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), state.hoverText.text.texture, state.hoverText.background);
+    GPUTexture tex = render.get_texture(state.hoverText.text.texture);
+	float hoverWidth = tex.width;
+	float hoverHeight = tex.height;
+	render_textured_rectangle(render, melv::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), tex, state.hoverText.background);
 }
+
+// @todo port these
 
 void Application::render_rectangle(melv::Rectangle rect, melv::Color color, bool center) const
 {
+/*
     SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
                     SDL_FRect { rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h } :
                     SDL_FRect { rect.x, rect.y, rect.w, rect.h };
     SDL_RenderFillRect(render.renderer, &area);
+*/
 }
 
 void Application::render_rectangle_outline(melv::Rectangle rect, melv::Color color, bool center) const
 {
+/*
     SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(color));
     SDL_FRect area = center ?
                     SDL_FRect { rect.x - rect.w / 2, rect.y - rect.h / 2, rect.w, rect.h } :
                     SDL_FRect { rect.x, rect.y, rect.w, rect.h };
     SDL_RenderRect(render.renderer, &area);
+*/
 }
 
 void Application::render_discrete_slider(const DiscreteSlider& slider) const
 {
+/*
     melv::vec2 start = slider.get_start();
     melv::vec2 step = slider.get_step();
 
@@ -1063,7 +1058,7 @@ void Application::render_discrete_slider(const DiscreteSlider& slider) const
         float t = float (i) / slider.element_count;
         melv::ColorF color = i <= slider.selected ? melv::mixColors(slider.startColor, slider.endColor, t) : slider.inactiveColor;
 
-        if (slider.texture)
+        if (slider.texture.texture)
         {
             render_texture_with_tint(render, area, slider.texture, color, true);
         }
@@ -1074,10 +1069,12 @@ void Application::render_discrete_slider(const DiscreteSlider& slider) const
 
         render_rectangle_outline(area, melv::Color(slider.buttonColor));
     }
+*/
 }
 
 void Application::render_slider(melv::Rectangle area, melv::vec2 knob_scale, float value, melv::Color slider_color, melv::Color knob_color, const Text& text) const
 {
+/*
     float slider_knob_width = area.w * knob_scale.x;
     float slider_knob_height = area.h * knob_scale.y;
 
@@ -1095,13 +1092,15 @@ void Application::render_slider(melv::Rectangle area, melv::vec2 knob_scale, flo
     // text
     {
         const int margin = 10;
-        render_text_scale(render.renderer, text,
+        render_text_scale(render, text,
             melv::vec2(slider.x + slider.w / 2, slider.y + slider.h * 2 + margin), melv::vec2(0.6, 0.6));
     }
+*/
 }
 
 void Application::render_panel(const Panel& panel) const
 {
+/*
     render_rectangle(panel.get_title_area(), panel.title_bar_color);
 
     auto& tab = panel.tabs.get_ref(panel.activeTab);
@@ -1118,10 +1117,12 @@ void Application::render_panel(const Panel& panel) const
         melv::Rectangle area = panel.get_tab_header_area(i);
         render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
     }
+*/
 }
 
 void Application::render_value_panel(const UiState& ui, const ValuePanel& panel) const
 {
+/*
     auto& tab = panel.tabs.get_ref(panel.activeTab);
     render_rectangle(panel.area, tab.color, true);
 
@@ -1164,7 +1165,7 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
                 height += area.h;
                 break;
             }
-            case ValueLabel: { /* nothing extra to display */ break; }
+            case ValueLabel: { break; } //nothing extra to display
             case ValueSelection: {
                 ButtonGroup& group = ui.button_group.get_ref(value.ui_element);
                 group.position = melv::vec2(area.x, area.y);
@@ -1190,10 +1191,12 @@ void Application::render_value_panel(const UiState& ui, const ValuePanel& panel)
             render_textured_rectangle(render, area, panel.tabs.get(i).tabIcon.texture, panel.tabs.get(i).tabIcon.background, true);
         }
     }
+*/
 }
 
 void Application::render_button_group(const ButtonGroup& group) const
 {
+/*
     render_rectangle(melv::Rectangle(group.position, group.scale), group.background);
     melv::vec2 top_left = group.position - group.scale / 2;
     int numColumns = std::floor(group.scale.x / group.button_scale.x);
@@ -1205,28 +1208,12 @@ void Application::render_button_group(const ButtonGroup& group) const
         column += 1;
         row = (column == numColumns) ? row + 1 : row;
     }
-}
-
-void Application::render_control_menu(const ControlMenu& menu) const
-{
-    if (menu.visible)
-    {
-        if (menu.anchorPosition)
-        {
-            draw_segment(render, *menu.anchorPosition, menu.position, 2, menu.background);
-        }
-
-        int index = 0;
-        for (auto& button : menu.buttons)
-        {
-            render_textured_rectangle(render, melv::Rectangle(menu.position + melv::vec2(0, menu.scale.y * index), menu.scale), button.label.texture, menu.background, true);
-            index += 1;
-        }
-    }
+*/
 }
 
 void Application::render_text_editor(TextEditor& editor) const
 {
+/*
     melv::Rectangle text_area = editor.field.m_area;
     melv::Rectangle title_area = editor.get_title_area();
     render_textured_rectangle(render, title_area, editor.title_texture, editor.title_bar_color);
@@ -1241,10 +1228,12 @@ void Application::render_text_editor(TextEditor& editor) const
     render_textured_rectangle(render, editor.get_icon3_area(), editor.icon3.texture, (editor.clicked_icon == 3) ? clicked_background : editor.icon3.background, true);
 
     render_text_field(editor.field);
+*/
 }
 
 void Application::render_text_field(Text_Field& text_field) const
 {
+/*
     melv::Rectangle area = text_field.m_area;
     render_rectangle(area, text_field.background);
 
@@ -1327,9 +1316,11 @@ void Application::render_text_field(Text_Field& text_field) const
                                 TextCursorColor);
         }
     }
+*/
 }
 
 void Application::render_dropdown(const Drop_Down_List& list) const {
+/*
     SDL_SetRenderDrawColor(render.renderer, COLOR_ARG(list.title_color));
 
     SDL_FRect header_area = {
@@ -1352,10 +1343,11 @@ void Application::render_dropdown(const Drop_Down_List& list) const {
                 melv::vec2(area.x + area.w/2, area.y + area.h/2), melv::vec2(area.w, area.h));
         }
     }
+*/
 }
 
 Icon Application::create_icon(AssetId image, melv::Color background) {
-    SDL_Texture* texture = catalog.get_image(image);
+    TextureHandle texture = catalog.get_image(image);
     return Icon(texture, background);
 }
 
@@ -1370,7 +1362,7 @@ void Application::text_input_stop()
         uiStates[i].text_input_target = {};
     }
 
-    clear_color = {};
+    render.clear_color = {};
 }
 
 void Application::text_input_start()
@@ -1379,7 +1371,8 @@ void Application::text_input_start()
     doing_text_input = true;
     input.keyboard.do_input = false;
 
-    clear_color = {0, 0x44, 0x66, 0xff};
+    // @todo not hardcode
+    render.clear_color = {0, 0x44, 0x66, 0xff};
 }
 
 void Application::toggle_text_input()

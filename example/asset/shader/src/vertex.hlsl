@@ -1,5 +1,5 @@
 cbuffer buffer : register(b0, space1) {
-    float4x4 ModelViewProjection;
+    row_major float4x4 ModelViewProjection;
 }
 
 struct VSInput {

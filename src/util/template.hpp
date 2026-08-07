@@ -4,6 +4,48 @@
 #include "util/string_util.hpp"
 #include "util/log.hpp"
 
+template<typename T>
+struct Array {
+	T* data = nullptr;
+	size_t count = 0;
+
+	bool in_bounds(int index) {
+		return index >= 0 && index < count;
+	}
+
+	T& get(int index) {
+		if (!in_bounds(index))
+		{
+			panic("Out of bounds array access");
+		}
+		return data[index];
+	}
+	T& operator[](int index) { return data[index]; }
+
+	Array() {}
+	Array(T* d, size_t c) : data(d), count(c) {}
+
+	T* begin()
+	{
+		return data;
+	}
+
+	T* end()
+	{
+		return data + count;
+	}
+
+	const T* begin() const
+	{
+		return data;
+	}
+
+	const T* end() const
+	{
+		return data + count;
+	}
+};
+
 template <typename T>
 struct DArray {
 private:
@@ -15,10 +57,25 @@ public:
 	const T * data() const { return m_data; }
 	int size() const { return m_size; }
 
+	Array<T> to_array()
+	{
+		return Array<T>(m_data, m_size);
+	}
+
 	DArray() {}
 	DArray(int cap) {
 		m_data = new T[cap];
 		m_cap = cap;
+	}
+
+	DArray(int cap, bool mark)
+	{
+		m_data = new T[cap];
+		m_cap = cap;
+		if (mark)
+		{
+			m_size = cap;
+		}
 	}
 
 	// for special use case when you are using this more as an allocator
@@ -69,7 +126,17 @@ public:
 		return &m_data[index];
 	}
 
-	int add(T& elem)	{
+	T* get_last() const
+	{
+		if (m_size < 1)
+		{
+			return nullptr;
+		}
+
+		return &m_data[m_size - 1];
+	}
+
+	int add(const T& elem)	{
 		int ret_index = m_size;
 		if (m_size + 1 > m_cap)
 		{
@@ -91,6 +158,21 @@ public:
 		m_data[m_size] = std::move(elem);
 		m_size += 1;
 		return ret_index;
+	}
+
+	int add_array(T* elems, int count)
+	{
+		ensure_size(m_size + count);
+
+		for (int i = 0; i < count; i++)
+		{
+			m_data[m_size + i] = elems[i];
+		}
+
+		int start = m_size;
+		m_size += count;
+
+		return start;
 	}
 
 	void remove_shift(int index) {
@@ -265,48 +347,6 @@ void sort_array(DArray<T>& array, bool (*CompareFunc)(T& a, T& b))
 		array.switch_items(i, minIndex);
 	}
 }
-
-template<typename T>
-struct Array {
-	T* data = nullptr;
-	size_t count = 0;
-
-	bool in_bounds(int index) {
-		return index >= 0 && index < count;
-	}
-
-	T& get(int index) {
-		if (!in_bounds(index))
-		{
-			panic("Out of bounds array access");
-		}
-		return data[index];
-	}
-	T& operator[](int index) { return data[index]; }
-
-	Array() {}
-	Array(T* d, size_t c) : data(d), count(c) {}
-
-	T* begin()
-	{
-		return data;
-	}
-
-	T* end()
-	{
-		return data + count;
-	}
-
-	const T* begin() const
-	{
-		return data;
-	}
-
-	const T* end() const
-	{
-		return data + count;
-	}
-};
 
 template<typename T>
 struct BucketList {
