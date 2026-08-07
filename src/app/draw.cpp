@@ -165,10 +165,12 @@ bool RenderContext::start_render_pass() {
                                                                      -half_height, half_height,
                                                                       0.0, 1.0);
 
-    // @todo actually read this from the camera
-    melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
+    vec2 cpos = camera ? camera->position : vec2(0,0);
+    vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
 
-    mat4mul(&mvp, &orthographic, &camera);
+    melv::mat4x4 cameraMatrix = melv::camera_matrix(cpos, cscale);
+    mat4mul(&mvp, &orthographic, &cameraMatrix);
+
     SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
 
     frame.render_pass = render_pass;

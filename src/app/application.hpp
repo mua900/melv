@@ -118,6 +118,7 @@ public:
     DArray<Event_Timeout> events = {};
 
     DArray<Camera> cameras = {};
+    Camera active_camera = {};
 
     AssetId font = {};
     AssetId editor_font = {};
@@ -136,7 +137,7 @@ public:
 
     void cleanup();
 
-	Camera init_camera() const;
+    void set_camera(CameraId cam);
 private:
     bool init_render(bool enableDebug);
 

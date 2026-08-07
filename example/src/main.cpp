@@ -136,6 +136,9 @@ bool initialize(void *userdata, Application *app)
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
 
+	app->active_camera = init_camera();
+	app->render.camera = &app->active_camera;
+
 	return true;
 }
 
@@ -201,8 +204,15 @@ void handleInput(void* userdata, Application* app)
 
 	if ((mouse_pos - vec2(100, 100)).magnitude() < 100)
 	{
-		app->render.clear_color.r += 0.1;
-		app->render.clear_color.r = fmodf(app->render.clear_color.r, 1.0f);
+		app->render.clear_color.r += 0.01;
+		app->render.clear_color.r = fmodf(app->render.clear_color.r, 0.8f);
+
+		app->active_camera.position.x += 0.1;
+		app->active_camera.zoom += 0.02;
+		if (app->active_camera.zoom > 2)
+		{
+			app->active_camera.zoom = 1;
+		}
 	}
 }
 

@@ -241,6 +241,8 @@ struct vec4
     float w = 0;
 };
 
+// row major
+// m[row][column]
 struct mat4x4 {
     float m00, m01, m02, m03 = {};
     float m10, m11, m12, m13 = {};
@@ -252,7 +254,10 @@ void mat4mul(mat4x4* dst, mat4x4* left, mat4x4* right);
 
 mat4x4 identity_matrix();
 mat4x4 orthographic_projection_matrix(float left, float right, float bottom, float top, float near, float far);
+// @todo rotation
 mat4x4 camera_matrix(vec2 position, vec2 scale);
+
+void print_mat4(mat4x4* mat);
 
 struct vec3d {
     double x = 0;
@@ -385,7 +390,7 @@ struct Rectangle {
     }
 
     vec2 get_point_at_direction(Direction dir) const;
-    
+
     vec2 get_position() const {
         return vec2(x, y);
     }
@@ -416,7 +421,7 @@ struct RectPoints {
 };
 
 RectPoints get_rotated_points(Rectangle rect, float rot);
-	
+
 struct RectangleRot {
     float x = {};
     float y = {};

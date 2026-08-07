@@ -234,14 +234,15 @@ struct RenderContext {
     melv::vec2 render_size = {};
 
     CoordinateSpace space = {};  // what coordinate space input vertices are in
+    // a view matrix is derived from this if this pointer is not null
 	const Camera* camera = {};
 
     ColorF clear_color = {};
 
-    // @todo switch to sdl gpu
-    // all below belongs to incomplete code
     SDL_GPUDevice* device = nullptr;
 
+    // @todo ability to push model matrices from user code
+    // this is more like only view and projection at the moment
     melv::mat4x4 mvp = {};
 
     DArray<GPUBuffer> buffers = {};

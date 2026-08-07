@@ -111,11 +111,6 @@ bool Application::initialize(InitConfiguration conf)
         return false;
     }
 
-    for (auto& cam : cameras)
-    {
-		cam = init_camera();
-    }
-
     {
         int num_keys = 0;
         input.keyboard.keys = SDL_GetKeyboardState(&num_keys);
@@ -136,16 +131,9 @@ bool Application::initialize(InitConfiguration conf)
     return true;
 }
 
-Camera Application::init_camera() const
+void Application::set_camera(CameraId cam)
 {
-    melv::vec2 center = render.get_center();
-	Camera cam;
-	// this weird inverted signs are because of coordinate system mismatch between
-	// render.get_center which is is screen space and the camera position which is in world space
-	cam.position = melv::vec2(-center.x, center.y);
-	cam.zoom = 1;
-	cam.rotation = 0;
-	return cam;
+    active_camera = cameras.get_ref(cam);
 }
 
 bool Application::read_asset_catalog(String_Builder& path)
