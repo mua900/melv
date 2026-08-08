@@ -442,17 +442,6 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
 
     switch (keyboard.scancode)
     {
-        case SDL_SCANCODE_ESCAPE:
-        {
-            if (doing_text_input)
-            {
-                text_input_stop();
-                return true;
-            }
-
-            quit = true;
-            return true;
-        }
         case SDL_SCANCODE_RETURN:
         {
             if (ui && doing_text_input)
@@ -615,16 +604,6 @@ bool Application::keyboard_input_down_common(KeyboardEvent keyboard)
         case SDL_SCANCODE_F11:
         {
             SDL_SetWindowFullscreen(window.window, !is_fullscreen());
-            return true;
-        }
-        case SDL_SCANCODE_F4:
-        {
-            if (!reload_assets())
-            {
-                log_error("Couldn't reload assets");
-                quit = true;
-            }
-
             return true;
         }
     }

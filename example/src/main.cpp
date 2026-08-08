@@ -11,7 +11,7 @@ struct State
 	DrawGroupId group = {};
 };
 
-#define CHANGE_SHADERS 1
+#define CHANGE_SHADERS 0
 
 bool initialize(void *userdata, Application *app)
 {

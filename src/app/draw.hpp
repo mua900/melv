@@ -12,7 +12,7 @@
 namespace melv
 {
 
-#define GRAPHICS_DEBUG 1
+#define GRAPHICS_DEBUG 0
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
 
