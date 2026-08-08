@@ -675,22 +675,16 @@ void unload_asset_file(Asset& asset, AssetLoadContext& load_context, bool reset_
 }
 
 AssetKind get_asset_kind(String extension) {
-    if (string_compare(extension, String("svg"))) {
+    if (string_compare(extension, String("svg")) || string_compare(extension, String("png"))) {
         return ASSET_KIND_IMAGE;
     }
-    else if (string_compare(extension, String("ogg"))) {
-        return ASSET_KIND_AUDIO;
-    }
-    else if (string_compare(extension, String("mp3"))) {
-        return ASSET_KIND_AUDIO;
-    }
-    else if (string_compare(extension, String("wav"))) {
+    else if (string_compare(extension, String("ogg")) || string_compare(extension, String("mp3")) || string_compare(extension, String("wav"))) {
         return ASSET_KIND_AUDIO;
     }
     else if (string_compare(extension, String("ttf"))) {
         return ASSET_KIND_FONT;
     }
-    else if (string_compare(extension, String("shader"))) {
+    else if (string_compare(extension, String("shader")) || string_compare(extension, String("dxil")) || string_compare(extension, String("spv")) || string_compare(extension, String("msl"))) {
         return ASSET_KIND_SHADER;
     }
 

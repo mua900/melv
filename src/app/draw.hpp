@@ -12,6 +12,10 @@
 namespace melv
 {
 
+// @todo
+// normal maps
+// lighting
+
 #define GRAPHICS_DEBUG 0
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
@@ -225,7 +229,9 @@ struct DefaultShaders
 enum MeshCommon
 {
     MeshQuad,
+    // @todo not used
     MeshCircle,
+    // @todo more builtin shapes
 
     MeshCount
 };
@@ -273,6 +279,8 @@ struct RenderContext {
     // @todo rename
     DArray<MeshReference> frameMeshDraw = {};
     DArray<MeshDraw> frameMeshDrawTex = {};
+
+    // @todo draw groups and instancing for user defined meshes
 
     DArray<InstanceDraw> frameInstanceDraw = {};
     DArray<InstanceData> groupDraw = {};
