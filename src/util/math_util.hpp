@@ -2,6 +2,7 @@
 #define MATH_UTIL_HPP
 
 #include <cmath>
+#include "common.hpp"
 
 #define CONSTANT_HALF_PI          1.57079632679
 #define CONSTANT_PI               3.14159265359
@@ -323,6 +324,9 @@ struct ColorF {
 };
 
 ColorF mixColors(ColorF a, ColorF b, float t);
+
+ColorF hexToColor(u32 color);
+u32 colorToHex(ColorF color);
 
 // simple custom complex number
 struct Complex {

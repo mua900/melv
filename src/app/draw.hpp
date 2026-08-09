@@ -16,6 +16,8 @@ namespace melv
 // normal maps
 // lighting
 
+const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+
 #define GRAPHICS_DEBUG 0
 
 static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
@@ -315,7 +317,6 @@ struct RenderContext {
     bool set_index_buffer(u32 buffer);
 
     DrawGroupId make_draw_group(TextureHandle texture, int size);
-    void add_to_draw_group(DrawGroupId group, InstanceData data);
 
     bool upload_common_mesh_data();
 

@@ -1,4 +1,3 @@
-#include "common.hpp"
 #include "math_util.hpp"
 
 namespace melv
@@ -53,6 +52,32 @@ ColorF mixColors(ColorF a, ColorF b, float t)
         melv::lerp(a.b, b.b, t),
         melv::lerp(a.a, b.a, t)
     );
+}
+
+ColorF hexToColor(u32 color)
+{
+    ColorF result = {};
+
+    u32 mask = 0xFF;
+    result.r = float(color & mask) / 255;
+    color >>= 8;
+    result.g = float(color & mask) / 255;
+    color >>= 8;
+    result.b = float(color & mask) / 255;
+    color >>= 8;
+    result.a = float(color & mask) / 255;
+
+    return result;
+}
+
+u32 colorToHex(ColorF color)
+{
+    u32 result = 0;
+    result |= u32(color.r * 255) << 0;
+    result |= u32(color.g * 255) << 8;
+    result |= u32(color.b * 255) << 16;
+    result |= u32(color.a * 255) << 24;
+    return result;
 }
 
 vec2 lerp2(vec2 a, vec2 b, float t)

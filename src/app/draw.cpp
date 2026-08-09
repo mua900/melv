@@ -14,6 +14,7 @@ namespace melv
 const int RenderTargetWidth = 1440;
 const int RenderTargetHeight = 810;
 
+// we can remove this and rename end_frame to something like present
 bool start_frame(RenderContext& context, SDL_Window* window) {
     context.frame.command_buffer = nullptr;
 
@@ -157,8 +158,6 @@ bool RenderContext::start_render_pass() {
 
     render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
 
-    SDL_BindGPUGraphicsPipeline(render_pass, graphics.pipeline);
-
     float half_width = RenderTargetWidth/2;
     float half_height = RenderTargetHeight/2;
     melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
@@ -172,6 +171,7 @@ bool RenderContext::start_render_pass() {
     mat4mul(&mvp, &orthographic, &cameraMatrix);
 
     SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+    SDL_PushGPUVertexUniformData(frame.command_buffer, 1, &, sizeof());
 
     frame.render_pass = render_pass;
     return render_pass ? true : false;
@@ -262,7 +262,7 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
 
 bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters *parameters, SDL_GPUDevice* device, SDL_Window *window)
 {
-    auto texture_format = SDL_GetGPUSwapchainTextureFormat(device, window);
+    auto texture_format = RenderFormat;
     if (texture_format == SDL_GPU_TEXTUREFORMAT_INVALID)
     {
         log_error("Couldn't get swapchain texture format: %s", SDL_GetError());
@@ -523,7 +523,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
 
     SDL_GPUTextureCreateInfo renderTargetCI = {};
     renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
-    renderTargetCI.format = SDL_GetGPUSwapchainTextureFormat(render->device, window);
+    renderTargetCI.format = RenderFormat;
     renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
     renderTargetCI.width = RenderTargetWidth;
     renderTargetCI.height = RenderTargetHeight;
@@ -1042,12 +1042,12 @@ TextureHandle RenderContext::create_texture(TextureFormat format, u32 width, u32
 TextureHandle RenderContext::create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount)
 {
     SDL_GPUTextureCreateInfo ci = {};
-    ci.type = SDL_GPU_TEXTURETYPE_2D;
+    ci.type = SDL_GPU_TEXTURETYPE_2D;  // @hardcode
     ci.format = SDL_GPUTextureFormat(format);
     ci.usage = SDL_GPUTextureUsageFlags(usage);
     ci.width = width;
     ci.height = height;
-    ci.layer_count_or_depth = 1;
+    ci.layer_count_or_depth = 1;  // @hardcode
     ci.num_levels = mip_levels;
     ci.sample_count = SDL_GPUSampleCount(sampleCount);
     SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture(device, &ci);
