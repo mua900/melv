@@ -171,7 +171,6 @@ bool RenderContext::start_render_pass() {
     mat4mul(&mvp, &orthographic, &cameraMatrix);
 
     SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
-    SDL_PushGPUVertexUniformData(frame.command_buffer, 1, &, sizeof());
 
     frame.render_pass = render_pass;
     return render_pass ? true : false;
