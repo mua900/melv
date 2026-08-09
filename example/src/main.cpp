@@ -150,11 +150,13 @@ void draw(void *userdata, Application *app)
 
 	melv::queue_draw_mesh_texture(app->render, state->references.get(1), state->texture);
 
-#define RED   0xFF0000FF
-#define GREEN 0xFF00FF00
-#define BLUE  0xFFFF0000
+	vec2 offset = vec2(0.6, 0);
+	vec2 scale = vec2(0.1, 1);
 
 	InstanceData q = {};
+	q.sourceOffset = pack_unorm16x2(offset);
+	q.sourceScale = pack_unorm16x2(scale);
+
 	q.x = 100;
 	q.y = 100;
 	q.rotation = 0;

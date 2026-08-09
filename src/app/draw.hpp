@@ -79,7 +79,15 @@ struct InstanceData
     float scalex = 0;
     float scaley = 0;
     u32 color = 0;
+    // texture source region
+    // fixed point u16 per axis
+    u32 sourceOffset = 0;
+    u32 sourceScale = 0;
 };
+
+static_assert(sizeof(Vertex) == 32);
+static_assert(sizeof(VertexInstance) == 16);
+static_assert(sizeof(InstanceData) == 32);
 
 struct InstanceDraw
 {
@@ -420,6 +428,8 @@ void render_texture_with_tint(const RenderContext& render, melv::Rectangle area,
 // failure if the size of the arrays don't match what's expected
 void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
 void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
+
+u32 pack_unorm16x2(vec2 v);
 
 } // namespace
 

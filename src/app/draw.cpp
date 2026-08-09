@@ -310,7 +310,7 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     else
     {
         SDL_GPUVertexBufferDescription vertex_buffer_description[2] = {};
-        SDL_GPUVertexAttribute vertex_attributes[6] = {};
+        SDL_GPUVertexAttribute vertex_attributes[8] = {};
 
         vertex_buffer_description[0].slot = 0;
         vertex_buffer_description[0].pitch = sizeof(VertexInstance);
@@ -355,6 +355,18 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
         vertex_attributes[5].buffer_slot = 1;
         vertex_attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
         vertex_attributes[5].offset = sizeof(float) * 5;
+
+        // source offset
+        vertex_attributes[6].location = 6;
+        vertex_attributes[6].buffer_slot = 1;
+        vertex_attributes[6].format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
+        vertex_attributes[6].offset = sizeof(float) * 5 + sizeof(u32);
+
+        // source scale
+        vertex_attributes[7].location = 7;
+        vertex_attributes[7].buffer_slot = 1;
+        vertex_attributes[7].format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
+        vertex_attributes[7].offset = sizeof(float) * 5 + sizeof(u32) * 2;
 
         vertex_input = {
             vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
@@ -1448,6 +1460,16 @@ bool loadShader(RenderContext& context, Shader& shader, const char* path)
     shader.shader = shaderObj;
 
     return true;
+}
+
+u32 pack_unorm16x2(vec2 v)
+{
+    v.x = melv::clamp(0, 1, v.x);
+    v.y = melv::clamp(0, 1, v.y);
+    u32 rx = u32(v.x * float(0xFFFF) + 0.5f) & 0xffff;
+    u32 ry = u32(v.y * float(0xFFFF) + 0.5f) << 16;
+
+    return rx | ry;
 }
 
 } // namespace

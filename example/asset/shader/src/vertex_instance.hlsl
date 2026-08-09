@@ -9,6 +9,8 @@ struct VSInput {
     float rotation : TEXCOORD3;
     float2 scale : TEXCOORD4;
     float4 color : TEXCOORD5;
+    float2 sourceOffset : TEXCOORD6;
+    float2 sourceScale : TEXCOORD7;
 };
 
 struct VSOutput {
@@ -19,6 +21,10 @@ struct VSOutput {
 
 VSOutput main(VSInput input)
 {
+    float2 uv = input.uv;
+    uv += input.sourceOffset;
+    uv *= input.sourceScale;
+
     VSOutput output;
     float2 p = input.position;
     p.x *= input.scale.x;
@@ -28,7 +34,7 @@ VSOutput main(VSInput input)
     float2 pos = input.instance_position + float2(p.x * c - p.y * s, p.x * s + p.y * c);
 
     output.position = mul(ModelViewProjection, float4(pos, 0.0, 1.0));
-    output.uv = input.uv;
+    output.uv = uv;
     output.color = input.color;
     return output;
 }
