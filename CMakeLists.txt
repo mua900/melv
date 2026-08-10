@@ -7,6 +7,7 @@ add_library(melv STATIC
 	src/util/common.cpp
 	src/util/template.hpp
 	src/util/hash_table.hpp
+	src/util/bitset.hpp
 	src/util/value.hpp
 	src/util/log.hpp
 	src/util/log.cpp
