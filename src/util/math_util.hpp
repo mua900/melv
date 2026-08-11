@@ -298,7 +298,7 @@ inline double normalize_angle_degrees(double x) {
     return std::fmod(x, 360.0);
 }
 
-struct ColorF;
+struct Colorf;
 
 struct Color {
     unsigned char r = 0;
@@ -308,25 +308,25 @@ struct Color {
     Color() {}
     constexpr Color(unsigned char r, unsigned char g, unsigned char b) : r(r), g(g), b(b), a(0xff) {}
     constexpr Color(unsigned char r, unsigned char g, unsigned char b, unsigned char a) : r(r), g(g), b(b), a(a) {}
-    Color(const ColorF& color);
+    Color(const Colorf& color);
 };
 
-struct ColorF {
+struct Colorf {
     float r = 0.0f;
     float g = 0.0f;
     float b = 0.0f;
     float a = 0.0f;
-    ColorF() {}
-    ColorF(float r, float g, float b) : r(r), g(g), b(b), a(1.0) {}
-    ColorF(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
-    ColorF(const Color& color);
-    explicit ColorF(ColorF col, float nalpha) : r(col.r), g(col.g), b(col.b), a(nalpha) {}
+    Colorf() {}
+    Colorf(float r, float g, float b) : r(r), g(g), b(b), a(1.0) {}
+    Colorf(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
+    Colorf(const Color& color);
+    explicit Colorf(Colorf col, float nalpha) : r(col.r), g(col.g), b(col.b), a(nalpha) {}
 };
 
-ColorF mixColors(ColorF a, ColorF b, float t);
+Colorf mixColors(Colorf a, Colorf b, float t);
 
-ColorF hexToColor(u32 color);
-u32 colorToHex(ColorF color);
+Colorf hexToColor(u32 color);
+u32 colorToHex(Colorf color);
 
 // simple custom complex number
 struct Complex {

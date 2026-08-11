@@ -1334,23 +1334,6 @@ bool RenderContext::set_shaders(GraphicsPipeline* gp, SDL_GPUShader* vertex, SDL
     return true;
 }
 
-// @todo
-void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech)
-{
-}
-
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech)
-{
-}
-
-void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech, bool center)
-{
-}
-
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech)
-{
-}
-
 void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index)
 {
     out_vertex = DArray<VertexInstance> (4, true);

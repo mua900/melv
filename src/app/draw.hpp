@@ -20,7 +20,7 @@ const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
 #define GRAPHICS_DEBUG 0
 
-static const auto DEBUG_COLOR = melv::ColorF(0.6, 0.5, 0.4, 1.0);
+static const auto DEBUG_COLOR = melv::Colorf(0.6, 0.5, 0.4, 1.0);
 
 using Viewport = SDL_GPUViewport;
 
@@ -39,7 +39,7 @@ struct Vertex {
         :
         x(x), y(y), uvx(uvx), uvy(uvy), r(r), g(g), b(b), a(a)
     {}
-    Vertex(vec2 pos, vec2 uv, ColorF col)
+    Vertex(vec2 pos, vec2 uv, Colorf col)
         :
         x(pos.x), y(pos.y), uvx(uv.x), uvy(uv.y), r(col.r), g(col.g), b(col.b), a(col.a)
     {}
@@ -52,8 +52,8 @@ struct Vertex {
         return vec2(uvx, uvy);
     }
 
-    ColorF color() const {
-        return ColorF(r, g, b, a);
+    Colorf color() const {
+        return Colorf(r, g, b, a);
     }
 };
 
@@ -253,7 +253,7 @@ struct RenderContext {
     // a view matrix is derived from this if this pointer is not null
 	const Camera* camera = {};
 
-    ColorF clear_color = {};
+    Colorf clear_color = {};
 
     SDL_GPUDevice* device = nullptr;
 
@@ -419,11 +419,6 @@ void destroy_texture(GPUTexture *texture);
 
 TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
-
-void render_texture(const RenderContext& render, melv::Rectangle area, GPUTexture texture, bool strech = false);
-void render_texture_rotate(const RenderContext& render, melv::Rectangle area, GPUTexture texture, float angle, Flip flip, bool strech = false);
-void render_textured_rectangle(const RenderContext& render, melv::Rectangle rect, GPUTexture texture, melv::Color color, bool strech = false, bool center = true);
-void render_texture_with_tint(const RenderContext& render, melv::Rectangle area, GPUTexture texture, melv::ColorF tint, bool strech = false);
 
 // failure if the size of the arrays don't match what's expected
 void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);

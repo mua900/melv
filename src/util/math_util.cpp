@@ -28,7 +28,7 @@ float snap_value(float val, float bound1, float bound2, float threshold)
     return val;
 }
 
-Color::Color(const ColorF& color) {
+Color::Color(const Colorf& color) {
     float coef = 255.0;
     r = int(color.r * coef);
     g = int(color.g * coef);
@@ -36,7 +36,7 @@ Color::Color(const ColorF& color) {
     a = int(color.a * coef);
 }
 
-ColorF::ColorF(const Color& color) {
+Colorf::Colorf(const Color& color) {
     float coef = 1.0 / 255.0;
     r = (float)color.r * coef;
     g = (float)color.g * coef;
@@ -44,9 +44,9 @@ ColorF::ColorF(const Color& color) {
     a = (float)color.a * coef;
 }
 
-ColorF mixColors(ColorF a, ColorF b, float t)
+Colorf mixColors(Colorf a, Colorf b, float t)
 {
-    return ColorF(
+    return Colorf(
         melv::lerp(a.r, b.r, t),
         melv::lerp(a.g, b.g, t),
         melv::lerp(a.b, b.b, t),
@@ -54,9 +54,9 @@ ColorF mixColors(ColorF a, ColorF b, float t)
     );
 }
 
-ColorF hexToColor(u32 color)
+Colorf hexToColor(u32 color)
 {
-    ColorF result = {};
+    Colorf result = {};
 
     u32 mask = 0xFF;
     result.r = float(color & mask) / 255;
@@ -70,7 +70,7 @@ ColorF hexToColor(u32 color)
     return result;
 }
 
-u32 colorToHex(ColorF color)
+u32 colorToHex(Colorf color)
 {
     u32 result = 0;
     result |= u32(color.r * 255) << 0;

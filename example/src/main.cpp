@@ -1,6 +1,9 @@
 #include <app/application.hpp>
 #include <app/serialize.hpp>
 
+#include <random>
+#include <time.h>
+
 using namespace melv;
 
 struct State
@@ -9,14 +12,30 @@ struct State
 	DArray<MeshReference> references = {};
 	TextureHandle texture = {};
 	DrawGroupId group = {};
+
+	vec2 position[64];
 };
 
 #define CHANGE_SHADERS 0
 
 bool initialize(void *userdata, Application *app)
 {
+	srand(time(0));
+
 	State* state = (State*) userdata;
-	app->render.clear_color = ColorF(0.1, 0.2, 0.2);
+	app->render.clear_color = Colorf(0.1, 0.2, 0.2);
+
+	for (int i = 0; i < 64; i++)
+	{
+		int range = 600;
+		float x = rand() % range;
+		float y = rand() % range;
+
+		x = x - range / 2;
+		y = y - range / 2;
+
+		state->position[i] = vec2(x, y);
+	}
 
 	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
 	AssetId vertexInstId = get_asset(String("VertexInstance"), app->catalog);
@@ -55,7 +74,7 @@ bool initialize(void *userdata, Application *app)
 	}
 #endif
 
-	state->group = app->render.make_draw_group(texture, 8);
+	state->group = app->render.make_draw_group(texture, 256);
 
 	TransferData triangle, quad;
 
@@ -181,6 +200,13 @@ void draw(void *userdata, Application *app)
 	melv::queue_draw_group(app->render, q, state->group);
 	q.x += 200;
 	melv::queue_draw_group(app->render, q, state->group);
+
+	for (int i = 0; i < 64; i++)
+	{
+		q.x = state->position[i].x;
+		q.y = state->position[i].y;
+		melv::queue_draw_group(app->render, q, state->group);
+	}
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
@@ -192,6 +218,16 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 			case SDL_SCANCODE_ESCAPE:
 			{
 				app->quit = true;
+				return true;
+			}
+			case SDL_SCANCODE_E:
+			{
+				app->active_camera.zoom -= 0.1;
+				return true;
+			}
+			case SDL_SCANCODE_Q:
+			{
+				app->active_camera.zoom += 0.1;
 				return true;
 			}
 		}

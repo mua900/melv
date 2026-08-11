@@ -952,7 +952,7 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), render.get_texture(button.text.texture), button.background, true);
+            // @todo
         }
     }
 
@@ -960,13 +960,13 @@ void Application::draw_ui_state(UiState& state)
     {
         if (button.info.visible)
         {
-            render_textured_rectangle(render, melv::Rectangle(button.position, button.scale), render.get_texture(button.image), button.background, true);
+            // @todo
         }
     }
 
     for (const Label& label : state.label)
     {
-        render_textured_rectangle(render, melv::Rectangle(label.position, label.scale), render.get_texture(label.text.texture), label.background, false);
+            // @todo
     }
 
     for (const DiscreteSlider& slider : state.discrete_slider)
@@ -995,7 +995,7 @@ void Application::draw_ui_state(UiState& state)
     GPUTexture tex = render.get_texture(state.hoverText.text.texture);
 	float hoverWidth = tex.width;
 	float hoverHeight = tex.height;
-	render_textured_rectangle(render, melv::Rectangle(mouse_pos.x, mouse_pos.y, hoverWidth, hoverHeight), tex, state.hoverText.background);
+    // @todo
 }
 
 // @todo port these
@@ -1035,7 +1035,7 @@ void Application::render_discrete_slider(const DiscreteSlider& slider) const
     {
         melv::Rectangle area (start + i * step, slider.element_scale);
         float t = float (i) / slider.element_count;
-        melv::ColorF color = i <= slider.selected ? melv::mixColors(slider.startColor, slider.endColor, t) : slider.inactiveColor;
+        melv::Colorf color = i <= slider.selected ? melv::mixColors(slider.startColor, slider.endColor, t) : slider.inactiveColor;
 
         if (slider.texture.texture)
         {
@@ -1247,7 +1247,7 @@ void Application::render_text_field(Text_Field& text_field) const
         {
             String string = text_field.get_string();
 
-            melv::ColorF highlightColor (0.2, 0.2, 0.6, 0.5);
+            melv::Colorf highlightColor (0.2, 0.2, 0.6, 0.5);
 
             // selected area
             CursorScreenPosition cursorPos = text_field.get_cursor_from_selection(text_field.m_selection_point, string, font, true);

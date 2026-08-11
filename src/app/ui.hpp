@@ -681,14 +681,14 @@ struct DiscreteSlider {
     float element_gap = 0;
     bool vertical = false;
     TextureHandle texture = {};
-    melv::ColorF outlineColor = {};
-    melv::ColorF buttonColor = {};
-    melv::ColorF inactiveColor = {};
-    melv::ColorF startColor = {};
-    melv::ColorF endColor = {};
+    melv::Colorf outlineColor = {};
+    melv::Colorf buttonColor = {};
+    melv::Colorf inactiveColor = {};
+    melv::Colorf startColor = {};
+    melv::Colorf endColor = {};
 
     DiscreteSlider() {}
-    DiscreteSlider(UiElementId ident, melv::vec2 pos, melv::vec2 elem_scale, int elem_count, float elem_gap, bool vert, melv::ColorF outline_color, melv::ColorF button_color, melv::ColorF inactive_color, melv::ColorF start_color, melv::ColorF end_color)
+    DiscreteSlider(UiElementId ident, melv::vec2 pos, melv::vec2 elem_scale, int elem_count, float elem_gap, bool vert, melv::Colorf outline_color, melv::Colorf button_color, melv::Colorf inactive_color, melv::Colorf start_color, melv::Colorf end_color)
         :
         id(ident),
         position(pos),
@@ -711,7 +711,7 @@ struct DiscreteSlider {
 
 struct TextBox {
     Text text = {};
-    melv::ColorF background = {};
+    melv::Colorf background = {};
 };
 
 #define TEXT_INPUT_TARGET_IS_VALID     BIT(0)
