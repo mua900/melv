@@ -148,7 +148,7 @@ struct MeshReference
 struct MeshDraw
 {
     MeshReference mesh = {};
-    TextureHandle texture = {};
+    TextureHandle texture = TEXTURE_HANDLE_INVALID;
 
     mat4x4 matrix = {};
     DrawMatrixUsage matrix_usage = {};
@@ -398,8 +398,7 @@ SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters
 bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
 bool init_gpu_renderer(RenderContext* render, SDL_Window* window);
 
-bool start_frame(RenderContext& context, SDL_Window* window);
-void end_frame(RenderContext& context, SDL_Window* window);
+void render_present(RenderContext& context, SDL_Window* window);
 
 GPUBuffer allocate_gpu_buffer(RenderContext& context);
 

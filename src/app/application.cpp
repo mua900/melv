@@ -888,18 +888,12 @@ void Application::draw()
         return;
     }
 
-    if (!start_frame(render, window.window))
-    {
-        // couldn't get command buffer or the swapchain texture
-        return;
-    }
-
 	if (user.draw)
 	{
 		user.draw(user.userdata, this);
 	}
 
-	end_frame(render, window.window);
+	render_present(render, window.window);
 }
 
 bool Application::is_minimized() const

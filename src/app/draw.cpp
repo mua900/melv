@@ -14,14 +14,7 @@ namespace melv
 const int RenderTargetWidth = 1440;
 const int RenderTargetHeight = 810;
 
-// we can remove this and rename end_frame to something like present
-bool start_frame(RenderContext& context, SDL_Window* window) {
-    context.frame.command_buffer = nullptr;
-
-    return true;
-}
-
-void end_frame(RenderContext& context, SDL_Window* window) {
+void render_present(RenderContext& context, SDL_Window* window) {
     if (!copy_frame_instance_data(context))
     {
         return;
