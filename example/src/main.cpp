@@ -165,9 +165,14 @@ void draw(void *userdata, Application *app)
 {
 	State* state = (State*) userdata;
 
-	melv::queue_draw_mesh(app->render, state->references.get(0));
+	MeshDraw draw = {};
+	draw.mesh = state->references.get(0);
 
-	melv::queue_draw_mesh_texture(app->render, state->references.get(1), state->texture);
+	melv::queue_draw_mesh(app->render, draw);
+
+	draw.mesh = state->references.get(1);
+	draw.texture = state->texture;
+	melv::queue_draw_mesh(app->render, draw);
 
 	vec2 offset = vec2(0.6, 0);
 	vec2 scale = vec2(0.1, 1);
@@ -201,7 +206,7 @@ void draw(void *userdata, Application *app)
 	q.x += 200;
 	melv::queue_draw_group(app->render, q, state->group);
 
-	for (int i = 0; i < 64; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		q.x = state->position[i].x;
 		q.y = state->position[i].y;

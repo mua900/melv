@@ -264,6 +264,14 @@ mat4x4 orthographic_projection_matrix(float left, float right, float bottom, flo
 // @todo rotation
 mat4x4 camera_matrix(vec2 position, vec2 scale);
 
+void mat4_translate(mat4x4 *mat, vec3 translation);
+void mat4_rotate(mat4x4* mat, float angle, Axis axis);
+void mat4_scale(mat4x4* mat, float scale);
+
+void get_rotation_x(mat4x4* mat, float angle);
+void get_rotation_y(mat4x4* mat, float angle);
+void get_rotation_z(mat4x4* mat, float angle);
+
 void print_mat4(mat4x4* mat);
 
 struct vec3d {

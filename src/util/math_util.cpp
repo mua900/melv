@@ -210,6 +210,20 @@ mat4x4 camera_matrix(vec2 position, vec2 scale)
     };
 }
 
+// @todo
+void mat4_translate(mat4x4 *mat, vec3 translation)
+{
+    mat->m03 += translation.x;
+    mat->m13 += translation.y;
+    mat->m23 += translation.z;
+}
+
+// @todo
+void mat4_scale(mat4x4* mat, float scale)
+{
+    mat->m33 *= scale;
+}
+
 void print_mat4(mat4x4* mat)
 {
     printf("%f %f %f %f\n", mat->m00, mat->m01, mat->m02, mat->m03);

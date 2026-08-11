@@ -24,6 +24,13 @@ static const auto DEBUG_COLOR = melv::Colorf(0.6, 0.5, 0.4, 1.0);
 
 using Viewport = SDL_GPUViewport;
 
+enum DrawMatrixUsage
+{
+    MatrixDontUse = 0, // only use view and projection matrices (default)
+    MatrixIsModel = 1, // multiply with view and projection matrices to get mvp
+    MatrixIsMVP   = 2, // override mvp
+};
+
 struct Vertex {
     float x = 0;
     float y = 0;
@@ -142,6 +149,9 @@ struct MeshDraw
 {
     MeshReference mesh = {};
     TextureHandle texture = {};
+
+    mat4x4 matrix = {};
+    DrawMatrixUsage matrix_usage = {};
 };
 
 struct MeshDataSize
@@ -189,6 +199,9 @@ struct DrawGroup
     int offset = 0;
     int capacity = 0;
     int used = 0;  // reset every frame
+
+    mat4x4 matrix = {};
+    DrawMatrixUsage matrix_usage = {};
 };
 
 enum GPUBufferUsage {
@@ -257,8 +270,10 @@ struct RenderContext {
 
     SDL_GPUDevice* device = nullptr;
 
-    // @todo ability to push model matrices from user code
-    // this is more like only view and projection at the moment
+    // view matrix is orthographic projection from the render coordinates to the ndc
+    // view matrix is calculated from the camera
+    // you can set a model matrix for a draw command
+    // or just set the mvp
     melv::mat4x4 mvp = {};
 
     DArray<GPUBuffer> buffers = {};
@@ -287,7 +302,7 @@ struct RenderContext {
     GPUBuffer index_buffer = {};
 
     // @todo rename
-    DArray<MeshReference> frameMeshDraw = {};
+    DArray<MeshDraw> frameMeshDraw = {};
     DArray<MeshDraw> frameMeshDrawTex = {};
 
     // @todo draw groups and instancing for user defined meshes
@@ -341,6 +356,8 @@ struct RenderContext {
     bool set_shaders(GraphicsPipeline* gp, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
     void copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height);
+
+    void set_mvp(mat4x4* mat, DrawMatrixUsage usage);
 
     // camera transforms on the cpu
     melv::vec2 transformWorld(melv::vec2 p) const;
@@ -397,18 +414,17 @@ void upload_frame_instance_data(RenderContext& render);
 
 // draw calls
 // do not call these from user code
-void draw_mesh(RenderContext& render, MeshReference mesh);
-void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
-void draw_mesh_texture(RenderContext& render, MeshDraw draw);
-void draw_mesh_texture_buffers(RenderContext& render, MeshDraw draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+void draw_mesh(RenderContext& render, MeshDraw& mesh);
+void draw_mesh_buffers(RenderContext& render, MeshDraw& mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+void draw_mesh_texture(RenderContext& render, MeshDraw& draw);
+void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
 void draw_quads(RenderContext& render);
 void draw_quads_texture(RenderContext& render, DrawGroup draw);
 
 // user functions
+void queue_draw_mesh(RenderContext& render, MeshDraw& draw);
 void queue_draw_quad(RenderContext& render, InstanceData instance);
-void queue_draw_mesh(RenderContext& render, MeshReference mesh);
-void queue_draw_mesh_texture(RenderContext &render, MeshReference mesh, TextureHandle texture);
 // returns false if there is no space left in the group buffer
 bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId);
 

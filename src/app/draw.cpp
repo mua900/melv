@@ -57,9 +57,9 @@ void end_frame(RenderContext& context, SDL_Window* window) {
     }
 
     SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics.pipeline);
-    for (auto ref : context.frameMeshDraw)
+    for (auto draw : context.frameMeshDraw)
     {
-        draw_mesh(context, ref);
+        draw_mesh(context, draw);
     }
 
     SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance.pipeline);
@@ -158,19 +158,7 @@ bool RenderContext::start_render_pass() {
 
     render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
 
-    float half_width = RenderTargetWidth/2;
-    float half_height = RenderTargetHeight/2;
-    melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
-                                                                     -half_height, half_height,
-                                                                      0.0, 1.0);
-
-    vec2 cpos = camera ? camera->position : vec2(0,0);
-    vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
-
-    melv::mat4x4 cameraMatrix = melv::camera_matrix(cpos, cscale);
-    mat4mul(&mvp, &orthographic, &cameraMatrix);
-
-    SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+    set_mvp(nullptr, MatrixDontUse);
 
     frame.render_pass = render_pass;
     return render_pass ? true : false;
@@ -688,6 +676,54 @@ bool RenderContext::set_index_buffer(u32 ib)
     return true;
 }
 
+void RenderContext::set_mvp(mat4x4* mat, DrawMatrixUsage usage)
+{
+    switch (usage)
+    {
+        case MatrixDontUse:
+        {
+            float half_width = RenderTargetWidth/2;
+            float half_height = RenderTargetHeight/2;
+            melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
+                                                                             -half_height, half_height,
+                                                                              0.0, 1.0);
+
+            vec2 cpos = camera ? camera->position : vec2(0,0);
+            vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
+
+            melv::mat4x4 cameraMatrix = melv::camera_matrix(cpos, cscale);
+            mat4mul(&mvp, &orthographic, &cameraMatrix);
+
+            SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+            break;
+        }
+        case MatrixIsModel:
+        {
+            float half_width = RenderTargetWidth/2;
+            float half_height = RenderTargetHeight/2;
+            melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
+                                                                             -half_height, half_height,
+                                                                              0.0, 1.0);
+
+            vec2 cpos = camera ? camera->position : vec2(0,0);
+            vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
+
+            melv::mat4x4 cameraMatrix = melv::camera_matrix(cpos, cscale);
+            mat4mul(&mvp, &orthographic, &cameraMatrix);
+
+            mat4mul(&mvp, mat, &mvp);
+
+            SDL_PushGPUVertexUniformData(frame.command_buffer, 0, &mvp, sizeof(melv::mat4x4));
+            break;
+        }
+        case MatrixIsMVP:
+        {
+            SDL_PushGPUVertexUniformData(frame.command_buffer, 0, mat, sizeof(melv::mat4x4));
+            break;
+        }
+    }
+}
+
 u32 RenderContext::allocate_gpu_buffer(GPUBufferUsage usage, u32 size)
 {
     GPUBuffer buffer = {};
@@ -1110,14 +1146,16 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
     return drawGroups.add(group);
 }
 
-void queue_draw_mesh(RenderContext& render, MeshReference mesh)
+void queue_draw_mesh(RenderContext& render, MeshDraw& draw)
 {
-    render.frameMeshDraw.add(mesh);
-}
-
-void queue_draw_mesh_texture(RenderContext &render, MeshReference mesh, TextureHandle texture)
-{
-    render.frameMeshDrawTex.add({mesh, texture});
+    if (draw.texture == TEXTURE_HANDLE_INVALID)
+    {
+        render.frameMeshDraw.add(draw);
+    }
+    else
+    {
+        render.frameMeshDrawTex.add(draw);
+    }
 }
 
 void queue_draw_quad(RenderContext& render, InstanceData instance)
@@ -1141,12 +1179,13 @@ bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId grou
     return true;
 }
 
-void draw_mesh(RenderContext& render, MeshReference mesh)
+void draw_mesh(RenderContext& render, MeshDraw& draw)
 {
-    draw_mesh_buffers(render, mesh, render.buffers.get_ref(mesh.vertex_buffer), render.buffers.get_ref(mesh.index_buffer));
+    render.set_mvp(&draw.matrix, draw.matrix_usage);
+    draw_mesh_buffers(render, draw, render.buffers.get_ref(draw.mesh.vertex_buffer), render.buffers.get_ref(draw.mesh.index_buffer));
 }
 
-void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
+void draw_mesh_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
 {
     ASSERT(render.frame.render_pass);
 
@@ -1154,23 +1193,24 @@ void draw_mesh_buffers(RenderContext& render, MeshReference mesh, GPUBuffer& ver
     SDL_GPUBufferBinding index_binding = {};
 
     vertex_binding.buffer = vertex_buffer.buffer;
-    vertex_binding.offset = mesh.vertex_offset;
+    vertex_binding.offset = draw.mesh.vertex_offset;
 
     index_binding.buffer = index_buffer.buffer;
-    index_binding.offset = mesh.index_offset;
+    index_binding.offset = draw.mesh.index_offset;
 
     SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, &vertex_binding, 1);
     SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
 
-    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, mesh.index_count, 1, 0, 0, 0);
+    SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, draw.mesh.index_count, 1, 0, 0, 0);
 }
 
-void draw_mesh_texture(RenderContext& render, MeshDraw draw)
+void draw_mesh_texture(RenderContext& render, MeshDraw& draw)
 {
+    render.set_mvp(&draw.matrix, draw.matrix_usage);
     draw_mesh_texture_buffers(render, draw, render.buffers.get_ref(draw.mesh.vertex_buffer), render.buffers.get_ref(draw.mesh.index_buffer));
 }
 
-void draw_mesh_texture_buffers(RenderContext& render, MeshDraw draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
+void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer)
 {
     ASSERT(render.frame.render_pass);
 
@@ -1224,6 +1264,8 @@ void draw_quads(RenderContext& render)
 void draw_quads_texture(RenderContext& render, DrawGroup group)
 {
     ASSERT(render.frame.render_pass);
+
+    render.set_mvp(&group.matrix, group.matrix_usage);
 
     GPUTexture texture = render.textures.get(group.texture);
 
