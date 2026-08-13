@@ -179,6 +179,16 @@ bool Application::update_assets()
 
 bool Application::load_assets()
 {
+    if (!render.get_command_buffer())
+    {
+        return false;
+    }
+
+    if (!render.start_copy_pass())
+    {
+        return false;
+    }
+
     // the size can actually change when we are trying to load assets since folder references will expand and include arbitrary amount of files
     // so save the amount we need to iterate
     int count = catalog.assets.count();
@@ -201,6 +211,9 @@ bool Application::load_assets()
             }
         }
     }
+
+    render.end_copy_pass();
+    render.submit_command_buffer();
 
     catalog.path.free_buffer();
 

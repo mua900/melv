@@ -844,14 +844,8 @@ bool RenderContext::upload_common_mesh_data()
 
 TextureHandle RenderContext::load_gpu_texture(const char* path)
 {
-    if (!get_command_buffer())
+    if (!(frame.command_buffer && frame.copy_pass))
     {
-        return TEXTURE_HANDLE_INVALID;
-    }
-
-    if (!start_copy_pass())
-    {
-        cancel_command_buffer();
         return TEXTURE_HANDLE_INVALID;
     }
 
@@ -861,12 +855,8 @@ TextureHandle RenderContext::load_gpu_texture(const char* path)
 
     if (!ptr)
     {
-        cancel_command_buffer();
         return TEXTURE_HANDLE_INVALID;
     }
-
-    end_copy_pass();
-    submit_command_buffer();
 
     GPUTexture texture = {};
     texture.texture = ptr;
