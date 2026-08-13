@@ -855,11 +855,15 @@ TextureHandle RenderContext::load_gpu_texture(const char* path)
         return TEXTURE_HANDLE_INVALID;
     }
 
-    // @todo we could batch these into a single copy pass
-
     int width = 0;
     int height = 0;
     SDL_GPUTexture *ptr = IMG_LoadGPUTexture(device, frame.copy_pass, path, &width, &height);
+
+    if (!ptr)
+    {
+        cancel_command_buffer();
+        return TEXTURE_HANDLE_INVALID;
+    }
 
     end_copy_pass();
     submit_command_buffer();

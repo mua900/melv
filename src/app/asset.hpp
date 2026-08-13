@@ -158,18 +158,18 @@ struct AssetCatalog {
     {
         if (!id.is_valid())
         {
-            return TextureHandle();
+            return TEXTURE_HANDLE_INVALID;
         }
 
         const Asset& asset = assets.get(id.id);
         if (!compare_asset_kind(ASSET_KIND_IMAGE, asset.kind))
         {
-            return TextureHandle();
+            return TEXTURE_HANDLE_INVALID;
         }
 
         if (!compare_asset_generation(asset.identifier.generation, id.generation))
         {
-            return TextureHandle();
+            return TEXTURE_HANDLE_INVALID;
         }
 
         return asset.data.image;
