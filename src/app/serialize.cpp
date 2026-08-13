@@ -4,7 +4,8 @@
 
 namespace melv {
 
-const int versionNumber = 1;
+const u32 Magic = 0xDEFC;
+const u32 VersionNumber = 1;
 
 bool serialize_text(const char* outputName, SerializeState& state)
 {
@@ -12,7 +13,7 @@ bool serialize_text(const char* outputName, SerializeState& state)
 
     // header
     builder.append_char('[');
-    builder.append_integer(versionNumber);
+    builder.append_integer(VersionNumber);
     builder.append_char(']');
     builder.append_char('\n');
 
@@ -78,8 +79,8 @@ bool readback_text_mem(const char* data, size_t size, SerializeState* state)
         return false;
     }
 
-    // if (version > versionNumber)
-    if (version != versionNumber)
+    // if (version > VersionNumber)
+    if (version != VersionNumber)
     {
         return false;
     }
@@ -143,12 +144,22 @@ bool readback_text_mem(const char* data, size_t size, SerializeState* state)
 
 bool serialize_binary(const char* outputName, SerializeState& state)
 {
-    panic("Not implemented");
+    String_Builder builder = {};
+
+    builder.append_integer(Magic);
+    builder.append_integer(VersionNumber);
+    builder.append_integer(state.values.count);
+
+    // @todo
+
+    size_t written = write_to_file(outputName, builder, "w");
+    // return written == builder.cursor;
     return false;
 }
 
 bool readback_binary(const char* fileName, SerializeState* state)
 {
+    return false;
     BinaryData data;
     if (!load_file(fileName, data))
     {
@@ -160,8 +171,46 @@ bool readback_binary(const char* fileName, SerializeState* state)
 
 bool readback_binary_mem(const u8* data, size_t size, SerializeState* state)
 {
-    panic("Not implemented");
     return false;
+    size_t cursor = 0;
+
+    // magic
+    // version
+    // entry count
+
+    const int headerSize = 12;
+    if (size < headerSize)
+    {
+        return false;
+    }
+
+    u32* data_int = (u32*) data;
+    if (data_int[0] != Magic)
+    {
+        return false;
+    }
+
+    if (data_int[1] != VersionNumber)
+    {
+        return false;
+    }
+
+    u32 entry_count = data_int[2];
+    if (entry_count > 10'000)
+    {
+        return false;
+    }
+
+    cursor = headerSize;
+
+    *state = SerializeState(entry_count);
+
+    for (int i = 0; i < entry_count; i++)
+    {
+        // @todo
+    }
+
+    return true;
 }
 
 } // namespace

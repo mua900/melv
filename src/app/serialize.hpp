@@ -15,6 +15,12 @@ namespace melv
 struct SerializeState
 {
     HashTable<Value> values;
+
+    SerializeState() {}
+    SerializeState(int size)
+        :
+        values(size)
+    {}
 };
 
 bool serialize_text(const char* outputName, SerializeState& state);
