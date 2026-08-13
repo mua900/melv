@@ -120,6 +120,9 @@ bool Application::initialize(InitConfiguration conf)
         input.keyboard.do_input = true;
     }
 
+    active_camera = melv::init_camera();
+    render.camera = &active_camera;
+
 	if (user.init)
 	{
 		if (!user.init(user.userdata, this))

@@ -237,6 +237,18 @@ bool handleEvent(SDL_Event event, void *userdata, Application* app)
 			}
 		}
 	}
+	else if (event.type == SDL_EVENT_MOUSE_WHEEL)
+	{
+		float zoom = event.wheel.y;
+		if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+		{
+			zoom = -zoom;
+		}
+
+		app->active_camera.zoom += zoom * 0.1f;
+
+		app->active_camera.zoom = melv::clamp(0.1, 10, app->active_camera.zoom);
+	}
 
 	return false;
 }
