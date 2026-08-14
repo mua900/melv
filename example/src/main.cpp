@@ -174,8 +174,8 @@ void draw(void *userdata, Application *app)
 	draw.texture = state->texture;
 	melv::queue_draw_mesh(app->render, draw);
 
-	vec2 offset = vec2(0.6, 0);
-	vec2 scale = vec2(0.1, 1);
+	vec2 offset = vec2(0.5, 0.3);
+	vec2 scale = vec2(0.5, 0.6);
 
 	InstanceData q = {};
 	q.sourceOffset = pack_unorm16x2(offset);
@@ -204,7 +204,9 @@ void draw(void *userdata, Application *app)
 	q.y += 150;
 	melv::queue_draw_group(app->render, q, state->group);
 	q.x += 200;
+	q.color = melv::colorToHex(Colorf(1,0,0));
 	melv::queue_draw_group(app->render, q, state->group);
+	q.color = 0xffffffff;
 
 	for (int i = 0; i < 1; i++)
 	{
