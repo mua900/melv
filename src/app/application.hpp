@@ -93,8 +93,7 @@ struct InitConfiguration {
 	// Default Name
 	const char* name = nullptr;
 
-    // enable debug layers for the gpu
-    bool gpuDebug = false;
+    RenderInitConfig render = {};
 };
 
 InitConfiguration get_default_init_configuration();

@@ -429,7 +429,7 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     return pipeline;
 }
 
-bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
+bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window* window)
 {
     DefaultShaders shaders = {};
     if (!create_default_shaders(render->device, &shaders))
@@ -545,11 +545,15 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
         return false;
     }
 
-    SDL_GPUTextureCreateInfo lightTargetCI = renderTargetCI;
-    SDL_GPUTexture* light_target = SDL_CreateGPUTexture(render->device, &lightTargetCI);
-    if (!light_target)
+    SDL_GPUTexture* light_target = nullptr;
+    if (conf->doLights)
     {
-        return false;
+        SDL_GPUTextureCreateInfo lightTargetCI = renderTargetCI;
+        SDL_GPUTexture* light_target = SDL_CreateGPUTexture(render->device, &lightTargetCI);
+        if (!light_target)
+        {
+            return false;
+        }
     }
 
     render->graphics = { pipeline_parameters, pipeline };

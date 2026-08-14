@@ -16,6 +16,12 @@ namespace melv
 // normal maps
 // lighting
 
+struct RenderInitConfig
+{
+    bool doLights = false;
+    bool gpuDebug = false;
+};
+
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
 #define GRAPHICS_DEBUG 0
@@ -414,7 +420,7 @@ bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parame
 SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
 bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
-bool init_gpu_renderer(RenderContext* render, SDL_Window* window);
+bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window* window);
 
 void render_present(RenderContext& context, SDL_Window* window);
 

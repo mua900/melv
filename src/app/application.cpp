@@ -20,7 +20,8 @@ InitConfiguration get_default_init_configuration()
 
 	conf.name = "Default Name";
 
-	conf.gpuDebug = false;
+	conf.render.gpuDebug = false;
+	conf.render.doLights = false;
 
 	return conf;
 }
@@ -72,7 +73,7 @@ bool Application::initialize(InitConfiguration conf)
 
         window = { w };
 
-        if (!init_render(conf.gpuDebug))
+        if (!init_render(conf.render.gpuDebug))
         {
             return false;
         }
@@ -101,7 +102,7 @@ bool Application::initialize(InitConfiguration conf)
         input.mouse.cursor.resize_ns = resize_ns;
     }
 
-    if (!init_gpu_renderer(&render, window.window))
+    if (!init_gpu_renderer(&render, &conf.render, window.window))
     {
         return false;
     }
