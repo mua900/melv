@@ -31,6 +31,7 @@ enum DrawMatrixUsage
     MatrixIsMVP   = 2, // override mvp
 };
 
+// @todo z
 struct Vertex {
     float x = 0;
     float y = 0;
@@ -78,6 +79,7 @@ struct VertexInstance
     {}
 };
 
+// @todo z
 struct InstanceData
 {
     float x = 0;
@@ -92,9 +94,19 @@ struct InstanceData
     u32 sourceScale = 0;
 };
 
+struct LightData
+{
+    float x = 0;
+    float y = 0;
+    float brightness = 0;
+    u32 color = 0;
+};
+
 static_assert(sizeof(Vertex) == 32);
 static_assert(sizeof(VertexInstance) == 16);
 static_assert(sizeof(InstanceData) == 32);
+
+static_assert(sizeof(LightData) == 16);
 
 struct InstanceDraw
 {
@@ -247,6 +259,8 @@ struct DefaultShaders
     SDL_GPUShader* vertex_instance = {};
     SDL_GPUShader* fragment = {};
     SDL_GPUShader* fragmentTexture = {};
+    SDL_GPUShader* vertexLight = {};
+    SDL_GPUShader* fragmentLight = {};
 };
 
 enum MeshCommon
@@ -286,8 +300,11 @@ struct RenderContext {
     GraphicsPipeline graphics_instance = {};
     GraphicsPipeline graphics_texture = {};
     GraphicsPipeline graphics_instance_texture = {};
+    GraphicsPipeline graphics_light = {};
+    GraphicsPipeline graphics_composition = {};
 
     SDL_GPUTexture* render_target = nullptr;
+    SDL_GPUTexture* light_target = nullptr;
 
     TransferBuffer transfer_buffer = {};
     TransferBuffer group_transfer_buffer = {};
@@ -300,12 +317,13 @@ struct RenderContext {
     GPUBuffer group_instance_buffer = {};
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
+    GPUBuffer light_buffer = {};
 
-    // @todo rename
     DArray<MeshDraw> frameMeshDraw = {};
     DArray<MeshDraw> frameMeshDrawTex = {};
 
     // @todo draw groups and instancing for user defined meshes
+    // or maybe not
 
     DArray<InstanceDraw> frameInstanceDraw = {};
     DArray<InstanceData> groupDraw = {};
@@ -404,22 +422,8 @@ GPUBuffer allocate_gpu_buffer(RenderContext& context);
 
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data);
 
-bool copy_frame_instance_data(RenderContext& render);
-
 DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
 DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
-
-void upload_frame_instance_data(RenderContext& render);
-
-// draw calls
-// do not call these from user code
-void draw_mesh(RenderContext& render, MeshDraw& mesh);
-void draw_mesh_buffers(RenderContext& render, MeshDraw& mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
-void draw_mesh_texture(RenderContext& render, MeshDraw& draw);
-void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
-
-void draw_quads(RenderContext& render);
-void draw_quads_texture(RenderContext& render, DrawGroup draw);
 
 // user functions
 void queue_draw_mesh(RenderContext& render, MeshDraw& draw);
@@ -435,11 +439,8 @@ void destroy_texture(GPUTexture *texture);
 TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 
-// failure if the size of the arrays don't match what's expected
-void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
-void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
-
 u32 pack_unorm16x2(vec2 v);
+u16 pack_norm_value(float x);
 
 } // namespace
 

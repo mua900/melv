@@ -11,6 +11,21 @@
 namespace melv
 {
 
+void draw_mesh(RenderContext& render, MeshDraw& mesh);
+void draw_mesh_buffers(RenderContext& render, MeshDraw& mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+void draw_mesh_texture(RenderContext& render, MeshDraw& draw);
+void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
+void draw_quads(RenderContext& render);
+void draw_quads_texture(RenderContext& render, DrawGroup draw);
+
+// failure if the size of the arrays don't match what's expected
+void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
+void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
+
+bool copy_frame_instance_data(RenderContext& render);
+void upload_frame_instance_data(RenderContext& render);
+
 const int RenderTargetWidth = 1440;
 const int RenderTargetHeight = 810;
 
@@ -530,6 +545,13 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
         return false;
     }
 
+    SDL_GPUTextureCreateInfo lightTargetCI = renderTargetCI;
+    SDL_GPUTexture* light_target = SDL_CreateGPUTexture(render->device, &lightTargetCI);
+    if (!light_target)
+    {
+        return false;
+    }
+
     render->graphics = { pipeline_parameters, pipeline };
     render->graphics_texture = { pipeline_parameters, pipeline_texture };
     render->graphics_instance = { pipeline_parameters_instance, pipeline_instance };
@@ -539,6 +561,7 @@ bool init_gpu_renderer(RenderContext* render, SDL_Window* window)
     render->instance_buffer = { instance_buffer, GPUBufferVertex, buffer_size, 0 };
     render->group_instance_buffer = { group_instance_buffer, GPUBufferVertex, buffer_size, 0 };
     render->render_target = render_target;
+    render->light_target = light_target;
     render->sampler = sampler;
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
     render->group_transfer_buffer = { group_transfer_buffer, transferInfo.size };
@@ -1482,6 +1505,13 @@ u32 pack_unorm16x2(vec2 v)
     u32 ry = u32(v.y * float(0xFFFF) + 0.5f) << 16;
 
     return rx | ry;
+}
+
+u16 pack_norm_value(float x)
+{
+    x = melv::clamp(0, 1, x);
+    u16 rx = u16(x * float(0xffff) + 0.5f);
+    return rx;
 }
 
 } // namespace
