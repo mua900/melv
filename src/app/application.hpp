@@ -89,6 +89,9 @@ struct InitConfiguration {
 
 	// VIDEO | AUDIO
 	SDL_InitFlags flags = 0;
+    bool init_ttf = true;
+    bool init_mixer = true;
+    bool init_net = false;
 
 	// Default Name
 	const char* name = nullptr;

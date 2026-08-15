@@ -1,3 +1,2 @@
-- serialization
-- gamepad input
 - animation
+- stop preloading every asset by default

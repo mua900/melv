@@ -14,3 +14,7 @@
 	path = vendor/SDL_mixer
 	url = https://github.com/libsdl-org/SDL_mixer.git
 	shallow = true
+[submodule "vendor/SDL_net"]
+	path = vendor/SDL_net
+	url = https://github.com/libsdl-org/SDL_net
+	shallow = true

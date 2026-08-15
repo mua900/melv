@@ -5,6 +5,7 @@
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <SDL3_mixer/SDL_mixer.h>
+#include <SDL3_net/SDL_net.h>
 
 namespace melv
 {
@@ -42,16 +43,31 @@ bool Application::initialize(InitConfiguration conf)
     }
 
     {
-        if (!TTF_Init())
+        if (conf.init_ttf)
         {
-            log_error("Could not initialize TTF: %s", SDL_GetError());
-            return false;
+            if (!TTF_Init())
+            {
+                log_error("Could not initialize TTF: %s", SDL_GetError());
+                return false;
+            }
         }
 
-        if (!MIX_Init())
+        if (conf.init_mixer)
         {
-            log_error("Could not initialize MIX: %s", SDL_GetError());
-            return false;
+            if (!MIX_Init())
+            {
+                log_error("Could not initialize MIX: %s", SDL_GetError());
+                return false;
+            }
+        }
+
+        if (conf.init_net)
+        {
+            if (!NET_Init())
+            {
+                log_error("Could not initialize NET: %s", SDL_GetError());
+                return false;
+            }
         }
     }
 
@@ -879,8 +895,9 @@ void Application::cleanup()
 	}
 
     MIX_Quit();
-    SDL_Quit();
     TTF_Quit();
+    NET_Quit();
+    SDL_Quit();
 
 	if (user.after_cleanup)
 	{
