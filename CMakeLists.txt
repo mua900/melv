@@ -17,6 +17,8 @@ add_library(melv STATIC
 	src/util/math_util.cpp
 	src/util/file_util.hpp
 	src/util/file_util.cpp
+	src/util/rng.hpp
+	src/util/rng.cpp
 
 	src/app/application.hpp
 	src/app/application.cpp

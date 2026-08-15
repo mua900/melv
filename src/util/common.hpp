@@ -162,29 +162,3 @@ static inline char to_upper_ascii(char c)
 }
 
 #define BOOL_STRING(b) ((b) ? ("true") : ("false"))
-
-struct Xor32
-{
-    u32 state = 0;
-
-    Xor32() {}
-    Xor32(u32 seed)
-        : state(seed)
-    {}
-    void init(u32 seed)
-    {
-        state = seed;
-    }
-    u32 next();
-};
-u32 xor32(u32 x);
-
-struct PCG
-{
-    u64 state = 0;
-
-    void init(u64 seed);
-    u32 next();
-};
-
-int random_within_range(Xor32* x, int low, int high);
