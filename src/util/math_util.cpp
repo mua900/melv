@@ -202,26 +202,42 @@ mat4x4 orthographic_projection_matrix(float left, float right, float bottom, flo
 
 mat4x4 camera_matrix(vec2 position, vec2 scale)
 {
+    mat4x4 result = identity_matrix();
+    mat4_scale(&result, vec3(scale.x, scale.y, 1));
+    mat4_translate(&result, vec3(-position.x, -position.y, 0));
+    return result;
+}
+
+mat4x4 mat4_get_translation_matrix(vec3 translation)
+{
     return mat4x4{
-        scale.x, 0,       0, -position.x,
-        0,       scale.y, 0, -position.y,
-        0,       0,       1, 0,
-        0,       0,       0, 1
+        1, 0, 0, translation.x,
+        0, 1, 0, translation.y,
+        0, 0, 1, translation.z,
+        0, 0, 0, 1
     };
 }
 
-// @todo
-void mat4_translate(mat4x4 *mat, vec3 translation)
+mat4x4 mat4_get_scale_matrix(vec3 scale)
 {
-    mat->m03 += translation.x;
-    mat->m13 += translation.y;
-    mat->m23 += translation.z;
+    return mat4x4{
+        scale.x, 0, 0, 0,
+        0, scale.y, 0, 0,
+        0, 0, scale.z, 0,
+        0, 0, 0, 1
+    };
 }
 
-// @todo
-void mat4_scale(mat4x4* mat, float scale)
+void mat4_translate(mat4x4 *mat, vec3 translation)
 {
-    mat->m33 *= scale;
+    mat4x4 t = mat4_get_translation_matrix(translation);
+    mat4mul(mat, mat, &t);
+}
+
+void mat4_scale(mat4x4* mat, vec3 scale)
+{
+    mat4x4 s = mat4_get_scale_matrix(scale);
+    mat4mul(mat, mat, &s);
 }
 
 void print_mat4(mat4x4* mat)
