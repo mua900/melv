@@ -973,11 +973,11 @@ bool copy_frame_instance_data(RenderContext& render)
     ASSERT(memory);
     for (auto& group : render.drawGroups)
     {
-        for (int i = 0; i < group.used; i++)
+        for (int i = group.offset; i < group.offset + group.used; i++)
         {
             memory[group.offset + i] = render.groupDraw[group.offset + i];
         }
-        for (int i = group.used; i < group.capacity; i++)
+        for (int i = group.offset + group.used; i < group.offset + group.capacity; i++)
         {
             memory[group.offset + i] = {};
         }
