@@ -893,6 +893,48 @@ TextureHandle RenderContext::load_gpu_texture(const char* path)
     return textures.add(texture);
 }
 
+bool RenderContext::resize_transfer_buffer(TransferBuffer& buffer, u32 nsize)
+{
+    if (buffer.size < nsize)
+    {
+        SDL_GPUTransferBufferCreateInfo transferInfo = {};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = nsize;
+        SDL_GPUTransferBuffer* tbuffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+
+        if (!tbuffer)
+        {
+            return false;
+        }
+
+        SDL_ReleaseGPUTransferBuffer(device, buffer.buffer);
+        buffer.buffer = tbuffer;
+        buffer.size = transferInfo.size;
+    }
+
+    return true;
+}
+
+bool RenderContext::resize_gpu_buffer(GPUBuffer& buffer, u32 nsize)
+{
+    if (buffer.size < nsize)
+    {
+        SDL_GPUBufferCreateInfo ci = { buffer.usage, nsize };
+        SDL_GPUBuffer *gbuffer = SDL_CreateGPUBuffer(device, &ci);
+        if (!gbuffer)
+        {
+            return false;
+        }
+
+        SDL_ReleaseGPUBuffer(device, buffer.buffer);
+        buffer.buffer = gbuffer;
+        buffer.size = ci.size;
+        buffer.used = 0;
+    }
+
+    return true;
+}
+
 TransferData add_to_transfer_buffer(RenderContext& context, DArray<MeshData>& data)
 {
     if (data.size() == 0)
@@ -948,9 +990,9 @@ bool copy_frame_instance_data(RenderContext& render)
 {
     if (render.frameInstanceDraw.size() > 0)
     {
-        if (render.frameInstanceDraw.size() * sizeof(InstanceData) > render.transfer_buffer.size)
+        u32 required = render.frameInstanceDraw.size() * sizeof(InstanceData);
+        if (!render.resize_transfer_buffer(render.transfer_buffer, required))
         {
-            // @todo maybe just resize the transfer buffer
             return false;
         }
 
@@ -989,6 +1031,14 @@ bool copy_frame_instance_data(RenderContext& render)
 
 void upload_frame_instance_data(RenderContext& render)
 {
+    u32 required = (render.frameInstanceDraw.size() + render.groupDraw.size()) * sizeof(InstanceData);
+
+    if (!render.resize_gpu_buffer(render.instance_buffer, required))
+    {
+        log_info("Hit");
+        return;
+    }
+
     if (render.frameInstanceDraw.size() > 0)
     {
         SDL_GPUTransferBufferLocation source = {};
@@ -1155,21 +1205,9 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
     groupDraw.mark_full();
 
     size_t memory_req = groupDraw.size() * sizeof(InstanceData);
-    if (group_transfer_buffer.size < memory_req)
+    if (!resize_transfer_buffer(group_transfer_buffer, memory_req))
     {
-        SDL_GPUTransferBufferCreateInfo transferInfo = {};
-        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        transferInfo.size = memory_req;
-        SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
-
-        if (!buffer)
-        {
-            return DRAW_GROUPID_INVALID;
-        }
-
-        SDL_ReleaseGPUTransferBuffer(device, group_transfer_buffer.buffer);
-        group_transfer_buffer.buffer = buffer;
-        group_transfer_buffer.size = transferInfo.size;
+        return DRAW_GROUPID_INVALID;
     }
 
     return drawGroups.add(group);

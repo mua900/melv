@@ -20,7 +20,7 @@ struct RenderInitConfig
 {
     bool doLights = false;
     bool gpuDebug = false;
-    int transfer_buffer_size = 8 * 1024;
+    int transfer_buffer_size = 16 * 1024;
 };
 
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -331,11 +331,14 @@ struct RenderContext {
     // @todo draw groups and instancing for user defined meshes
     // or maybe not
 
-    DArray<InstanceDraw> frameInstanceDraw = {};
+    DArray<InstanceDraw> frameInstanceDraw = {}; // @todo maybe remove this path
     DArray<InstanceData> groupDraw = {};
     DArray<DrawGroup> drawGroups = {};
 
     BucketList<GPUTexture> textures = {};
+
+    bool resize_transfer_buffer(TransferBuffer& buffer, u32 nsize);
+    bool resize_gpu_buffer(GPUBuffer& buffer, u32 nsize);
 
     bool gpu_inited() const
     {
