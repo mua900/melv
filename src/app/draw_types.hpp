@@ -11,6 +11,7 @@ using BufferHandle = u32;
 using DrawGroupId = u32;
 
 #define TEXTURE_HANDLE_INVALID u32(-1)
+#define DRAW_GROUPID_INVALID   u32(-1)
 
 using TextureFormat = SDL_GPUTextureFormat;
 

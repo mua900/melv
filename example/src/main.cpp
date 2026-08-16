@@ -74,7 +74,11 @@ bool initialize(void *userdata, Application *app)
 	}
 #endif
 
-	state->group = app->render.make_draw_group(texture, 256);
+	state->group = app->render.make_draw_group(texture, 2048);
+	if (state->group == DRAW_GROUPID_INVALID)
+	{
+		return false;
+	}
 
 	TransferData triangle, quad;
 
@@ -309,6 +313,7 @@ int main()
 	app.user.update_state = &update;
 
 	InitConfiguration conf = melv::get_default_init_configuration();
+	conf.render.transfer_buffer_size = 64 * 1024;
 
 	if (!app.initialize(conf))
 	{

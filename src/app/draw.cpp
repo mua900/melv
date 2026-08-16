@@ -480,11 +480,11 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
 
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transferInfo.size = 16 * 1024;  // @todo parameter
+    transferInfo.size = conf->transfer_buffer_size;
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
     SDL_GPUTransferBuffer* group_transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
-    if (!transfer_buffer)
+    if (!(transfer_buffer && group_transfer_buffer))
     {
         log_error("Couldn't create transfer buffer");
         return false;
@@ -1122,21 +1122,17 @@ TextureHandle RenderContext::create_texture_verbose(TextureFormat format, Textur
 
 void RenderContext::destroy_texture(TextureHandle handle)
 {
-    // if (is_texture_handle_valid())
-    GPUTexture& texture = textures.get_ref(handle);
-    SDL_ReleaseGPUTexture(device, texture.texture);
-    texture = {};
+    if (handle != TEXTURE_HANDLE_INVALID)
+    {
+        GPUTexture& texture = textures.get(handle);
+        SDL_ReleaseGPUTexture(device, texture.texture);
+        textures.remove(handle);
+    }
 }
 
 GPUTexture RenderContext::get_texture(TextureHandle handle)
 {
-    return textures.get_ref(handle);
-}
-
-bool RenderContext::is_texture_handle_valid(TextureHandle handle)
-{
-    // @todo
-    return textures.in_bounds(handle);
+    return textures.get(handle);
 }
 
 DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
@@ -1156,6 +1152,25 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
     group.used = 0;
 
     groupDraw.ensure_size(group.offset + size);
+    groupDraw.mark_full();
+
+    size_t memory_req = groupDraw.size() * sizeof(InstanceData);
+    if (group_transfer_buffer.size < memory_req)
+    {
+        SDL_GPUTransferBufferCreateInfo transferInfo = {};
+        transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferInfo.size = memory_req;
+        SDL_GPUTransferBuffer* buffer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+
+        if (!buffer)
+        {
+            return DRAW_GROUPID_INVALID;
+        }
+
+        SDL_ReleaseGPUTransferBuffer(device, group_transfer_buffer.buffer);
+        group_transfer_buffer.buffer = buffer;
+        group_transfer_buffer.size = transferInfo.size;
+    }
 
     return drawGroups.add(group);
 }
@@ -1360,13 +1375,13 @@ TextureHandle render_text(RenderContext& render, String text, Font font, melv::C
 
 	SDL_DestroySurface(surface);
 
-    return TextureHandle();
+    return TEXTURE_HANDLE_INVALID;
 }
 
 Text create_text(RenderContext& render, String text, Font font, melv::Color color)
 {
     TextureHandle texture = render_text(render, text, font, color);
-    if (!render.is_texture_handle_valid(texture)) return Text();
+    if (texture == TEXTURE_HANDLE_INVALID) return Text();
     return Text(texture, text, color);
 }
 

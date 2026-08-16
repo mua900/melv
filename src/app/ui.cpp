@@ -303,7 +303,7 @@ bool Text_Field::render_text_field_texture(RenderContext& render, Font font, mel
     // handle =  render.create_texture();
     SDL_DestroySurface(text_surface);
 
-    if (!render.is_texture_handle_valid(handle))
+    if (handle == TEXTURE_HANDLE_INVALID)
     {
         return false;
     }

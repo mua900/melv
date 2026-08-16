@@ -20,6 +20,7 @@ struct RenderInitConfig
 {
     bool doLights = false;
     bool gpuDebug = false;
+    int transfer_buffer_size = 8 * 1024;
 };
 
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -237,7 +238,6 @@ struct GPUBuffer {
 struct TransferBuffer {
     SDL_GPUTransferBuffer* buffer = nullptr;
     u32 size = 0;
-    u32 used = 0;
 };
 
 struct FrameContext {
@@ -335,7 +335,7 @@ struct RenderContext {
     DArray<InstanceData> groupDraw = {};
     DArray<DrawGroup> drawGroups = {};
 
-    DArray<GPUTexture> textures = {};
+    BucketList<GPUTexture> textures = {};
 
     bool gpu_inited() const
     {
@@ -347,7 +347,6 @@ struct RenderContext {
     TextureHandle create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
     void destroy_texture(TextureHandle handle);
     TextureHandle load_gpu_texture(const char* path);
-    bool is_texture_handle_valid(TextureHandle handle);
 
     GPUTexture get_texture(TextureHandle handle);
 

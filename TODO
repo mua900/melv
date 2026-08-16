@@ -1,2 +1,3 @@
 - animation
-- stop preloading every asset by default
+- stop preloading every asset by default (memory bloat)
+- fix visual glitch that happens when allocating a big gpu transfer buffer
