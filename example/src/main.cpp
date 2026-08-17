@@ -191,15 +191,6 @@ void draw(void *userdata, Application *app)
 	q.scalex = 100;
 	q.scaley = 100;
 	q.color = 0xFFFFFFFF;
-	melv::queue_draw_quad(app->render, q);
-	q.x += 200;
-	q.y += 150;
-	q.color = 0xFF0000FF;
-	melv::queue_draw_quad(app->render, q);
-
-	q.x = -100;
-	q.y = -400;
-	q.color = 0xFFFFFFFF;
 
 	melv::queue_draw_group(app->render, q, state->group);
 	q.y += 200;
@@ -314,6 +305,8 @@ int main()
 
 	InitConfiguration conf = melv::get_default_init_configuration();
 	conf.render.transfer_buffer_size = 64 * 1024;
+	conf.render.instance_buffer_size = 64 * 1024;
+	conf.render.gpuDebug = true;
 
 	if (!app.initialize(conf))
 	{

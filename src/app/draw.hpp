@@ -20,7 +20,12 @@ struct RenderInitConfig
 {
     bool doLights = false;
     bool gpuDebug = false;
+
     int transfer_buffer_size = 16 * 1024;
+
+    u32 vertex_buffer_size = 16 * 1024;
+    u32 index_buffer_size = 16 * 1024;
+    u32 instance_buffer_size = 16 * 1024;
 };
 
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -101,19 +106,9 @@ struct InstanceData
     u32 sourceScale = 0;
 };
 
-struct LightData
-{
-    float x = 0;
-    float y = 0;
-    float brightness = 0;
-    u32 color = 0;
-};
-
 static_assert(sizeof(Vertex) == 32);
 static_assert(sizeof(VertexInstance) == 16);
 static_assert(sizeof(InstanceData) == 32);
-
-static_assert(sizeof(LightData) == 16);
 
 struct InstanceDraw
 {
@@ -303,7 +298,6 @@ struct RenderContext {
     SDL_GPUSampler* sampler = nullptr;
 
     GraphicsPipeline graphics = {};
-    GraphicsPipeline graphics_instance = {};
     GraphicsPipeline graphics_texture = {};
     GraphicsPipeline graphics_instance_texture = {};
     GraphicsPipeline graphics_light = {};
@@ -317,21 +311,19 @@ struct RenderContext {
 
     FrameContext frame = {};
 
-    // for predefined meshes
+    // predefined mesh
     MeshReference mesh_common[MeshCount] = {};
+
     GPUBuffer instance_buffer = {};
     GPUBuffer group_instance_buffer = {};
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
-    GPUBuffer light_buffer = {};
 
     DArray<MeshDraw> frameMeshDraw = {};
     DArray<MeshDraw> frameMeshDrawTex = {};
 
     // @todo draw groups and instancing for user defined meshes
-    // or maybe not
 
-    DArray<InstanceDraw> frameInstanceDraw = {}; // @todo maybe remove this path
     DArray<InstanceData> groupDraw = {};
     DArray<DrawGroup> drawGroups = {};
 
@@ -435,7 +427,6 @@ DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferD
 
 // user functions
 void queue_draw_mesh(RenderContext& render, MeshDraw& draw);
-void queue_draw_quad(RenderContext& render, InstanceData instance);
 // returns false if there is no space left in the group buffer
 bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId);
 
