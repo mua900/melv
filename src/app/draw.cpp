@@ -1007,11 +1007,11 @@ bool copy_frame_instance_data(RenderContext& render)
     {
         for (int i = group.offset; i < group.offset + group.used; i++)
         {
-            memory[group.offset + i] = render.groupDraw[group.offset + i];
+            memory[i] = render.groupDraw[i];
         }
         for (int i = group.offset + group.used; i < group.offset + group.capacity; i++)
         {
-            memory[group.offset + i] = {};
+            memory[i] = {};
         }
     }
     SDL_UnmapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer);
