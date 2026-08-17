@@ -34,7 +34,7 @@ struct AssetId {
 
 using ImageId = AssetId;
 using AudioId = AssetId;
-using FotnId = AssetId;
+using FontId = AssetId;
 using ShaderId = AssetId;
 
 static constexpr AssetId NullAssetId = AssetId {-1, 0};

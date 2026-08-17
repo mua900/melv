@@ -1170,18 +1170,10 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
     group.capacity = size;
     group.used = 0;
 
-    size_t memory_req = groupDraw.size() * sizeof(InstanceData);
-    if (group_transfer_buffer.size < memory_req)
-    {
-        return DRAW_GROUPID_INVALID;
-    }
-    if (instance_buffer.size < memory_req)
-    {
-        return DRAW_GROUPID_INVALID;
-    }
+    u32 newsize = group.offset + size;
 
-    // @todo for some reason this doesn't work
-    /*
+    size_t memory_req = newsize * sizeof(InstanceData);
+
     if (!resize_transfer_buffer(group_transfer_buffer, memory_req))
     {
         return DRAW_GROUPID_INVALID;
@@ -1191,9 +1183,8 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
     {
         return DRAW_GROUPID_INVALID;;
     }
-    */
 
-    groupDraw.ensure_size(group.offset + size);
+    groupDraw.ensure_size(newsize);
     groupDraw.mark_full();
 
     return drawGroups.add(group);

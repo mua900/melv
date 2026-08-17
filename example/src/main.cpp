@@ -74,7 +74,7 @@ bool initialize(void *userdata, Application *app)
 	}
 #endif
 
-	state->group = app->render.make_draw_group(texture, 2048);
+	state->group = app->render.make_draw_group(texture, 64);
 	if (state->group == DRAW_GROUPID_INVALID)
 	{
 		return false;
@@ -304,8 +304,8 @@ int main()
 	app.user.update_state = &update;
 
 	InitConfiguration conf = melv::get_default_init_configuration();
-	conf.render.transfer_buffer_size = 64 * 1024;
-	conf.render.instance_buffer_size = 64 * 1024;
+	// conf.render.transfer_buffer_size = 64 * 1024;
+	// conf.render.instance_buffer_size = 64 * 1024;
 	conf.render.gpuDebug = true;
 
 	if (!app.initialize(conf))

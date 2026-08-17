@@ -1,3 +1,4 @@
 - animation
+- networking
 - stop preloading every asset by default (memory bloat)
 - fix visual glitch that happens when allocating a big gpu transfer buffer
