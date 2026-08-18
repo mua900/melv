@@ -16,7 +16,7 @@ struct State
 	vec2 position[64];
 };
 
-#define CHANGE_SHADERS 0
+#define CHANGE_SHADERS 1
 
 bool initialize(void *userdata, Application *app)
 {
@@ -63,22 +63,19 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 
-	if (!app->render.set_shaders(&app->render.graphics_instance, vertexInst.shader, fragment.shader))
-	{
-		return false;
-	}
-
 	if (!app->render.set_shaders(&app->render.graphics_instance_texture, vertexInst.shader, fragmentTex.shader))
 	{
 		return false;
 	}
 #endif
 
-	state->group = app->render.make_draw_group(texture, 64);
+	state->group = app->render.make_draw_group(texture, 1024);
 	if (state->group == DRAW_GROUPID_INVALID)
 	{
 		return false;
 	}
+
+	melv::DrawGroupId id = app->render.make_draw_group(texture, 1024 * 4);
 
 	TransferData triangle, quad;
 
@@ -178,8 +175,8 @@ void draw(void *userdata, Application *app)
 	draw.texture = state->texture;
 	melv::queue_draw_mesh(app->render, draw);
 
-	vec2 offset = vec2(0.5, 0.3);
-	vec2 scale = vec2(0.5, 0.6);
+	vec2 offset = vec2(0.5, 0.2);
+	vec2 scale = vec2(1,1);
 
 	InstanceData q = {};
 	q.sourceOffset = pack_unorm16x2(offset);
@@ -304,8 +301,6 @@ int main()
 	app.user.update_state = &update;
 
 	InitConfiguration conf = melv::get_default_init_configuration();
-	// conf.render.transfer_buffer_size = 64 * 1024;
-	// conf.render.instance_buffer_size = 64 * 1024;
 	conf.render.gpuDebug = true;
 
 	if (!app.initialize(conf))

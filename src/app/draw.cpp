@@ -89,7 +89,7 @@ void render_present(RenderContext& context, SDL_Window* window) {
 
     context.vertex_buffer.used = 0;
     context.index_buffer.used = 0;
-    context.group_instance_buffer.used = 0;
+    context.instance_buffer.used = 0;
 
     context.frameMeshDraw.discard_data();
     context.groupDraw.discard_data();
@@ -243,7 +243,7 @@ bool initialize_render_context(RenderContext* render, SDL_Window* window, bool e
     render->device = device;
     render->render_size = melv::vec2(render_size_x, render_size_y);
 
-    melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, 0.0, 1.0);
+    melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0);
     melv::mat4x4 camera = melv::camera_matrix(melv::vec2(0, 0), melv::vec2(1,1));
     mat4mul(&render->mvp, &orthographic, &camera);
 
@@ -468,7 +468,7 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
 
     SDL_GPUTransferBufferCreateInfo transferInfo = {};
     transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-    transferInfo.size = conf->transfer_buffer_size;
+    transferInfo.size = InitTransferBufferSize;
     SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
     SDL_GPUTransferBuffer* group_transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
@@ -478,45 +478,18 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
         return false;
     }
 
-    SDL_GPUBufferCreateInfo vertexBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, conf->vertex_buffer_size };
-    SDL_GPUBufferCreateInfo indexBufferCI = { SDL_GPU_BUFFERUSAGE_INDEX, conf->index_buffer_size };
-    SDL_GPUBufferCreateInfo instanceBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, conf->instance_buffer_size };
+    SDL_GPUBufferCreateInfo vertexBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, InitVertexBufferSize };
+    SDL_GPUBufferCreateInfo indexBufferCI = { SDL_GPU_BUFFERUSAGE_INDEX, InitIndexBufferSize };
+    SDL_GPUBufferCreateInfo instanceBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, InitInstanceBufferSize };
 
-    SDL_GPUBuffer* vertex_buffer = nullptr;
-    SDL_GPUBuffer* index_buffer = nullptr;
-    SDL_GPUBuffer* instance_buffer = nullptr;
-    SDL_GPUBuffer* group_instance_buffer = nullptr;
+    SDL_GPUBuffer* vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertexBufferCI);
+    SDL_GPUBuffer* index_buffer = SDL_CreateGPUBuffer(render->device, &indexBufferCI);
+    SDL_GPUBuffer* instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
 
-    if (conf->vertex_buffer_size > 0)
+    if (!(vertex_buffer && index_buffer && instance_buffer))
     {
-        vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertexBufferCI);
-        if (!vertex_buffer)
-        {
-            log_error("Couldn't create vertex buffer");
-            return false;
-        }
-    }
-
-    if (conf->index_buffer_size > 0)
-    {
-        index_buffer = SDL_CreateGPUBuffer(render->device, &indexBufferCI);
-        if (!index_buffer)
-        {
-            log_error("Couldn't create index buffer");
-            return false;
-        }
-    }
-
-    if (conf->instance_buffer_size > 0)
-    {
-        instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
-        group_instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
-
-        if (!(instance_buffer && group_instance_buffer))
-        {
-            log_error("Couldn't create instance buffers");
-            return false;
-        }
+        log_error("Couldn't create vertex buffer");
+        return false;
     }
 
     SDL_GPUSamplerCreateInfo samplerCI = {};
@@ -572,10 +545,9 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
     render->graphics = { pipeline_parameters, pipeline };
     render->graphics_texture = { pipeline_parameters, pipeline_texture };
     render->graphics_instance_texture = { pipeline_parameters_instance, pipeline_instance_texture };
-    render->vertex_buffer = { vertex_buffer, GPUBufferVertex, conf->vertex_buffer_size, 0 };
-    render->index_buffer = { index_buffer, GPUBufferIndex, conf->index_buffer_size, 0 };
-    render->instance_buffer = { instance_buffer, GPUBufferVertex, conf->instance_buffer_size, 0 };
-    render->group_instance_buffer = { group_instance_buffer, GPUBufferVertex, conf->instance_buffer_size, 0 };
+    render->vertex_buffer = { vertex_buffer, GPUBufferVertex, InitVertexBufferSize, 0 };
+    render->index_buffer = { index_buffer, GPUBufferIndex, InitIndexBufferSize, 0 };
+    render->instance_buffer = { instance_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 };
     render->render_target = render_target;
     render->light_target = light_target;
     render->sampler = sampler;
@@ -718,7 +690,7 @@ void RenderContext::set_mvp(mat4x4* mat, DrawMatrixUsage usage)
             float half_height = RenderTargetHeight/2;
             melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
                                                                              -half_height, half_height,
-                                                                              0.0, 1.0);
+                                                                              -1, 1.0);
 
             vec2 cpos = camera ? camera->position : vec2(0,0);
             vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
@@ -735,7 +707,7 @@ void RenderContext::set_mvp(mat4x4* mat, DrawMatrixUsage usage)
             float half_height = RenderTargetHeight/2;
             melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
                                                                              -half_height, half_height,
-                                                                              0.0, 1.0);
+                                                                              -1, 1.0);
 
             vec2 cpos = camera ? camera->position : vec2(0,0);
             vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
@@ -1029,7 +1001,7 @@ void upload_frame_instance_data(RenderContext& render)
         source.transfer_buffer = render.group_transfer_buffer.buffer;
         source.offset = 0;
 
-        destination.buffer = render.group_instance_buffer.buffer;
+        destination.buffer = render.instance_buffer.buffer;
         destination.offset = 0;
         destination.size = render.groupDraw.size() * sizeof(InstanceData);
 
@@ -1181,7 +1153,7 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
 
     if (!resize_gpu_buffer(instance_buffer, memory_req))
     {
-        return DRAW_GROUPID_INVALID;;
+        return DRAW_GROUPID_INVALID;
     }
 
     groupDraw.ensure_size(newsize);
@@ -1300,7 +1272,7 @@ void draw_quads_texture(RenderContext& render, DrawGroup group)
     vertex_bindings[0].buffer = render.vertex_buffer.buffer;
     vertex_bindings[0].offset = 0;
 
-    vertex_bindings[1].buffer = render.group_instance_buffer.buffer;
+    vertex_bindings[1].buffer = render.instance_buffer.buffer;
     vertex_bindings[1].offset = group.offset;
 
     index_binding.buffer = render.index_buffer.buffer;

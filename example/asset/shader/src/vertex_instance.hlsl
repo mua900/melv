@@ -21,9 +21,7 @@ struct VSOutput {
 
 VSOutput main(VSInput input)
 {
-    float2 uv = input.uv;
-    uv *= input.sourceScale;
-    uv += input.sourceOffset;
+    float2 uv = input.uv * input.sourceScale + input.sourceOffset;
 
     VSOutput output;
     float2 p = input.position;

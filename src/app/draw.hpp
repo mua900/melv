@@ -20,13 +20,13 @@ struct RenderInitConfig
 {
     bool doLights = false;
     bool gpuDebug = false;
-
-    int transfer_buffer_size = 16 * 1024;
-
-    u32 vertex_buffer_size = 16 * 1024;
-    u32 index_buffer_size = 16 * 1024;
-    u32 instance_buffer_size = 16 * 1024;
 };
+
+// change if you want
+const int InitTransferBufferSize = 16 * 1024;
+const int InitVertexBufferSize = 1024;
+const int InitIndexBufferSize = 16 * 1024;
+const int InitInstanceBufferSize = 16 * 1024;
 
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 
@@ -314,8 +314,7 @@ struct RenderContext {
     // predefined mesh
     MeshReference mesh_common[MeshCount] = {};
 
-    GPUBuffer instance_buffer = {};
-    GPUBuffer group_instance_buffer = {};
+    GPUBuffer instance_buffer = {}; // used with draw groups
     GPUBuffer vertex_buffer = {};
     GPUBuffer index_buffer = {};
 
