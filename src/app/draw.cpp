@@ -1228,6 +1228,20 @@ bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId grou
     return true;
 }
 
+bool draw(RenderContext& render, Draw& d, DrawGroupId groupId)
+{
+    InstanceData data = {};
+    data.x = d.position.x;
+    data.y = d.position.y;
+    data.z = d.position.z;
+    data.rotation = d.rotation;
+    data.scale = pack_scale(d.scale);
+    data.color = colorToHex(d.color);
+    data.sourceOffset = pack_unorm16x2(d.sourceOffset);
+    data.sourceScale = pack_unorm16x2(d.sourceScale);
+    return queue_draw_group(render, data, groupId);
+}
+
 void draw_mesh(RenderContext& render, MeshDraw& draw)
 {
     render.set_mvp(&draw.matrix, draw.matrix_usage);

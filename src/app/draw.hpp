@@ -133,6 +133,16 @@ struct InstanceDraw
     {}
 };
 
+struct Draw
+{
+    vec3 position = {};
+    float rotation = 0;
+    vec2 scale = {}; // clamped to 0..MaxInstanceScale
+    Colorf color = {};
+    vec2 sourceOffset = {};
+    vec2 sourceScale = {};
+};
+
 enum VertexInputType
 {
     InputVertex,
@@ -447,6 +457,8 @@ void destroy_texture(GPUTexture *texture);
 
 TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
+
+bool draw(RenderContext& render, Draw& d, DrawGroupId groupId);
 
 u16 pack_unorm16(float x, float range);
 float unpack_unorm16(u16 x, float range);
