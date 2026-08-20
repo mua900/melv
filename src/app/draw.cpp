@@ -268,10 +268,12 @@ bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters *parame
 SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
 {
     SDL_GPUVertexInputState vertex_input = {};
+
+    SDL_GPUVertexBufferDescription vertex_buffer_description[VBufferDescriptionCountMax] = {};
+    SDL_GPUVertexAttribute vertex_attributes[InputAttributeCountMax] = {};
+
     if (parameters->input == InputVertex)
     {
-        SDL_GPUVertexBufferDescription vertex_buffer_description[1] = {};
-        SDL_GPUVertexAttribute vertex_attributes[3] = {};
         vertex_buffer_description[0].slot = 0;                        /**< The binding slot of the vertex buffer. */
         vertex_buffer_description[0].pitch = sizeof(Vertex);                       /**< The size of a single element + the offset between elements. */
         vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;  /**< Whether attribute addressing is a function of the vertex index or instance index. */
@@ -293,16 +295,13 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
 
        vertex_input = {
             vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
-            ARRAY_SIZE(vertex_buffer_description),                          /**< The number of vertex buffer descriptions in the above array. */
+            VBufferDescriptionCountVertex,                          /**< The number of vertex buffer descriptions in the above array. */
             vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
-            ARRAY_SIZE(vertex_attributes)                          /**< The number of vertex attribute descriptions in the above array. */
+            InputAttributeCountVertex                          /**< The number of vertex attribute descriptions in the above array. */
         };
     }
     else
     {
-        SDL_GPUVertexBufferDescription vertex_buffer_description[2] = {};
-        SDL_GPUVertexAttribute vertex_attributes[8] = {};
-
         vertex_buffer_description[0].slot = 0;
         vertex_buffer_description[0].pitch = sizeof(VertexInstance);
         vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
@@ -361,9 +360,9 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
 
         vertex_input = {
             vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
-            ARRAY_SIZE(vertex_buffer_description),                          /**< The number of vertex buffer descriptions in the above array. */
+            VBufferDescriptionCountInstance,                          /**< The number of vertex buffer descriptions in the above array. */
             vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
-            ARRAY_SIZE(vertex_attributes)                          /**< The number of vertex attribute descriptions in the above array. */
+            InputAttributeCountInstance                          /**< The number of vertex attribute descriptions in the above array. */
         };
     }
 
@@ -903,7 +902,9 @@ bool RenderContext::resize_gpu_buffer(GPUBuffer& buffer, u32 nsize)
 {
     if (buffer.size < nsize)
     {
+#ifdef GRAPHICS_DEBUG
         log_info("Resize GPU buffer");
+#endif
         SDL_GPUBufferCreateInfo ci = { buffer.usage, nsize };
         SDL_GPUBuffer *gbuffer = SDL_CreateGPUBuffer(device, &ci);
         if (!gbuffer)

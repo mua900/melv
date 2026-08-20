@@ -43,6 +43,14 @@ enum DrawMatrixUsage
     MatrixIsMVP   = 2, // override mvp
 };
 
+const int VBufferDescriptionCountVertex = 1;
+const int VBufferDescriptionCountInstance = 2;
+const int VBufferDescriptionCountMax = melv::max(VBufferDescriptionCountVertex, VBufferDescriptionCountInstance);
+
+const int InputAttributeCountVertex = 3;
+const int InputAttributeCountInstance = 8;
+const int InputAttributeCountMax = melv::max(InputAttributeCountVertex, InputAttributeCountInstance);
+
 // @todo z
 struct Vertex {
     float x = 0;
@@ -218,7 +226,7 @@ struct DrawGroup
     DrawMatrixUsage matrix_usage = {};
 };
 
-enum GPUBufferUsage {
+enum GPUBufferUsage : u32 {
     GPUBufferVertex = SDL_GPU_BUFFERUSAGE_VERTEX,
     GPUBufferIndex = SDL_GPU_BUFFERUSAGE_INDEX,
 };
