@@ -61,7 +61,9 @@ if (BUILD_EXAMPLE_PROGRAM)
 	)
 
 	target_include_directories(example PRIVATE src)
-	target_link_libraries(example PRIVATE melv)
+	target_link_libraries(example PUBLIC melv)
+
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT example)
 endif()
 
 target_include_directories(melv PUBLIC src/)

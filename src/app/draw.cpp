@@ -11,6 +11,10 @@
 namespace melv
 {
 
+static_assert(sizeof(Vertex) == 32);
+static_assert(sizeof(VertexInstance) == 16);
+static_assert(sizeof(InstanceData) == 32);
+
 void draw_mesh(RenderContext& render, MeshDraw& mesh);
 void draw_mesh_buffers(RenderContext& render, MeshDraw& mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 void draw_mesh_texture(RenderContext& render, MeshDraw& draw);
@@ -159,7 +163,19 @@ bool RenderContext::start_render_pass() {
     color_targets[0].cycle = true;
     color_targets[0].cycle_resolve_texture = false;
 
-    render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
+    SDL_GPUDepthStencilTargetInfo depth_stencil_info = {};
+    depth_stencil_info.texture = depth_target;               /**< The texture that will be used as the depth stencil target by the render pass. */
+    depth_stencil_info.clear_depth = 1;                     /**< The value to clear the depth component to at the beginning of the render pass. Ignored if SDL_GPU_LOADOP_CLEAR is not used. */
+    depth_stencil_info.load_op = SDL_GPU_LOADOP_CLEAR;                 /**< What is done with the depth contents at the beginning of the render pass. */
+    depth_stencil_info.store_op = SDL_GPU_STOREOP_STORE;               /**< What is done with the depth results of the render pass. */
+    depth_stencil_info.stencil_load_op = SDL_GPU_LOADOP_CLEAR;         /**< What is done with the stencil contents at the beginning of the render pass. */
+    depth_stencil_info.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;       /**< What is done with the stencil results of the render pass. */
+    depth_stencil_info.cycle = true;                            /**< true cycles the texture if the texture is bound and any load ops are not LOAD */
+    depth_stencil_info.clear_stencil = 0;                   /**< The value to clear the stencil component to at the beginning of the render pass. Ignored if SDL_GPU_LOADOP_CLEAR is not used. */
+    // depth_stencil_info.mip_level;                       /**< The mip level to use as the depth stencil target. */
+    // depth_stencil_info.layer;                           /**< The layer index to use as the depth stencil target. */
+
+    render_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, &depth_stencil_info);
 
     set_mvp(nullptr, MatrixDontUse);
 
@@ -325,38 +341,38 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
         // instance position
         vertex_attributes[2].location = 2;
         vertex_attributes[2].buffer_slot = 1;
-        vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+        vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
         vertex_attributes[2].offset = 0;
 
         // rotation
         vertex_attributes[3].location = 3;
         vertex_attributes[3].buffer_slot = 1;
         vertex_attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
-        vertex_attributes[3].offset = sizeof(float) * 2;
+        vertex_attributes[3].offset = OFFSETOF(InstanceData, rotation);
 
         // scale
         vertex_attributes[4].location = 4;
         vertex_attributes[4].buffer_slot = 1;
-        vertex_attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
-        vertex_attributes[4].offset = sizeof(float) * 3;
+        vertex_attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
+        vertex_attributes[4].offset = OFFSETOF(InstanceData, scale);
 
         // color
         vertex_attributes[5].location = 5;
         vertex_attributes[5].buffer_slot = 1;
         vertex_attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
-        vertex_attributes[5].offset = sizeof(float) * 5;
+        vertex_attributes[5].offset = OFFSETOF(InstanceData, color);
 
         // source offset
         vertex_attributes[6].location = 6;
         vertex_attributes[6].buffer_slot = 1;
         vertex_attributes[6].format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
-        vertex_attributes[6].offset = sizeof(float) * 5 + sizeof(u32);
+        vertex_attributes[6].offset = OFFSETOF(InstanceData, sourceOffset);
 
         // source scale
         vertex_attributes[7].location = 7;
         vertex_attributes[7].buffer_slot = 1;
         vertex_attributes[7].format = SDL_GPU_VERTEXELEMENTFORMAT_USHORT2_NORM;
-        vertex_attributes[7].offset = sizeof(float) * 5 + sizeof(u32) * 2;
+        vertex_attributes[7].offset = OFFSETOF(InstanceData, sourceScale);
 
         vertex_input = {
             vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
@@ -374,7 +390,7 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     // rasterizer.depth_bias_clamp;            /**< The maximum depth bias of a fragment. */
     // rasterizer.depth_bias_slope_factor;     /**< A scalar factor applied to a fragment's slope in depth calculations. */
     // rasterizer.enable_depth_bias;            /**< true to bias fragment depth values. */
-    // rasterizer.enable_depth_clip;            /**< true to enable depth clip, false to enable depth clamp. */
+    rasterizer.enable_depth_clip = true;            /**< true to enable depth clip, false to enable depth clamp. */
 
     SDL_GPUMultisampleState multisample = {};
     multisample.sample_count = SDL_GPU_SAMPLECOUNT_1;  /**< The number of samples to be used in rasterization. */
@@ -383,8 +399,10 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     multisample.enable_alpha_to_coverage = false;    /**< true enables the alpha-to-coverage feature. */
 
     SDL_GPUDepthStencilState stencil = {};
-    stencil.enable_depth_test = false;                     /**< true enables the depth test. */
-    stencil.enable_depth_write = false;                    /**< true enables depth writes. Depth writes are always disabled when enable_depth_test is false. */
+    // equal so that we do blending if their depths are equal
+    stencil.compare_op = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+    stencil.enable_depth_test = true;                     /**< true enables the depth test. */
+    stencil.enable_depth_write = true;                    /**< true enables depth writes. Depth writes are always disabled when enable_depth_test is false. */
     stencil.enable_stencil_test = false;                   /**< true enables the stencil test. */
 
     SDL_GPUColorTargetBlendState blend_state = {};
@@ -406,8 +424,8 @@ SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters
     SDL_GPUGraphicsPipelineTargetInfo target_info = {};
     target_info.color_target_descriptions = color_target_description;  /**< A pointer to an array of color target descriptions. */
     target_info.num_color_targets = ARRAY_SIZE(color_target_description);                                        /**< The number of color target descriptions in the above array. */
-    target_info.depth_stencil_format = {};                       /**< The pixel format of the depth-stencil target. Ignored if has_depth_stencil_target is false. */
-    target_info.has_depth_stencil_target = false;                                   /**< true specifies that the pipeline uses a depth-stencil target. */
+    target_info.depth_stencil_format = DepthFormat;
+    target_info.has_depth_stencil_target = true;                                   /**< true specifies that the pipeline uses a depth-stencil target. */
 
     SDL_GPUGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.vertex_shader = vertex;
@@ -513,16 +531,19 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
         return false;
     }
 
-    SDL_GPUTextureCreateInfo renderTargetCI = {};
-    renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
-    renderTargetCI.format = RenderFormat;
-    renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
-    renderTargetCI.width = RenderTargetWidth;
-    renderTargetCI.height = RenderTargetHeight;
-    renderTargetCI.layer_count_or_depth = 1;
-    renderTargetCI.num_levels = 1;
-    renderTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
-    SDL_GPUTexture *render_target = SDL_CreateGPUTexture(render->device, &renderTargetCI);
+    SDL_GPUTexture *render_target = nullptr;
+    {
+        SDL_GPUTextureCreateInfo renderTargetCI = {};
+        renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
+        renderTargetCI.format = RenderFormat;
+        renderTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        renderTargetCI.width = RenderTargetWidth;
+        renderTargetCI.height = RenderTargetHeight;
+        renderTargetCI.layer_count_or_depth = 1;
+        renderTargetCI.num_levels = 1;
+        renderTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        render_target = SDL_CreateGPUTexture(render->device, &renderTargetCI);
+    }
 
     if (!render_target)
     {
@@ -530,15 +551,30 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
         return false;
     }
 
+    SDL_GPUTexture *depth_target = nullptr;
+    {
+        SDL_GPUTextureCreateInfo depthTargetCI = {};
+        depthTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
+        depthTargetCI.format = DepthFormat; // D16
+        depthTargetCI.usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        depthTargetCI.width = RenderTargetWidth;
+        depthTargetCI.height = RenderTargetHeight;
+        depthTargetCI.layer_count_or_depth = 1;
+        depthTargetCI.num_levels = 1;
+        depthTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        depth_target = SDL_CreateGPUTexture(render->device, &depthTargetCI);
+    }
+
+    if (!depth_target)
+    {
+        log_info("Couldn't create depth target: %s", SDL_GetError());
+        return false;
+    }
+
     SDL_GPUTexture* light_target = nullptr;
     if (conf->doLights)
     {
-        SDL_GPUTextureCreateInfo lightTargetCI = renderTargetCI;
-        SDL_GPUTexture* light_target = SDL_CreateGPUTexture(render->device, &lightTargetCI);
-        if (!light_target)
-        {
-            return false;
-        }
+        // @todo create light target
     }
 
     render->graphics = { pipeline_parameters, pipeline };
@@ -549,6 +585,7 @@ bool init_gpu_renderer(RenderContext* render, RenderInitConfig* conf, SDL_Window
     render->instance_buffer = { instance_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 };
     render->render_target = render_target;
     render->light_target = light_target;
+    render->depth_target = depth_target;
     render->sampler = sampler;
     render->transfer_buffer = { transfer_buffer, transferInfo.size };
     render->group_transfer_buffer = { group_transfer_buffer, transferInfo.size };
@@ -689,7 +726,7 @@ void RenderContext::set_mvp(mat4x4* mat, DrawMatrixUsage usage)
             float half_height = RenderTargetHeight/2;
             melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
                                                                              -half_height, half_height,
-                                                                              -1, 1.0);
+                                                                              0, 1);
 
             vec2 cpos = camera ? camera->position : vec2(0,0);
             vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
@@ -706,7 +743,7 @@ void RenderContext::set_mvp(mat4x4* mat, DrawMatrixUsage usage)
             float half_height = RenderTargetHeight/2;
             melv::mat4x4 orthographic = melv::orthographic_projection_matrix(-half_width, half_width,
                                                                              -half_height, half_height,
-                                                                              -1, 1.0);
+                                                                              0, 1);
 
             vec2 cpos = camera ? camera->position : vec2(0,0);
             vec2 cscale = camera ? vec2(camera->zoom, camera->zoom) : vec2(1,1);
@@ -1476,6 +1513,20 @@ bool loadShader(RenderContext& context, Shader& shader, const char* path)
     return true;
 }
 
+u16 pack_unorm16(float x, float range)
+{
+    x = melv::clamp(0, range, x);
+    x /= range;
+    u16 rx = u16(x * float(0xffff) + 0.5f);
+    return rx;
+}
+
+float unpack_unorm16(u16 x, float range)
+{
+    float rx = (float(x) / float(0xffff)) * range;
+    return rx;
+}
+
 u32 pack_unorm16x2(vec2 v)
 {
     v.x = melv::clamp(0, 1, v.x);
@@ -1486,11 +1537,26 @@ u32 pack_unorm16x2(vec2 v)
     return rx | ry;
 }
 
-u16 pack_norm_value(float x)
+vec2 unpack_unorm16x2(u32 v)
 {
-    x = melv::clamp(0, 1, x);
-    u16 rx = u16(x * float(0xffff) + 0.5f);
-    return rx;
+    float x = float(v & 0xffff) / float(0xffff);
+    float y = float(v >> 16) / float(0xffff);
+
+    return vec2(x, y);
+}
+
+u32 pack_scale(vec2 v)
+{
+    u32 x = pack_unorm16(v.x, MaxInstanceScale);
+    u32 y = pack_unorm16(v.y, MaxInstanceScale);
+    return x | (y << 16);
+}
+
+vec2 unpack_scale(u32 v)
+{
+    float x = unpack_unorm16(v & 0xffff, MaxInstanceScale);
+    float y = unpack_unorm16(v >> 16, MaxInstanceScale);
+    return vec2(x, y);
 }
 
 } // namespace

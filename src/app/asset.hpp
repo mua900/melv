@@ -26,8 +26,8 @@ enum AssetKind {
 const char* get_asset_kind_name(AssetKind kind);
 
 struct AssetId {
-    int id;
-    int generation;
+    int id = 0;
+    int generation = 0;
 
     bool is_valid() const { return id != -1 && generation != 0; }
 };
@@ -66,9 +66,36 @@ struct Asset {
         Shader shader;
     } data = {};
 
-    Asset() : kind(ASSET_KIND_ZERO), identifier(NullAssetId), data{} {}
-    Asset(AssetKind kind) : kind(kind), identifier(NullAssetId), data{}
-    {}
+    Asset() : kind(ASSET_KIND_ZERO), identifier(NullAssetId)
+    {
+        memset(&data, 0, sizeof(data));
+    }
+    Asset(AssetKind kind) : kind(kind), identifier(NullAssetId)
+    {
+        switch (kind)
+        {
+            case ASSET_KIND_IMAGE:
+            {
+                data.image = TEXTURE_HANDLE_INVALID;
+                break;
+            }
+            case ASSET_KIND_AUDIO:
+            {
+                data.audio = nullptr;
+                break;
+            }
+            case ASSET_KIND_FONT:
+            {
+                data.font = {};
+                break;
+            }
+            case ASSET_KIND_SHADER:
+            {
+                data.shader = {};
+                break;
+            }
+        }
+    }
 };
 
 struct AssetCatalog {

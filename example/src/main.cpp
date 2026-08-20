@@ -16,7 +16,7 @@ struct State
 	vec2 position[64];
 };
 
-#define CHANGE_SHADERS 1
+#define CHANGE_SHADERS 0
 
 bool initialize(void *userdata, Application *app)
 {
@@ -152,6 +152,7 @@ bool initialize(void *userdata, Application *app)
 	}
 
 	state->references = upload_mesh_data(app->render, memory);
+	state->texture = texture;
 
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
@@ -176,7 +177,9 @@ void draw(void *userdata, Application *app)
 	melv::queue_draw_mesh(app->render, draw);
 
 	vec2 offset = vec2(0.5, 0.2);
-	vec2 scale = vec2(1,1);
+	vec2 scale = vec2(1, 1);
+
+	vec2 qscale = vec2(100, 100);
 
 	InstanceData q = {};
 	q.sourceOffset = pack_unorm16x2(offset);
@@ -184,12 +187,21 @@ void draw(void *userdata, Application *app)
 
 	q.x = 100;
 	q.y = 100;
+	q.z = 1;
 	q.rotation = 0;
-	q.scalex = 100;
-	q.scaley = 100;
+	q.scale = melv::pack_scale(qscale);
 	q.color = 0xFFFFFFFF;
 
+	auto p = q;
+	p.x += 10;
+	p.y += 10;
+	p.color = 0xff0000ff;
+	p.z = 0;
+
+	melv::queue_draw_group(app->render, p, state->group);
+
 	melv::queue_draw_group(app->render, q, state->group);
+
 	q.y += 200;
 	melv::queue_draw_group(app->render, q, state->group);
 	q.x += 200;

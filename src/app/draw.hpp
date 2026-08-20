@@ -29,6 +29,7 @@ const int InitIndexBufferSize = 16 * 1024;
 const int InitInstanceBufferSize = 16 * 1024;
 
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+const TextureFormat DepthFormat = SDL_GPU_TEXTUREFORMAT_D16_UNORM;
 
 #define GRAPHICS_DEBUG 0
 
@@ -43,6 +44,8 @@ enum DrawMatrixUsage
     MatrixIsMVP   = 2, // override mvp
 };
 
+const float MaxInstanceScale = 256;
+
 const int VBufferDescriptionCountVertex = 1;
 const int VBufferDescriptionCountInstance = 2;
 const int VBufferDescriptionCountMax = melv::max(VBufferDescriptionCountVertex, VBufferDescriptionCountInstance);
@@ -51,7 +54,6 @@ const int InputAttributeCountVertex = 3;
 const int InputAttributeCountInstance = 8;
 const int InputAttributeCountMax = melv::max(InputAttributeCountVertex, InputAttributeCountInstance);
 
-// @todo z
 struct Vertex {
     float x = 0;
     float y = 0;
@@ -99,24 +101,24 @@ struct VertexInstance
     {}
 };
 
-// @todo z
 struct InstanceData
 {
     float x = 0;
     float y = 0;
-    float rotation = 0;
-    float scalex = 0;
-    float scaley = 0;
-    u32 color = 0;
-    // texture source region
-    // fixed point u16 per axis
-    u32 sourceOffset = 0;
-    u32 sourceScale = 0;
-};
+    float z = 0;
 
-static_assert(sizeof(Vertex) == 32);
-static_assert(sizeof(VertexInstance) == 16);
-static_assert(sizeof(InstanceData) == 32);
+    float rotation = 0;
+
+    // x, y
+    u32 scale = 0;
+
+    // rgba
+    u32 color = 0;
+
+    // uv = vertex_uv * source_scale + source_offset
+    u32 sourceOffset = 0; // x, y
+    u32 sourceScale = 0;  // x, y
+};
 
 struct InstanceDraw
 {
@@ -313,6 +315,7 @@ struct RenderContext {
 
     SDL_GPUTexture* render_target = nullptr;
     SDL_GPUTexture* light_target = nullptr;
+    SDL_GPUTexture* depth_target = nullptr;
 
     TransferBuffer transfer_buffer = {};
     TransferBuffer group_transfer_buffer = {};
@@ -445,8 +448,14 @@ void destroy_texture(GPUTexture *texture);
 TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 
+u16 pack_unorm16(float x, float range);
+float unpack_unorm16(u16 x, float range);
+
 u32 pack_unorm16x2(vec2 v);
-u16 pack_norm_value(float x);
+vec2 unpack_unorm16x2(u32 v);
+
+u32 pack_scale(vec2 v);
+vec2 unpack_scale(u32 v);
 
 } // namespace
 
