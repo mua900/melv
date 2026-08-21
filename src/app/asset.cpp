@@ -32,6 +32,36 @@ bool parse_attribute_value(String attribute, const char* key, String& out_value)
 
 using AssetParseLineResult = u32;
 
+// non zero default values
+void init_asset(Asset& asset, AssetKind kind)
+{
+    switch (kind)
+    {
+        case ASSET_KIND_IMAGE:
+        {
+            asset.data.image.mip_levels = 1;
+            break;
+        }
+        case ASSET_KIND_AUDIO:
+        {
+            break;
+        }
+        case ASSET_KIND_FONT:
+        {
+            break;
+        }
+        case ASSET_KIND_SHADER:
+        {
+            break;
+        }
+        default:
+        {
+            log_info("Invalid asset kind: %d", kind);
+            break;
+        }
+    }
+}
+
 // return false on failure or comment
 // <kind> <scope optional> <name> <path> [optional] [lazy]
 AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
@@ -91,6 +121,8 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
     else {
         return 0;
     }
+
+    init_asset(pointer, asset_kind);
 
     // space required after a field
     if (line.data[cursor] != ' ')
@@ -508,13 +540,10 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            Texture texture = {};
-            if (!load_context.render->load_gpu_texture(path.c_string(), texture))
+            if (!load_context.render->load_gpu_texture(path.c_string(), asset.data.image))
             {
                 return false;
             }
-            ASSERT(texture.is_valid());
-            asset.data.image = texture;
             return true;
         }
         case ASSET_KIND_AUDIO: {

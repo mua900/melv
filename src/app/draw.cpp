@@ -897,7 +897,7 @@ bool RenderContext::load_gpu_texture(const char* path, Texture& texture)
         return false;
     }
 
-    // SDL_image/src/IMG_gpu.c/LoadGPUTexture
+    // reference: SDL_image/src/IMG_gpu.c/LoadGPUTexture
     SDL_Surface *surface = IMG_Load(path);
     if (!surface)
     {
@@ -912,7 +912,7 @@ bool RenderContext::load_gpu_texture(const char* path, Texture& texture)
     textureInfo.format = StandardTextureFormat;
     textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
     textureInfo.layer_count_or_depth = 1;
-    textureInfo.num_levels = 1;
+    textureInfo.num_levels = texture.mip_levels;
     textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
     textureInfo.width = width;
     textureInfo.height = height;
@@ -1212,7 +1212,7 @@ Texture RenderContext::create_texture_verbose(TextureFormat format, TextureUsage
     {
         return TEXTURE_INVALID;
     }
-    GPUTexture texture = GPUTexture(sdl_texture, format, width, height);
+    GPUTexture texture = GPUTexture(sdl_texture, format, width, height, mip_levels);
     return textures.add(texture);
 }
 

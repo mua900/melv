@@ -213,9 +213,9 @@ struct GPUTexture
     u32 sampler = 0;
 
     GPUTexture() {}
-    GPUTexture(SDL_GPUTexture *tex, TextureFormat fm, u32 w, u32 h)
+    GPUTexture(SDL_GPUTexture *tex, TextureFormat fm, u32 w, u32 h, u32 mip)
         :
-        texture(tex), format(fm), width(w), height(h)
+        texture(tex), format(fm), width(w), height(h), mip_levels(mip)
     {}
 };
 

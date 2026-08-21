@@ -98,6 +98,8 @@ struct Asset {
     }
 };
 
+void init_asset(Asset& asset, AssetKind kind);
+
 struct AssetCatalog {
     // This holds the asset description we loaded.
     // Asset names and paths reference this buffer so don't mess with it unless you know what you are doing.
