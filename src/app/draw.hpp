@@ -31,8 +31,6 @@ const int InitInstanceBufferSize = 16 * 1024;
 const TextureFormat RenderFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 const TextureFormat DepthFormat = SDL_GPU_TEXTUREFORMAT_D16_UNORM;
 
-#define GRAPHICS_DEBUG 0
-
 static const auto DEBUG_COLOR = melv::Colorf(0.6, 0.5, 0.4, 1.0);
 
 using Viewport = SDL_GPUViewport;
@@ -362,7 +360,7 @@ struct RenderContext {
     Texture create_texture(TextureFormat format, u32 width, u32 height);
     Texture create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
     void destroy_texture(Texture handle);
-    Texture load_gpu_texture(const char* path);
+    bool load_gpu_texture(const char* path, Texture& texture);
 
     GPUTexture get_texture(Texture handle);
 

@@ -508,11 +508,12 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            Texture texture = load_context.render->load_gpu_texture(path.c_string());
-            if (!texture.is_valid())
+            Texture texture = {};
+            if (!load_context.render->load_gpu_texture(path.c_string(), texture))
             {
                 return false;
             }
+            ASSERT(texture.is_valid());
             asset.data.image = texture;
             return true;
         }

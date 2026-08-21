@@ -1,3 +1,4 @@
+#include "config.hpp"
 #include "draw.hpp"
 #include "util/math_util.hpp"
 #include "util/common.hpp"
@@ -889,28 +890,94 @@ bool RenderContext::upload_common_mesh_data()
     return true;
 }
 
-Texture RenderContext::load_gpu_texture(const char* path)
+bool RenderContext::load_gpu_texture(const char* path, Texture& texture)
 {
     if (!(frame.command_buffer && frame.copy_pass))
     {
-        return TEXTURE_INVALID;
+        return false;
     }
 
-    int width = 0;
-    int height = 0;
-    SDL_GPUTexture *ptr = IMG_LoadGPUTexture(device, frame.copy_pass, path, &width, &height);
+    // SDL_image/src/IMG_gpu.c/LoadGPUTexture
+    SDL_Surface *surface = IMG_Load(path);
+    if (!surface)
+    {
+        return false;
+    }
 
+    int width = surface->w;
+    int height = surface->h;
+
+    const TextureFormat StandardTextureFormat = RenderFormat;
+    SDL_GPUTextureCreateInfo textureInfo = {};
+    textureInfo.format = StandardTextureFormat;
+    textureInfo.type = SDL_GPU_TEXTURETYPE_2D;
+    textureInfo.layer_count_or_depth = 1;
+    textureInfo.num_levels = 1;
+    textureInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+    textureInfo.width = width;
+    textureInfo.height = height;
+    SDL_GPUTexture *ptr = SDL_CreateGPUTexture(device, &textureInfo);
     if (!ptr)
     {
-        return TEXTURE_INVALID;
+        SDL_DestroySurface(surface);
+        return false;
     }
 
-    GPUTexture texture = {};
-    texture.texture = ptr;
-    texture.width = width;
-    texture.height = height;
+    SDL_GPUTransferBufferCreateInfo transferInfo = {};
+    transferInfo.size = width * height * 4; // @Hardcode depends on RenderFormat
+    transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    SDL_GPUTransferBuffer* transfer = SDL_CreateGPUTransferBuffer(device, &transferInfo);
+    if (!transfer)
+    {
+        SDL_DestroySurface(surface);
+        SDL_ReleaseGPUTexture(device, ptr);
+        return false;
+    }
 
-    return textures.add(texture);
+    u8* dst = (u8*) SDL_MapGPUTransferBuffer(device, transfer, false);
+    if (!dst)
+    {
+        SDL_DestroySurface(surface);
+        SDL_ReleaseGPUTexture(device, ptr);
+        SDL_ReleaseGPUTransferBuffer(device, transfer);
+        return false;
+    }
+
+    const u8* src = (u8*) surface->pixels;
+    const int row_bytes = width * 4;
+    if (row_bytes == surface->pitch)
+    {
+        std::memcpy(dst, src, row_bytes * height);
+    }
+    else
+    {
+        for (int y = 0; y < height; y++)
+        {
+            std::memcpy(dst + y * row_bytes, src + y * surface->pitch, row_bytes);
+        }
+    }
+    SDL_UnmapGPUTransferBuffer(device, transfer);
+
+    SDL_GPUTextureTransferInfo texture_transfer_info = {};
+    SDL_GPUTextureRegion texture_region = {};
+    texture_transfer_info.transfer_buffer = transfer;
+    texture_region.texture = ptr;
+    texture_region.w = width;
+    texture_region.h = height;
+    texture_region.d = 1;
+    SDL_UploadToGPUTexture(frame.copy_pass, &texture_transfer_info, &texture_region, false);
+
+    SDL_DestroySurface(surface);
+    SDL_ReleaseGPUTransferBuffer(device, transfer);
+
+    GPUTexture tex = {};
+    tex.texture = ptr;
+    tex.width = width;
+    tex.height = height;
+    tex.mip_levels = texture.mip_levels;
+
+    texture.index = textures.add(tex);
+    return true;
 }
 
 bool RenderContext::resize_transfer_buffer(TransferBuffer& buffer, u32 nsize)
