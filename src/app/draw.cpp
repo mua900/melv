@@ -889,11 +889,11 @@ bool RenderContext::upload_common_mesh_data()
     return true;
 }
 
-TextureHandle RenderContext::load_gpu_texture(const char* path)
+Texture RenderContext::load_gpu_texture(const char* path)
 {
     if (!(frame.command_buffer && frame.copy_pass))
     {
-        return TEXTURE_HANDLE_INVALID;
+        return TEXTURE_INVALID;
     }
 
     int width = 0;
@@ -902,7 +902,7 @@ TextureHandle RenderContext::load_gpu_texture(const char* path)
 
     if (!ptr)
     {
-        return TEXTURE_HANDLE_INVALID;
+        return TEXTURE_INVALID;
     }
 
     GPUTexture texture = {};
@@ -1115,7 +1115,7 @@ bool RenderContext::make_texture_upload(SDL_Surface* surface, TextureUpload* upl
         log_error("Texture format isn't supported: %s", SDL_GetPixelFormatName(surface->format));
         return false;
     }
-    TextureHandle texture = create_texture(format, surface->w, surface->h);
+    Texture texture = create_texture(format, surface->w, surface->h);
     TextureUpload data = {};
     data.target = texture;
     data.src = surface;
@@ -1124,12 +1124,12 @@ bool RenderContext::make_texture_upload(SDL_Surface* surface, TextureUpload* upl
     return true;
 }
 
-TextureHandle RenderContext::create_texture(TextureFormat format, u32 width, u32 height)
+Texture RenderContext::create_texture(TextureFormat format, u32 width, u32 height)
 {
     return create_texture_verbose(format, TextureUsageSampler, width, height, 1, SampleCount1);
 }
 
-TextureHandle RenderContext::create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount)
+Texture RenderContext::create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount)
 {
     SDL_GPUTextureCreateInfo ci = {};
     ci.type = SDL_GPU_TEXTURETYPE_2D;  // @hardcode
@@ -1143,28 +1143,28 @@ TextureHandle RenderContext::create_texture_verbose(TextureFormat format, Textur
     SDL_GPUTexture* sdl_texture = SDL_CreateGPUTexture(device, &ci);
     if (!sdl_texture)
     {
-        return TEXTURE_HANDLE_INVALID;
+        return TEXTURE_INVALID;
     }
     GPUTexture texture = GPUTexture(sdl_texture, format, width, height);
     return textures.add(texture);
 }
 
-void RenderContext::destroy_texture(TextureHandle handle)
+void RenderContext::destroy_texture(Texture handle)
 {
-    if (handle != TEXTURE_HANDLE_INVALID)
+    if (handle.is_valid())
     {
-        GPUTexture& texture = textures.get(handle);
+        GPUTexture& texture = textures.get(handle.index);
         SDL_ReleaseGPUTexture(device, texture.texture);
-        textures.remove(handle);
+        textures.remove(handle.index);
     }
 }
 
-GPUTexture RenderContext::get_texture(TextureHandle handle)
+GPUTexture RenderContext::get_texture(Texture handle)
 {
-    return textures.get(handle);
+    return textures.get(handle.index);
 }
 
-DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
+DrawGroupId RenderContext::make_draw_group(Texture texture, int size)
 {
     DrawGroup group = {};
     group.texture = texture;
@@ -1202,7 +1202,7 @@ DrawGroupId RenderContext::make_draw_group(TextureHandle texture, int size)
 
 void queue_draw_mesh(RenderContext& render, MeshDraw& draw)
 {
-    if (draw.texture == TEXTURE_HANDLE_INVALID)
+    if (!draw.texture.is_valid())
     {
         render.frameMeshDraw.add(draw);
     }
@@ -1277,7 +1277,7 @@ void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer&
 {
     ASSERT(render.frame.render_pass);
 
-    GPUTexture texture = render.textures.get(draw.texture);
+    GPUTexture texture = render.textures.get(draw.texture.index);
 
     SDL_GPUTextureSamplerBinding sampler_binding = {};
     sampler_binding.texture = texture.texture;
@@ -1307,7 +1307,7 @@ void draw_quads_texture(RenderContext& render, DrawGroup group)
 
     render.set_mvp(&group.matrix, group.matrix_usage);
 
-    GPUTexture texture = render.textures.get(group.texture);
+    GPUTexture texture = render.textures.get(group.texture.index);
 
     SDL_GPUTextureSamplerBinding sampler_binding = {};
     sampler_binding.texture = texture.texture;
@@ -1371,12 +1371,12 @@ void RenderContext::set_viewport(Viewport viewport)
     SDL_SetGPUViewport(frame.render_pass, &viewport);
 }
 
-TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color) {
+Texture render_text(RenderContext& render, String text, Font font, melv::Color color) {
     SDL_Color sdl_color = { color.r, color.g, color.b, color.a };
     SDL_Surface* surface = TTF_RenderText_Solid(font.font, text.data, text.size, sdl_color);
 
     if (!surface) {
-        return TextureHandle();
+        return Texture();
     }
 
     // @todo
@@ -1386,13 +1386,13 @@ TextureHandle render_text(RenderContext& render, String text, Font font, melv::C
 
 	SDL_DestroySurface(surface);
 
-    return TEXTURE_HANDLE_INVALID;
+    return TEXTURE_INVALID;
 }
 
 Text create_text(RenderContext& render, String text, Font font, melv::Color color)
 {
-    TextureHandle texture = render_text(render, text, font, color);
-    if (texture == TEXTURE_HANDLE_INVALID) return Text();
+    Texture texture = render_text(render, text, font, color);
+    if (!texture.is_valid()) return Text();
     return Text(texture, text, color);
 }
 

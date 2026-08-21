@@ -6,11 +6,26 @@
 
 namespace melv {
 
-using TextureHandle = u32;
+struct Texture
+{
+    u32 index = 0;
+    u32 mip_levels = 0;
+
+    Texture() {}
+    Texture(u32 idx)
+        : index(idx)
+    {}
+
+    bool is_valid()
+    {
+        return index != -1;
+    }
+};
+
 using BufferHandle = u32;
 using DrawGroupId = u32;
 
-#define TEXTURE_HANDLE_INVALID u32(-1)
+#define TEXTURE_INVALID Texture(-1)
 #define DRAW_GROUPID_INVALID   u32(-1)
 
 using TextureFormat = SDL_GPUTextureFormat;

@@ -41,6 +41,9 @@ add_library(melv STATIC
 	src/app/serialize.hpp
 	src/app/serialize.cpp
 	src/app/net.hpp
+	src/app/net.cpp
+	src/app/action_set.hpp
+	src/app/action_set.cpp
 
 	src/bundle/bundle_shaders.h
 	src/bundle/vertex_spv.h

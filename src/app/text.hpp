@@ -24,12 +24,12 @@ union UiUserData {
 };
 
 struct Text {
-    TextureHandle texture = {};
+    Texture texture = {};
     String string = {};
     melv::Color color = {};
 
     Text() {}
-    Text(TextureHandle p_texture, String p_string, melv::Color col)
+    Text(Texture p_texture, String p_string, melv::Color col)
         : texture(p_texture), string(p_string), color(col)
     {}
 
@@ -45,11 +45,11 @@ struct Text {
 };
 
 struct Icon {
-    TextureHandle texture = {};
+    Texture texture = {};
     melv::Color background = {};
 
     Icon () {}
-    Icon (TextureHandle tex, melv::Color bground) : texture(tex), background(bground) {}
+    Icon (Texture tex, melv::Color bground) : texture(tex), background(bground) {}
 };
 
 struct IconButton {
@@ -57,11 +57,11 @@ struct IconButton {
     UiUserData data = {};
 
     IconButton() {}
-    IconButton(TextureHandle tex, melv::Color background) : icon(tex, background) {}
-    IconButton(TextureHandle tex, melv::Color background, s64 n) : icon(tex, background) {
+    IconButton(Texture tex, melv::Color background) : icon(tex, background) {}
+    IconButton(Texture tex, melv::Color background, s64 n) : icon(tex, background) {
         data.number = n;
     }
-    IconButton(TextureHandle tex, melv::Color background, void* ptr) : icon(tex, background) {
+    IconButton(Texture tex, melv::Color background, void* ptr) : icon(tex, background) {
         data.ptr = ptr;
     }
 };

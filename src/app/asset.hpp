@@ -53,7 +53,7 @@ using AssetFlags = u8;
 #define ASSET_IS_FROM_FOLDER BIT(3)
 
 struct Asset {
-    AssetKind kind;
+    AssetKind kind = {};
     StringReference name = {};
     StringReference path = {};
     AssetFlags flags = 0;
@@ -61,7 +61,7 @@ struct Asset {
     AssetId identifier = {};
     union {
         Font font;
-        TextureHandle image;
+        Texture image;
         MIX_Audio* audio;
         Shader shader;
     } data = {};
@@ -76,7 +76,7 @@ struct Asset {
         {
             case ASSET_KIND_IMAGE:
             {
-                data.image = TEXTURE_HANDLE_INVALID;
+                data.image = TEXTURE_INVALID;
                 break;
             }
             case ASSET_KIND_AUDIO:
@@ -181,22 +181,22 @@ struct AssetCatalog {
         return true;
     }
 
-    TextureHandle get_image(AssetId id) const
+    Texture get_image(AssetId id) const
     {
         if (!id.is_valid())
         {
-            return TEXTURE_HANDLE_INVALID;
+            return TEXTURE_INVALID;
         }
 
         const Asset& asset = assets.get(id.id);
         if (!compare_asset_kind(ASSET_KIND_IMAGE, asset.kind))
         {
-            return TEXTURE_HANDLE_INVALID;
+            return TEXTURE_INVALID;
         }
 
         if (!compare_asset_generation(asset.identifier.generation, id.generation))
         {
-            return TEXTURE_HANDLE_INVALID;
+            return TEXTURE_INVALID;
         }
 
         return asset.data.image;

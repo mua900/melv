@@ -17,7 +17,7 @@ SDL_EnumerationResult unload_asset_callback(void* userdata, const char* dirname,
 bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context);
 void unload_asset_file(Asset& asset, AssetLoadContext& load_context, bool reset_generation = true);
 
-bool parse_image_attribute(String attribute, TextureHandle& texture);
+bool parse_image_attribute(String attribute, Texture& texture);
 bool parse_audio_attribute(String attribute, MIX_Audio*& audio);
 bool parse_font_attribute(String attribute, Font& font);
 bool parse_shader_attribute(String attribute, Shader& shader);
@@ -211,8 +211,21 @@ AssetParseLineResult asset_parse_line(String file, String line, Asset& pointer)
     return result;
 }
 
-bool parse_image_attribute(String attribute, TextureHandle& texture)
+bool parse_image_attribute(String attribute, Texture& texture)
 {
+    String out = {};
+    if (parse_attribute_value(attribute, "mip_levels", out))
+    {
+        bool success = false;
+        int value = string_to_integer(out, &success);
+        if (!success) {
+            return false;
+        }
+
+        texture.mip_levels = value;
+        return true;
+    }
+
     return false;
 }
 
@@ -495,8 +508,8 @@ bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_
     switch (asset.kind)
     {
         case ASSET_KIND_IMAGE: {
-            TextureHandle texture = load_context.render->load_gpu_texture(path.c_string());
-            if (texture == TEXTURE_HANDLE_INVALID)
+            Texture texture = load_context.render->load_gpu_texture(path.c_string());
+            if (!texture.is_valid())
             {
                 return false;
             }

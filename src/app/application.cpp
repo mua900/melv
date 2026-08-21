@@ -1020,7 +1020,7 @@ void Application::draw_ui_state(UiState& state)
         }
     }
 
-    GPUTexture tex = render.get_texture(state.hoverText.text.texture);
+    GPUTexture tex = render.get_texture(state.hoverText.text.texture.index);
 	float hoverWidth = tex.width;
 	float hoverHeight = tex.height;
     // @todo
@@ -1354,7 +1354,7 @@ void Application::render_dropdown(const Drop_Down_List& list) const {
 }
 
 Icon Application::create_icon(AssetId image, melv::Color background) {
-    TextureHandle texture = catalog.get_image(image);
+    Texture texture = catalog.get_image(image);
     return Icon(texture, background);
 }
 

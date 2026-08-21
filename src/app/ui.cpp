@@ -298,12 +298,12 @@ bool Text_Field::render_text_field_texture(RenderContext& render, Font font, mel
         return false;
     }
 
-    TextureHandle handle = {};
+    Texture handle = {};
     // @todo
     // handle =  render.create_texture();
     SDL_DestroySurface(text_surface);
 
-    if (handle == TEXTURE_HANDLE_INVALID)
+    if (!handle.is_valid())
     {
         return false;
     }
@@ -576,7 +576,7 @@ void TextEditor::rescale(melv::vec2 scale, RenderContext& render, const AssetCat
     Font font = catalog.get_font(field.fontId);
 
     title_height *= scale.y;
-    if (title_texture) {
+    if (title_texture.is_valid()) {
         render.destroy_texture(title_texture);
         title_texture = render_text(render, name.to_string(), font, title_color);
     }

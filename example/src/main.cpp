@@ -10,7 +10,7 @@ struct State
 {
 	float number = 0;
 	DArray<MeshReference> references = {};
-	TextureHandle texture = {};
+	Texture texture = {};
 	DrawGroupId group = {};
 
 	vec2 position[64];
@@ -48,9 +48,9 @@ bool initialize(void *userdata, Application *app)
 	Shader vertexInst = app->catalog.get_shader(vertexInstId);
 	Shader fragmentTex = app->catalog.get_shader(fragmentTexId);
 
-	TextureHandle texture = app->catalog.get_image(texId);
+	Texture texture = app->catalog.get_image(texId);
 
-	ASSERT(texture != TEXTURE_HANDLE_INVALID);
+	ASSERT(texture.is_valid());
 
 #if CHANGE_SHADERS
 	if (!app->render.set_shaders(&app->render.graphics, vertex.shader, fragment.shader))

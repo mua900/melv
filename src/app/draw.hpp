@@ -123,10 +123,10 @@ struct InstanceData
 struct InstanceDraw
 {
     InstanceData data = {};
-    TextureHandle texture = {};
+    Texture texture = {};
 
     InstanceDraw() {}
-    InstanceDraw(InstanceData d, TextureHandle t)
+    InstanceDraw(InstanceData d, Texture t)
         :
         data(d),
         texture(t)
@@ -182,7 +182,7 @@ struct MeshReference
 struct MeshDraw
 {
     MeshReference mesh = {};
-    TextureHandle texture = TEXTURE_HANDLE_INVALID;
+    Texture texture = TEXTURE_INVALID;
 
     mat4x4 matrix = {};
     DrawMatrixUsage matrix_usage = {};
@@ -209,6 +209,7 @@ struct GPUTexture
     SDL_GPUTexture* texture = nullptr;
     u32 width = 0;
     u32 height = 0;
+    u32 mip_levels = 0;
 
     TextureFormat format = {};
     u32 sampler = 0;
@@ -222,14 +223,14 @@ struct GPUTexture
 
 struct TextureUpload
 {
-    TextureHandle target = 0;
+    Texture target = 0;
     SDL_Surface *src = nullptr;
     bool done = false;
 };
 
 struct DrawGroup
 {
-    TextureHandle texture = {};
+    Texture texture = {};
     int offset = 0;
     int capacity = 0;
     int used = 0;  // reset every frame
@@ -358,12 +359,12 @@ struct RenderContext {
     }
 
     bool make_texture_upload(SDL_Surface* surface, TextureUpload* upload);
-    TextureHandle create_texture(TextureFormat format, u32 width, u32 height);
-    TextureHandle create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
-    void destroy_texture(TextureHandle handle);
-    TextureHandle load_gpu_texture(const char* path);
+    Texture create_texture(TextureFormat format, u32 width, u32 height);
+    Texture create_texture_verbose(TextureFormat format, TextureUsage usage, u32 width, u32 height, int mip_levels, SampleCount sampleCount);
+    void destroy_texture(Texture handle);
+    Texture load_gpu_texture(const char* path);
 
-    GPUTexture get_texture(TextureHandle handle);
+    GPUTexture get_texture(Texture handle);
 
     melv::vec2 get_center() const { return render_size / 2; }
 
@@ -377,7 +378,7 @@ struct RenderContext {
     bool set_vertex_buffer(u32 buffer);
     bool set_index_buffer(u32 buffer);
 
-    DrawGroupId make_draw_group(TextureHandle texture, int size);
+    DrawGroupId make_draw_group(Texture texture, int size);
 
     bool upload_common_mesh_data();
 
@@ -455,7 +456,7 @@ bool unloadShader(RenderContext& context, Shader& shader);
 
 void destroy_texture(GPUTexture *texture);
 
-TextureHandle render_text(RenderContext& render, String text, Font font, melv::Color color);
+Texture render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 
 bool draw(RenderContext& render, Draw& d, DrawGroupId groupId);

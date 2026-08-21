@@ -71,20 +71,20 @@ struct ImageButton {
     UiElementId id = {};
     UiElementInfo info = {};
     UiUserData data = {};
-    TextureHandle image = {};
+    Texture image = {};
     melv::vec2 position = {};
     melv::vec2 scale = {};
     melv::Color background = {};
 
     ImageButton() {}
-    ImageButton(TextureHandle image, melv::vec2 pos, melv::vec2 sca, melv::Color back, bool visible = true) : info(visible), image(image), position(pos), scale(sca), background(back) {}
+    ImageButton(Texture image, melv::vec2 pos, melv::vec2 sca, melv::Color back, bool visible = true) : info(visible), image(image), position(pos), scale(sca), background(back) {}
 };
 
 struct ButtonGroup {
     UiElementId id = {};
     UiElementInfo info = {};
     UiUserData user = {};
-    DArray<TextureHandle> buttons = {};
+    DArray<Texture> buttons = {};
     melv::vec2 button_scale = {};
     melv::vec2 position = {};
     melv::vec2 scale = {};
@@ -194,7 +194,7 @@ struct Text_Field
     float mouse_y;
 
     float m_font_size = 0.0;
-    TextureHandle m_texture = {};  // cached texture the text is rendered on, updated every text input event
+    Texture m_texture = {};  // cached texture the text is rendered on, updated every text input event
 
     Text_Field() {}
 
@@ -395,7 +395,7 @@ struct Text_Field
 struct TextEditor {
     Text_Field field = {};
     MutableString name = {};
-    TextureHandle title_texture = {};  // rendered name or something else
+    Texture title_texture = {};  // rendered name or something else
     float title_height = 0;
     melv::Color title_color = melv::Color();  // color of the title text
     melv::Color title_bar_color = melv::Color();
@@ -680,7 +680,7 @@ struct DiscreteSlider {
     int selected = 0;
     float element_gap = 0;
     bool vertical = false;
-    TextureHandle texture = {};
+    Texture texture = {};
     melv::Colorf outlineColor = {};
     melv::Colorf buttonColor = {};
     melv::Colorf inactiveColor = {};

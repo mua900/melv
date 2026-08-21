@@ -11,7 +11,7 @@ font file FiraSans font/Fira_Sans/FiraSans-Regular.ttf size=32
 font file FiraCode font/Fira_Code/FiraCode-Regular.ttf size=32
 
 # image
-image file MyImage images/image.png
+image file MyImage images/image.png mip_levels=3
 image file MyVectorImage images/image.svg
 
 # folder
