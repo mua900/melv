@@ -41,18 +41,27 @@ namespace melv {
 
 	bool Action::read_value(InputState& state, Value& out)
 	{
-		bool read = false;
-		int i = 0;
-		while ((!read) && i < num_input)
+		for (int i = 0; i < num_input; i++)
 		{
+			bool last = (i == num_input - 1);
+
 			switch (input[i].kind)
 			{
 				case InputMouseButton:
 				{
 					SDL_MouseButtonFlags flags = (SDL_MouseButtonFlags)input[i].key;
 					bool down = flags & state.mouse.buttonFlags;
-					out = Value(down);
-					return true;
+					if (down)
+					{
+						out = Value(true);
+						return true;
+					}
+					else if (last)
+					{
+						out = Value(false);
+						return true;
+					}
+					break;
 				}
 				case InputMouseWheel:
 				{
@@ -68,15 +77,33 @@ namespace melv {
 					}
 
 					bool down = state.keyboard.keys[input[i].key];
-					out = Value(down);
-					return true;
+					if (down)
+					{
+						out = Value(true);
+						return true;
+					}
+					else if (last)
+					{
+						out = Value(false);
+						return true;
+					}
+					break;
 				}
 				case InputGamepadButton:
 				{
 					auto button = (SDL_GamepadButton)input[i].key;
 					bool down = state.gamepads[input[i].device].get_button(button);
-					out = Value(down);
-					return true;
+					if (down)
+					{
+						out = Value(true);
+						return true;
+					}
+					else if (last)
+					{
+						out = Value(false);
+						return true;
+					}
+					break;
 				}
 				case InputGamepadAxis:
 				{
@@ -107,8 +134,6 @@ namespace melv {
 					return true;
 				}
 			}
-
-			i += 1;
 		}
 
 		return false;

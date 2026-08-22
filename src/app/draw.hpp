@@ -16,6 +16,8 @@ namespace melv
 // normal maps
 // lighting
 
+struct RenderContext;
+
 struct RenderInitConfig
 {
     bool doLights = false;
@@ -207,15 +209,14 @@ struct GPUTexture
     SDL_GPUTexture* texture = nullptr;
     u32 width = 0;
     u32 height = 0;
-    u32 mip_levels = 0;
 
     TextureFormat format = {};
     u32 sampler = 0;
 
     GPUTexture() {}
-    GPUTexture(SDL_GPUTexture *tex, TextureFormat fm, u32 w, u32 h, u32 mip)
+    GPUTexture(SDL_GPUTexture *tex, TextureFormat fm, u32 w, u32 h)
         :
-        texture(tex), format(fm), width(w), height(h), mip_levels(mip)
+        texture(tex), format(fm), width(w), height(h)
     {}
 };
 
@@ -427,6 +428,33 @@ enum Flip {
     FlipHorizontalAndVertical = SDL_FLIP_HORIZONTAL_AND_VERTICAL,
 };
 
+struct TextureAtlas
+{
+    Texture texture = {};
+    float sprite_width = 0;
+    float sprite_height = 0;
+    int rows = 0;
+    int columns = 0;
+
+    TextureAtlas() {}
+    void set_texture(RenderContext* render, Texture tex, int row, int col)
+    {
+        if (tex.is_valid())
+        {
+            GPUTexture& gpu_texture = render->get_texture(tex);
+            sprite_width = gpu_texture.width / float(row);
+            sprite_height = gpu_texture.height / float(col);
+            rows = row;
+            columns = col;
+        }
+    }
+
+    vec2 calculate_region(int x, int y)
+    {
+        return vec2(x * sprite_width, y * sprite_height);
+    }
+};
+
 bool create_default_shaders(SDL_GPUDevice* device, DefaultShaders* info);
 
 bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parameters, SDL_GPUDevice* device, SDL_Window* window);
@@ -457,6 +485,7 @@ void destroy_texture(GPUTexture *texture);
 Texture render_text(RenderContext& render, String text, Font font, melv::Color color);
 Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 
+// convenience
 bool draw(RenderContext& render, Draw& d, DrawGroupId groupId);
 
 u16 pack_unorm16(float x, float range);

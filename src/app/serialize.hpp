@@ -12,6 +12,13 @@ namespace melv
 
 // and to provide something to start copy pasting from when you want a custom format
 
+// @todo
+struct SerializeBlock
+{
+    DArray<ValueType> types = {};
+    HashTable<Value> values = {};
+};
+
 struct SerializeState
 {
     HashTable<Value> values;

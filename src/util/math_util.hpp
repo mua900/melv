@@ -442,6 +442,7 @@ struct RectPoints {
 
 RectPoints get_rotated_points(Rectangle rect, float rot);
 
+// @todo remove
 struct RectangleRot {
     float x = {};
     float y = {};
@@ -463,12 +464,6 @@ struct RectangleRot {
         return get_rotated_points(Rectangle(x,y,w,h), rot);
     }
 };
-
-#define COLOR_WHITE ((Color){0xff,0xff,0xff,0xff})
-#define COLOR_BLACK ((Color){0,0,0,0xff})
-#define COLOR_RED   ((Color){0xff,0,0,0xff})
-#define COLOR_GREEN ((Color){0,0xff,0,0xff})
-#define COLOR_BLUE  ((Color){0,0,0xff,0xff})
 
 #define COLOR_ARG(color) color.r,color.g,color.b,color.a
 

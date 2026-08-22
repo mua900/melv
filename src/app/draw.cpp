@@ -974,7 +974,6 @@ bool RenderContext::load_gpu_texture(const char* path, Texture& texture)
     tex.texture = ptr;
     tex.width = width;
     tex.height = height;
-    tex.mip_levels = texture.mip_levels;
 
     texture.index = textures.add(tex);
     return true;
@@ -1212,7 +1211,7 @@ Texture RenderContext::create_texture_verbose(TextureFormat format, TextureUsage
     {
         return TEXTURE_INVALID;
     }
-    GPUTexture texture = GPUTexture(sdl_texture, format, width, height, mip_levels);
+    GPUTexture texture = GPUTexture(sdl_texture, format, width, height);
     return textures.add(texture);
 }
 

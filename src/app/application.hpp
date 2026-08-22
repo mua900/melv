@@ -7,6 +7,7 @@
 #include "draw.hpp"
 #include "time.hpp"
 #include "camera.hpp"
+#include "action_set.hpp"
 
 #include "util/common.hpp"
 #include "util/template.hpp"
@@ -20,13 +21,6 @@ class Application;
 struct Event_Timeout {
     s64 event = 0;
     bool active = false;
-};
-
-#define EVENT_TIMEOUT_LONG 1000000.0
-
-enum Events {
-    EVENT_DUMMY,
-    EVENT_COUNT,
 };
 
 typedef bool (*InitCallback)(void *userdata, Application* app);
@@ -83,12 +77,10 @@ struct UserData {
 };
 
 struct InitConfiguration {
-	// 1440, 810
-	int window_width = 0;
-	int window_height = 0;
+	int window_width = 1440;
+	int window_height = 810;
 
-	// VIDEO | AUDIO
-	SDL_InitFlags flags = 0;
+	SDL_InitFlags flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
     bool init_ttf = true;
     bool init_mixer = true;
     bool init_net = false;
@@ -112,6 +104,8 @@ public:
     AudioPlayer audio_player = {};
     InputState input = {};
     AssetCatalog catalog = {};
+
+    ActionSet actions = {};
 
     DArray<UiState> uiStates = {};
 
@@ -140,6 +134,9 @@ public:
     void cleanup();
 
     void set_camera(CameraId cam);
+
+    void set_event_active(int event_index, double timeout_seconds);
+    void set_event_deactive(int event_index);
 private:
     bool init_render(bool enableDebug);
 
@@ -155,9 +152,6 @@ private:
     void timeout();
     void update_ui_state(melv::vec2 window_size);
     void update_ui_pos();
-
-    void set_event_active(int event_index, double timeout_seconds);
-    void set_event_deactive(int event_index);
 
     void draw_ui_state(UiState& state);
 

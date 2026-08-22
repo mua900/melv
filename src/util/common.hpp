@@ -1,12 +1,16 @@
 #pragma once
 
+// C
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdarg>
-#include <array>
+#include <cstddef>
+
+// C++
+#include <utility>
 
 #define BIT(x) ((uint64_t)1 << (x))
 

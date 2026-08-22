@@ -1,7 +1,8 @@
-This is a personal utility library for multimedia applications that uses SDL3.
-The src/ folder is split into app/ and util/ folders.
+This is a utility library for multimedia applications that uses SDL3.
+The source code is under src/ folder.
 src/app contains application development related code.
 src/util contains generic utilities and data structures.
 src/bundle contains bundled data in C headers like default shaders
 
 There is a simple example program in example/.
+It uses cmake to build.
