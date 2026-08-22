@@ -2,11 +2,14 @@
 
 #include "util/math_util.hpp"
 #include "util/common.hpp"
+#include "util/value.hpp"
 
 #include <SDL3/SDL.h>
 
 namespace melv
 {
+
+using MouseButton = SDL_MouseButtonFlags;
 
 #define MOUSE_LEFT   SDL_BUTTON_LEFT
 #define MOUSE_MIDDLE SDL_BUTTON_MIDDLE
@@ -57,12 +60,20 @@ struct MouseCursor {
 
 struct MouseState {
     melv::vec2 pos = {};
+    melv::vec2 wheel = {};
     SDL_MouseButtonFlags buttonFlags = {};
     MouseCursor cursor = {};
     bool down = false;
 
     melv::vec2 dragPosition = {};
     bool drag = false;
+};
+
+enum GamepadVector
+{
+    GamepadVector_Left     = 0,
+    GamepadVector_Right    = 1,
+    GamepadVector_Triggers = 2,
 };
 
 #define INPUT_MAX_GAMEPADS 8
@@ -93,6 +104,10 @@ struct GamepadState {
 
     bool get_button(SDL_GamepadButton button) const;
 
+    float get_left_trigger() const;
+    float get_right_trigger() const;
+    vec2 get_triggers() const;
+
     // case by case of get_button
     bool south() const;
     bool north() const;
@@ -111,9 +126,40 @@ struct GamepadState {
     bool guide() const;
 };
 
-const char* get_gamepad_button_name(SDL_GamepadButton button);
+enum InputKind
+{
+    InputKindZero,    // invalid
+    InputMouseButton,
+    InputMouseWheel,
+    InputMouseMotion,
+    InputKeyboardKey,
+    InputGamepadButton,
+    InputGamepadAxis,
+    InputGamepadVector,
+};
 
-struct Input {
+struct Input
+{
+    InputKind kind = {};
+    u32 device = 0;
+    u32 key = 0; // what this means depends on input kind
+
+    Input() {}
+    Input(InputKind k) : kind(k)
+    {}
+    Input(SDL_MouseButtonFlags flags) : kind(InputMouseButton), key(flags)
+    {}
+    Input(SDL_Scancode scancode) : kind(InputKeyboardKey), key(scancode)
+    {}
+    Input(SDL_GamepadButton button) : kind(InputGamepadButton), key(button)
+    {}
+    Input(SDL_GamepadAxis axis) : kind(InputGamepadAxis), key(axis)
+    {}
+    Input(GamepadVector vector) : kind(InputGamepadVector), key(vector)
+    {}
+};
+
+struct InputState {
     KeyboardState keyboard = {};
     MouseState mouse = {};
 
@@ -121,6 +167,9 @@ struct Input {
     int gamepad_count = 0;
     float gamepad_stick_epsilon = 0;
 };
+
+const char* get_gamepad_button_name(SDL_GamepadButton button);
+ValueType get_input_value_type(InputKind kind);
 
 typedef void (*KeyboardCallback)(void *userdata, KeyboardState *keyboard);
 typedef void (*MouseCallback)(void *userdata, MouseState *mouse);

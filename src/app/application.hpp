@@ -110,7 +110,7 @@ public:
     Window window = {};
     RenderContext render = {};
     AudioPlayer audio_player = {};
-    Input input = {};
+    InputState input = {};
     AssetCatalog catalog = {};
 
     DArray<UiState> uiStates = {};

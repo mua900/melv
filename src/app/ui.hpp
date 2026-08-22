@@ -608,7 +608,8 @@ struct Panel {
     melv::Rectangle get_tab_header_area(int index) const;
 };
 
-enum ValueType {
+enum UiValueType {
+    // @todo rename to UiValue*
     ValueInteger,   // editable integer
     ValueNumber,    // editable number
     ValueString,    // editable string
@@ -621,7 +622,7 @@ struct ValueField {
     Text name = {};
     int ui_element = 0;
     int identifier = 0;  // user data
-    ValueType type = {};
+    UiValueType type = {};
     union {
         String string;
         u64 integer;
@@ -630,7 +631,7 @@ struct ValueField {
     } value = {};
 
     ValueField() : value{} {}
-    ValueField(Text text, int ui, int ident, ValueType type) : name(text), ui_element(ui), identifier(ident), type(type), value{} {}
+    ValueField(Text text, int ui, int ident, UiValueType type) : name(text), ui_element(ui), identifier(ident), type(type), value{} {}
 };
 
 struct ValuePanelTab {

@@ -23,11 +23,11 @@ bool serialize_text(const char* outputName, SerializeState& state)
         builder.append_char(' ');
         switch (kv.value->type)
         {
-            case Value::INTEGER: {
+            case ValueType::INTEGER: {
                 builder.append_integer(kv.value->data.integer);
                 break;
             }
-            case Value::REAL: {
+            case ValueType::REAL: {
                 builder.append_float(kv.value->data.real);
                 break;
             }

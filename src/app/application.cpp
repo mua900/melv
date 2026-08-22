@@ -296,6 +296,12 @@ void Application::handle_events()
 
                 break;
             }
+            case SDL_EVENT_MOUSE_WHEEL:
+            {
+                float coef = e.wheel.direction == SDL_MOUSEWHEEL_NORMAL ? 1 : -1;
+                input.mouse.wheel = coef * vec2(e.wheel.x, e.wheel.y);
+                break;
+            }
             case SDL_EVENT_MOUSE_MOTION:
             {
                 input.mouse.buttonFlags = SDL_GetMouseState(&input.mouse.pos.x, &input.mouse.pos.y);

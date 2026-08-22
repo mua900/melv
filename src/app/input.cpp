@@ -2,6 +2,21 @@
 
 namespace melv {
 
+ValueType get_input_value_type(InputKind kind)
+{
+    switch (kind)
+    {
+        case InputMouseButton:      return ValueType::BOOLEAN;
+        case InputMouseWheel:       return ValueType::VECTOR2;
+        case InputMouseMotion:      return ValueType::VECTOR2;
+        case InputKeyboardKey:      return ValueType::BOOLEAN;
+        case InputGamepadButton:    return ValueType::BOOLEAN;
+        case InputGamepadAxis:      return ValueType::REAL;
+        case InputGamepadVector:    return ValueType::VECTOR2;
+        default:                    return ValueType::ZERO;
+    }
+}
+
 bool KeyboardState::key_pressed(Scancode code) const
 {
     // do_input is false when a text input has the keyboard focus (in library)
