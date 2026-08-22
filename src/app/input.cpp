@@ -86,6 +86,21 @@ vec2 GamepadState::get_right() const
     return vec2(get_axis(SDL_GAMEPAD_AXIS_RIGHTX), get_axis(SDL_GAMEPAD_AXIS_RIGHTY));
 }
 
+float GamepadState::get_left_trigger() const
+{
+    return get_axis(SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+}
+
+float GamepadState::get_right_trigger() const
+{
+    return get_axis(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
+}
+
+vec2 GamepadState::get_triggers() const
+{
+    return vec2(get_left_trigger(), get_right_trigger());
+}
+
 bool GamepadState::has_button(SDL_GamepadButton button) const
 {
     return SDL_GamepadHasButton(gamepad, button);
