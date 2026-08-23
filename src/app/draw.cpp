@@ -1310,7 +1310,7 @@ bool draw(RenderContext& render, Draw& d, DrawGroupId groupId)
 
 void draw_mesh(RenderContext& render, MeshDraw& draw)
 {
-    render.set_mvp(&draw.matrix, draw.matrix_usage);
+    render.set_mvp(draw.matrix, draw.matrix_usage);
     draw_mesh_buffers(render, draw, render.buffers.get_ref(draw.mesh.vertex_buffer), render.buffers.get_ref(draw.mesh.index_buffer));
 }
 
@@ -1335,7 +1335,7 @@ void draw_mesh_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_
 
 void draw_mesh_texture(RenderContext& render, MeshDraw& draw)
 {
-    render.set_mvp(&draw.matrix, draw.matrix_usage);
+    render.set_mvp(draw.matrix, draw.matrix_usage);
     draw_mesh_texture_buffers(render, draw, render.buffers.get_ref(draw.mesh.vertex_buffer), render.buffers.get_ref(draw.mesh.index_buffer));
 }
 

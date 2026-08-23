@@ -184,7 +184,7 @@ struct MeshDraw
     MeshReference mesh = {};
     Texture texture = TEXTURE_INVALID;
 
-    mat4x4 matrix = {};
+    mat4x4* matrix = {};
     DrawMatrixUsage matrix_usage = {};
 };
 
@@ -436,7 +436,6 @@ struct TextureAtlas
     int rows = 0;
     int columns = 0;
 
-    TextureAtlas() {}
     void set_texture(RenderContext* render, Texture tex, int row, int col)
     {
         if (tex.is_valid())
@@ -449,9 +448,21 @@ struct TextureAtlas
         }
     }
 
-    vec2 calculate_region(int x, int y)
+    vec2 calculate_region(int x, int y) const
     {
         return vec2(x * sprite_width, y * sprite_height);
+    }
+
+    vec2 calculate_region_index(int index) const
+    {
+        int x = index % rows;
+        int y = index / rows;
+        return calculate_region(x, y);
+    }
+
+    vec2 get_element_scale() const
+    {
+        return vec2(sprite_width / float(rows), sprite_height / float(columns));
     }
 };
 
