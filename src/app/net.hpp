@@ -3,6 +3,8 @@
 
 #include <SDL3_net/SDL_net.h>
 
-// @todo
+namespace melv {
+
+} // namespace
 
 #endif // NET_HPP

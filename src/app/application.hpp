@@ -16,188 +16,188 @@
 namespace melv
 {
 
-class Application;
+    class Application;
 
-struct Event_Timeout {
-    s64 event = 0;
-    bool active = false;
-};
+    struct Event_Timeout {
+        s64 event = 0;
+        bool active = false;
+    };
 
-typedef bool (*InitCallback)(void *userdata, Application* app);
-typedef bool (*EventCallback)(SDL_Event event, void *userdata, Application* app);
-typedef void (*InputCallback)(void *userdata, Application* app);
-typedef void (*DrawCallback)(void *userdata, Application* app);
-typedef void (*BeforeCleanupCallback)(void *userdata, Application* app);
-typedef void (*AfterCleanupCallback)(void *userdata, Application* app);
+    typedef bool (*InitCallback)(void *userdata, Application* app);
+    typedef bool (*EventCallback)(SDL_Event event, void *userdata, Application* app);
+    typedef void (*InputCallback)(void *userdata, Application* app);
+    typedef void (*DrawCallback)(void *userdata, Application* app);
+    typedef void (*BeforeCleanupCallback)(void *userdata, Application* app);
+    typedef void (*AfterCleanupCallback)(void *userdata, Application* app);
 
-typedef void (*UpdateFunction)(void *userdata, Application* app);
-typedef void (*FixedUpdateFunction)(void *userdata, Application* app);
+    typedef void (*UpdateFunction)(void *userdata, Application* app);
+    typedef void (*FixedUpdateFunction)(void *userdata, Application* app);
 
-struct UpdateState {
-    UpdateFunction update = nullptr;
-    FixedUpdateFunction fixedUpdate = nullptr;
-    s64 ticks = 0;
-    double elapsed = 0;
-    double timeScale = 0;
-	int updateRate = 0;
+    struct UpdateState {
+        UpdateFunction update = nullptr;
+        FixedUpdateFunction fixedUpdate = nullptr;
+        s64 ticks = 0;
+        double elapsed = 0;
+        double timeScale = 0;
+    	int updateRate = 0;
 
-    double calculateTimeStep() { return 1.0 / updateRate; }
-};
+        double calculateTimeStep() { return 1.0 / updateRate; }
+    };
 
-// these callbacks won't be called if they are null
-// user code can set them however it wants
-struct UserData {
-	// passed to every single user function
-	void* userdata = nullptr;
+    // these callbacks won't be called if they are null
+    // user code can set them however it wants
+    struct UserData {
+    	// passed to every single user function
+    	void* userdata = nullptr;
 
-	UpdateState* update_state = {};
+    	UpdateState* update_state = {};
 
-	// called once after SDL and everything is initialized
-	InitCallback init = nullptr;
-	// called with an event before application tries to process it itself
-	// use this to react to one time events
-	// if this returns true, the application will consider that event consumed and won't process it
-	EventCallback event = nullptr;
-	// called after all events are processed.
-	// you can read a snapshot of the input state as it is recorded in application
-	InputCallback input = nullptr;
-	// called with user data in draw()
-	DrawCallback draw = nullptr;
-	// called before SDL and everything else is quitted
-	BeforeCleanupCallback before_cleanup = nullptr;
-	// called after SDL and everything else is quitted
-	AfterCleanupCallback after_cleanup = nullptr;
+    	// called once after SDL and everything is initialized
+    	InitCallback init = nullptr;
+    	// called with an event before application tries to process it itself
+    	// use this to react to one time events
+    	// if this returns true, the application will consider that event consumed and won't process it
+    	EventCallback event = nullptr;
+    	// called after all events are processed.
+    	// you can read a snapshot of the input state as it is recorded in application
+    	InputCallback input = nullptr;
+    	// called with user data in draw()
+    	DrawCallback draw = nullptr;
+    	// called before SDL and everything else is quitted
+    	BeforeCleanupCallback before_cleanup = nullptr;
+    	// called after SDL and everything else is quitted
+    	AfterCleanupCallback after_cleanup = nullptr;
 
-	// called with SDL_KeyboardEvent
-	// you can also access this from event callback but this is something more specific
-	KeyboardCallback keyboard = nullptr;
-	// called with SDL_MouseEvent
-	// you can also access this from event callback but this is something more specific
-	MouseCallback mouse = nullptr;
-};
+    	// called with SDL_KeyboardEvent
+    	// you can also access this from event callback but this is something more specific
+    	KeyboardCallback keyboard = nullptr;
+    	// called with SDL_MouseEvent
+    	// you can also access this from event callback but this is something more specific
+    	MouseCallback mouse = nullptr;
+    };
 
-struct InitConfiguration {
-	int window_width = 1440;
-	int window_height = 810;
+    struct InitConfiguration {
+    	int window_width = 1440;
+    	int window_height = 810;
 
-	SDL_InitFlags flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
-    bool init_ttf = true;
-    bool init_mixer = true;
-    bool init_net = false;
+    	SDL_InitFlags flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO;
+        bool init_ttf = true;
+        bool init_mixer = true;
+        bool init_net = false;
 
-	// Default Name
-	const char* name = nullptr;
+    	// Default Name
+    	const char* name = nullptr;
 
-    RenderInitConfig render = {};
-};
+        RenderInitConfig render = {};
+    };
 
-InitConfiguration get_default_init_configuration();
+    InitConfiguration get_default_init_configuration();
 
-class Application {
-public:
-	// you can directly access everything here
-	// maybe be careful with doing_text_input
-	// also if you set render context's coordinate space to be world, you need to give it a camera pointer
+    class Application {
+    public:
+    	// you can directly access everything here
+    	// maybe be careful with doing_text_input
+    	// also if you set render context's coordinate space to be world, you need to give it a camera pointer
 
-    Window window = {};
-    RenderContext render = {};
-    AudioPlayer audio_player = {};
-    InputState input = {};
-    AssetCatalog catalog = {};
+        Window window = {};
+        RenderContext render = {};
+        AudioPlayer audio_player = {};
+        InputState input = {};
+        AssetCatalog catalog = {};
 
-    ActionSet actions = {};
+        ActionSet actions = {};
 
-    DArray<UiState> uiStates = {};
+        DArray<UiState> uiStates = {};
 
-    TimeInfo timeInfo = {};
+        TimeInfo timeInfo = {};
 
-    DArray<Event_Timeout> events = {};
+        DArray<Event_Timeout> events = {};
 
-    DArray<Camera> cameras = {};
-    Camera active_camera = {};
+        DArray<Camera> cameras = {};
+        Camera active_camera = {};
 
-    AssetId font = {};
-    AssetId editor_font = {};
+        AssetId font = {};
+        AssetId editor_font = {};
 
-    bool quit = false;
-    bool doing_text_input = false;  // don't mess with this.
+        bool quit = false;
+        bool doing_text_input = false;  // don't mess with this.
 
-	// fill this out
-	UserData user = {};
+    	// fill this out
+    	UserData user = {};
 
-    bool initialize(InitConfiguration conf);
+        bool initialize(InitConfiguration conf);
 
-    void handle_events();
-    void update();
-    void draw();
+        void handle_events();
+        void update();
+        void draw();
 
-    void cleanup();
+        void cleanup();
 
-    void set_camera(CameraId cam);
+        void set_camera(CameraId cam);
 
-    void set_event_active(int event_index, double timeout_seconds);
-    void set_event_deactive(int event_index);
-private:
-    bool init_render(bool enableDebug);
+        void set_event_active(int event_index, double timeout_seconds);
+        void set_event_deactive(int event_index);
+    private:
+        bool init_render(bool enableDebug);
 
-	bool load_assets();
-    bool reload_assets();
+    	bool load_assets();
+        bool reload_assets();
 
-    bool update_assets();
+        bool update_assets();
 
-    UiState* get_active_ui();
+        UiState* get_active_ui();
 
-	void user_update();
+    	void user_update();
 
-    void timeout();
-    void update_ui_state(melv::vec2 window_size);
-    void update_ui_pos();
+        void timeout();
+        void update_ui_state(melv::vec2 window_size);
+        void update_ui_pos();
 
-    void draw_ui_state(UiState& state);
+        void draw_ui_state(UiState& state);
 
-    bool on_mouse_down();
-    void on_mouse_up(int button);
-    void on_mouse_move();
-    void mouse_move_ui(UiState& ui);
+        bool on_mouse_down();
+        void on_mouse_up(int button);
+        void on_mouse_move();
+        void mouse_move_ui(UiState& ui);
 
-    void set_text_editor_cursor(melv::Rectangle text_area, melv::Direction dir);
+        void set_text_editor_cursor(melv::Rectangle text_area, melv::Direction dir);
 
-	bool mouse_input_common();
+    	bool mouse_input_common();
 
-    void update_keyboard_state();
-    bool keyboard_input_down(KeyboardEvent keyboard);
-    bool keyboard_input_up(KeyboardEvent keyboard);
+        void update_keyboard_state();
+        bool keyboard_input_down(KeyboardEvent keyboard);
+        bool keyboard_input_up(KeyboardEvent keyboard);
 
-    bool keyboard_input_down_common(KeyboardEvent keyboard);
+        bool keyboard_input_down_common(KeyboardEvent keyboard);
 
-    void text_input_start();
-    void text_input_stop();
-    void toggle_text_input();
+        void text_input_start();
+        void text_input_stop();
+        void toggle_text_input();
 
-    bool read_asset_catalog(String_Builder& path);
+        bool read_asset_catalog(String_Builder& path);
 
-    void render_rectangle_outline(melv::Rectangle rect, melv::Color color, bool center = true) const;
-    void render_rectangle(melv::Rectangle rect, melv::Color color, bool center = true) const;
+        void render_rectangle_outline(melv::Rectangle rect, melv::Color color, bool center = true) const;
+        void render_rectangle(melv::Rectangle rect, melv::Color color, bool center = true) const;
 
-    Icon create_icon(AssetId image, melv::Color background);
+        Icon create_icon(AssetId image, melv::Color background);
 
-    void render_slider(melv::Rectangle area, melv::vec2 knob_scale, float value, melv::Color slider_color, melv::Color knob_color, const Text& text) const;
-    void render_text_field(Text_Field& text_field) const;
-    void render_text_editor(TextEditor& editor) const;
-    void render_dropdown(const Drop_Down_List& list) const;
-    void render_discrete_slider(const DiscreteSlider& slider) const;
-    void render_panel(const Panel& panel) const;
-    void render_value_panel(const UiState& ui, const ValuePanel& panel) const;
-    void render_button_group(const ButtonGroup& group) const;
+        void render_slider(melv::Rectangle area, melv::vec2 knob_scale, float value, melv::Color slider_color, melv::Color knob_color, const Text& text) const;
+        void render_text_field(Text_Field& text_field) const;
+        void render_text_editor(TextEditor& editor) const;
+        void render_dropdown(const Drop_Down_List& list) const;
+        void render_discrete_slider(const DiscreteSlider& slider) const;
+        void render_panel(const Panel& panel) const;
+        void render_value_panel(const UiState& ui, const ValuePanel& panel) const;
+        void render_button_group(const ButtonGroup& group) const;
 
-    bool is_minimized() const;
-    bool is_maximized() const;
-    bool is_fullscreen() const;
-    melv::vec2 get_window_size() const;
-};
+        bool is_minimized() const;
+        bool is_maximized() const;
+        bool is_fullscreen() const;
+        melv::vec2 get_window_size() const;
+    };
 
-void get_base_path(String_Builder& builder);
-void get_pref_path(String_Builder& builder, const char *org, const char *app);
+    void get_base_path(String_Builder& builder);
+    void get_pref_path(String_Builder& builder, const char *org, const char *app);
 
 } // namespace
 

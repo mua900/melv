@@ -7,19 +7,19 @@
 namespace melv
 {
 
-using CameraId = u32;
+    using CameraId = u32;
 
-struct Camera {
-    melv::vec2 position = {};
-    float zoom = {};
-    float rotation = 0;
+    struct Camera {
+        melv::vec2 position = {};
+        float zoom = {};
+        float rotation = 0;
 
-    melv::vec2 world_to_screen(melv::vec2 p) const;
-    melv::vec2 screen_to_world(melv::vec2 p) const;
-};
+        melv::vec2 world_to_screen(melv::vec2 p) const;
+        melv::vec2 screen_to_world(melv::vec2 p) const;
+    };
 
-// get an camera with identity transform
-Camera init_camera();
+    // get an camera with identity transform
+    Camera init_camera();
 
 } // namespace
 
