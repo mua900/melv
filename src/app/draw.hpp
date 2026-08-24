@@ -448,16 +448,16 @@ namespace melv
             }
         }
 
-        vec2 calculate_region(int x, int y) const
+        vec2 calculate_position(int x, int y) const
         {
             return vec2(x * sprite_width, y * sprite_height);
         }
 
-        vec2 calculate_region_index(int index) const
+        vec2 calculate_position_index(int index) const
         {
             int x = index % rows;
             int y = index / rows;
-            return calculate_region(x, y);
+            return calculate_position(x, y);
         }
 
         vec2 get_element_scale() const

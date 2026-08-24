@@ -27,7 +27,7 @@ namespace melv {
         data.rotation = rotation;
         data.scale = pack_scale(scale);
         data.color = 0xffffffff;
-        data.sourceOffset = pack_unorm16x2(atlas.calculate_region_index(current_frame));
+        data.sourceOffset = pack_unorm16x2(atlas.calculate_position_index(current_frame));
         data.sourceScale = pack_unorm16x2(atlas.get_element_scale());
 
         queue_draw_group(render, data, group);
