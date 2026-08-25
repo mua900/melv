@@ -1,5 +1,5 @@
 #include <app/application.hpp>
-#include <app/serialize.hpp>
+#include <app/animation.hpp>
 
 #include <random>
 #include <time.h>
@@ -12,6 +12,8 @@ struct State
 	DArray<MeshReference> references = {};
 	Texture texture = {};
 	DrawGroupId group = {};
+
+	SpriteAnimation animation = {};
 
 	vec2 position[64];
 };
@@ -151,8 +153,17 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 
+	GPUTexture& gpu_tex = app->render.get_texture(texture);
+	float anim_frame_size = 128;
+	SpriteAnimation anim = make_sprite_animation(
+							TextureAtlas(texture, anim_frame_size, anim_frame_size,
+										gpu_tex.width / anim_frame_size, gpu_tex.height / anim_frame_size),
+							0.2, AnimationFlags::AnimationLoop
+							);
+
 	state->references = upload_mesh_data(app->render, memory);
 	state->texture = texture;
+	state->animation = anim;
 
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
@@ -181,6 +192,7 @@ void draw(void *userdata, Application *app)
 
 	vec2 qscale = vec2(100, 100);
 
+	/*
 	InstanceData q = {};
 	q.sourceOffset = pack_unorm16x2(offset);
 	q.sourceScale = pack_unorm16x2(scale);
@@ -218,6 +230,10 @@ void draw(void *userdata, Application *app)
 		q.y = state->position[i].y;
 		melv::queue_draw_group(app->render, q, state->group);
 	}
+	*/
+
+	InstanceData frame = state->animation.get_draw(vec3(-100, 100, 0.2), 0, vec2(100, 100));
+	melv::queue_draw_group(app->render, frame, state->group);
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
@@ -283,6 +299,8 @@ void updateFunc(void *userdata, Application *app)
 
 	float dt = app->timeInfo.deltaTimeSeconds;
 	state->number = dt;
+
+	state->animation.step(dt);
 }
 
 void fixedUpdate(void *userdata, Application *app)

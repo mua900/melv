@@ -18,7 +18,7 @@ namespace melv {
         current_frame = float(num_frames) * (elapsed / total);
     }
 
-    void SpriteAnimation::draw(RenderContext& render, vec3 position, float rotation, vec2 scale)
+    InstanceData SpriteAnimation::get_draw(vec3 position, float rotation, vec2 scale)
     {
         InstanceData data = {};
         data.x = position.x;
@@ -30,7 +30,19 @@ namespace melv {
         data.sourceOffset = pack_unorm16x2(atlas.calculate_position_index(current_frame));
         data.sourceScale = pack_unorm16x2(atlas.get_element_scale());
 
-        queue_draw_group(render, data, group);
+        return data;
+    }
+
+    SpriteAnimation make_sprite_animation(TextureAtlas& atlas, float frame_duration, AnimationFlags flags)
+    {
+        SpriteAnimation animation = {};
+
+        animation.atlas = atlas;
+        animation.frame_duration = frame_duration;
+        animation.num_frames = atlas.element_count();
+        animation.flags = flags;
+
+        return animation;
     }
 
 } // namespace

@@ -436,6 +436,12 @@ namespace melv
         int rows = 0;
         int columns = 0;
 
+        TextureAtlas() {}
+        TextureAtlas(Texture tex, float sp_width, float sp_height, int row, int col)
+            :
+            texture(tex), sprite_width(sp_width), sprite_height(sp_height), rows(row), columns(col)
+        {}
+
         void set_texture(RenderContext* render, Texture tex, int row, int col)
         {
             if (tex.is_valid())
@@ -446,6 +452,11 @@ namespace melv
                 rows = row;
                 columns = col;
             }
+        }
+
+        int element_count() const
+        {
+            return rows * columns;
         }
 
         vec2 calculate_position(int x, int y) const
@@ -462,7 +473,7 @@ namespace melv
 
         vec2 get_element_scale() const
         {
-            return vec2(sprite_width / float(rows), sprite_height / float(columns));
+            return vec2(1.0f / float(rows), 1.0f / float(columns));
         }
     };
 

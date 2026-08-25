@@ -6,12 +6,12 @@
 namespace melv {
 
 	enum AnimationFlags {
+		AnimationZero = 0,
 		AnimationLoop = BIT(0),
 	};
 
 	struct SpriteAnimation
 	{
-		DrawGroupId group = {};
 		TextureAtlas atlas = {};
 
 		float elapsed = 0;
@@ -28,8 +28,10 @@ namespace melv {
 		}
 
 		void step(float delta);
-		void draw(RenderContext& render, vec3 position, float rotation, vec2 scale);
+		InstanceData get_draw(vec3 position, float rotation, vec2 scale);
 	};
+
+	SpriteAnimation make_sprite_animation(TextureAtlas& atlas, float frame_duration, AnimationFlags flags);
 
 } // namespace
 
