@@ -73,6 +73,9 @@ namespace melv {
 				{
 					if (input[i].key >= state.keyboard.num_keys)
 					{
+						log_error("Key value out of range");
+						// bad input, ignore it
+						// panic("Bad key value for input");
 						return false;
 					}
 
@@ -91,8 +94,13 @@ namespace melv {
 				}
 				case InputGamepadButton:
 				{
+					GamepadState& pad = state.gamepads[input[i].device];
+					if (!pad.is_connected())
+					{
+						break;
+					}
 					auto button = (SDL_GamepadButton)input[i].key;
-					bool down = state.gamepads[input[i].device].get_button(button);
+					bool down = pad.get_button(button);
 					if (down)
 					{
 						out = Value(true);
@@ -107,25 +115,35 @@ namespace melv {
 				}
 				case InputGamepadAxis:
 				{
+					GamepadState& pad = state.gamepads[input[i].device];
+					if (!pad.is_connected())
+					{
+						break;
+					}
 					auto gamepad_axis = (SDL_GamepadAxis) input[i].key;
-					float axis = state.gamepads[input[i].device].get_axis(gamepad_axis);
+					float axis = pad.get_axis(gamepad_axis);
 					out = Value(axis);
 					return true;
 				}
 				case InputGamepadVector:
 				{
+					GamepadState& pad = state.gamepads[input[i].device];
+					if (!pad.is_connected())
+					{
+						break;
+					}
 					vec2 v = {};
 					if (input[i].key == GamepadVector_Left)
 					{
-						v = state.gamepads[input[i].device].get_left();
+						v = pad.get_left();
 					}
 					else if (input[i].key == GamepadVector_Right)
 					{
-						v = state.gamepads[input[i].device].get_right();
+						v = pad.get_right();
 					}
 					else if (input[i].key == GamepadVector_Triggers)
 					{
-						v = state.gamepads[input[i].device].get_triggers();
+						v = pad.get_triggers();
 					}
 					else return false;
 

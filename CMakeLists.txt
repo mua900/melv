@@ -57,7 +57,7 @@ add_library(melv STATIC
 	src/bundle/fragment_texture_dxil.h
 )
 
-option(BUILD_EXAMPLE_PROGRAM OFF)
+option(BUILD_EXAMPLE_PROGRAM "Build the example program" OFF)
 if (BUILD_EXAMPLE_PROGRAM)
 	add_executable(
 		example
@@ -78,7 +78,7 @@ add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 # SDL's own configuration defaults to using system libraries if it's not targeting windows or android
 # it can silently skip building support for a backend if it doesn't find required libraries on the system
 # it is nice to have this explicitly under control under an option that is easier to control
-option(USE_VENDORED_DEPENDENCIES ON)
+option(USE_VENDORED_DEPENDENCIES "Use vendored dependencies for SDL image, ttf and mixer" ON)
 if (USE_VENDORED_DEPENDENCIES)
 	set(SDLIMAGE_VENDORED ON)
 	set(SDLTTF_VENDORED ON)

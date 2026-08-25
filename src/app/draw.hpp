@@ -433,13 +433,13 @@ namespace melv
         Texture texture = {};
         float sprite_width = 0;
         float sprite_height = 0;
-        int rows = 0;
         int columns = 0;
+        int rows = 0;
 
         TextureAtlas() {}
-        TextureAtlas(Texture tex, float sp_width, float sp_height, int row, int col)
+        TextureAtlas(Texture tex, float sp_width, float sp_height, int col, int row)
             :
-            texture(tex), sprite_width(sp_width), sprite_height(sp_height), rows(row), columns(col)
+            texture(tex), sprite_width(sp_width), sprite_height(sp_height), columns(col), rows(row)
         {}
 
         void set_texture(RenderContext* render, Texture tex, int row, int col)
@@ -447,8 +447,8 @@ namespace melv
             if (tex.is_valid())
             {
                 GPUTexture& gpu_texture = render->get_texture(tex);
-                sprite_width = gpu_texture.width / float(row);
-                sprite_height = gpu_texture.height / float(col);
+                sprite_width = gpu_texture.width / float(col);
+                sprite_height = gpu_texture.height / float(row);
                 rows = row;
                 columns = col;
             }
@@ -466,14 +466,14 @@ namespace melv
 
         vec2 calculate_position_index(int index) const
         {
-            int x = index % rows;
-            int y = index / rows;
+            int x = index % columns;
+            int y = index / columns;
             return calculate_position(x, y);
         }
 
         vec2 get_element_scale() const
         {
-            return vec2(1.0f / float(rows), 1.0f / float(columns));
+            return vec2(1.0f / float(columns), 1.0f / float(rows));
         }
     };
 

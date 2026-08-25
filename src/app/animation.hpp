@@ -28,10 +28,10 @@ namespace melv {
 		}
 
 		void step(float delta);
-		InstanceData get_draw(vec3 position, float rotation, vec2 scale);
+		InstanceData get_frame(vec3 position, float rotation, vec2 scale);
 	};
 
-	SpriteAnimation make_sprite_animation(TextureAtlas& atlas, float frame_duration, AnimationFlags flags);
+	SpriteAnimation make_sprite_animation(TextureAtlas& atlas, int num_frames, float frame_duration, AnimationFlags flags);
 
 } // namespace
 

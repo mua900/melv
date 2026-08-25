@@ -1,4 +1,4 @@
-This is a utility library for multimedia applications that uses SDL3.
+This is a multimedia utility library that uses SDL3.
 The source code is under src/ folder.
 src/app contains application development related code.
 src/util contains generic utilities and data structures.

@@ -156,9 +156,10 @@ bool initialize(void *userdata, Application *app)
 	GPUTexture& gpu_tex = app->render.get_texture(texture);
 	float anim_frame_size = 128;
 	SpriteAnimation anim = make_sprite_animation(
-							TextureAtlas(texture, anim_frame_size, anim_frame_size,
-										gpu_tex.width / anim_frame_size, gpu_tex.height / anim_frame_size),
-							0.2, AnimationFlags::AnimationLoop
+							TextureAtlas(texture, anim_frame_size, anim_frame_size, gpu_tex.width / anim_frame_size, gpu_tex.height / anim_frame_size),
+							4,
+							0.2,
+							AnimationFlags::AnimationLoop
 							);
 
 	state->references = upload_mesh_data(app->render, memory);
@@ -232,7 +233,7 @@ void draw(void *userdata, Application *app)
 	}
 	*/
 
-	InstanceData frame = state->animation.get_draw(vec3(-100, 100, 0.2), 0, vec2(100, 100));
+	InstanceData frame = state->animation.get_frame(vec3(-100, 100, 0.2), 0, vec2(100, 100));
 	melv::queue_draw_group(app->render, frame, state->group);
 }
 

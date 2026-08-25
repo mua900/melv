@@ -18,7 +18,7 @@ namespace melv {
         current_frame = float(num_frames) * (elapsed / total);
     }
 
-    InstanceData SpriteAnimation::get_draw(vec3 position, float rotation, vec2 scale)
+    InstanceData SpriteAnimation::get_frame(vec3 position, float rotation, vec2 scale)
     {
         InstanceData data = {};
         data.x = position.x;
@@ -33,13 +33,13 @@ namespace melv {
         return data;
     }
 
-    SpriteAnimation make_sprite_animation(TextureAtlas& atlas, float frame_duration, AnimationFlags flags)
+    SpriteAnimation make_sprite_animation(TextureAtlas& atlas, int num_frames, float frame_duration, AnimationFlags flags)
     {
         SpriteAnimation animation = {};
 
         animation.atlas = atlas;
         animation.frame_duration = frame_duration;
-        animation.num_frames = atlas.element_count();
+        animation.num_frames = num_frames;
         animation.flags = flags;
 
         return animation;
