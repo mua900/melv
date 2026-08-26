@@ -86,6 +86,7 @@ if (USE_VENDORED_DEPENDENCIES)
 endif()
 
 # turn the ones you want formats on
+# this significantly improves build times and binary size
 set(SDLIMAGE_ANI  OFF)
 set(SDLIMAGE_AVIF OFF)
 set(SDLIMAGE_BMP  OFF)

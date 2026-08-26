@@ -22,8 +22,9 @@ namespace melv {
         }
     };
 
-    using BufferHandle = u32;
+    using GPUBufferHandle = u32;
     using DrawGroupId = u32;
+    using GraphicsPipelineId = u32;
 
     #define TEXTURE_INVALID Texture(-1)
     #define DRAW_GROUPID_INVALID   u32(-1)

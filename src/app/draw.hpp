@@ -5,6 +5,8 @@
 #include "text.hpp"
 #include "camera.hpp"
 
+#include "config.hpp"
+
 #include "util/common.hpp"
 #include "util/math_util.hpp"
 #include "util/template.hpp"
@@ -160,6 +162,9 @@ namespace melv
         // remember what parameters we created this with so that we can recreate it
         GraphicsPipelineParameters parameters = {};
         SDL_GPUGraphicsPipeline *pipeline = nullptr;
+        u32 vertex_buffer = 0;
+        u32 instance_buffer = 0;
+        u32 index_buffer = 0;
     };
 
     struct MeshData
@@ -234,7 +239,7 @@ namespace melv
         int capacity = 0;
         int used = 0;  // reset every frame
 
-        mat4x4 matrix = {};
+        mat4x4* matrix = {};
         DrawMatrixUsage matrix_usage = {};
     };
 
@@ -277,7 +282,7 @@ namespace melv
     struct DefaultShaders
     {
         SDL_GPUShader* vertex = {};
-        SDL_GPUShader* vertex_instance = {};
+        SDL_GPUShader* vertexInstance = {};
         SDL_GPUShader* fragment = {};
         SDL_GPUShader* fragmentTexture = {};
         SDL_GPUShader* vertexLight = {};
@@ -317,15 +322,23 @@ namespace melv
 
         SDL_GPUSampler* sampler = nullptr;
 
-        GraphicsPipeline graphics = {};
-        GraphicsPipeline graphics_texture = {};
-        GraphicsPipeline graphics_instance_texture = {};
-        GraphicsPipeline graphics_light = {};
-        GraphicsPipeline graphics_composition = {};
+        GraphicsPipelineId graphics_default = {};
+        GraphicsPipelineId graphics_texture = {};
+        GraphicsPipelineId graphics_instance_texture = {};
+
+        // @@@ don't use
+        GraphicsPipelineId graphics_light = {};
+        GraphicsPipelineId graphics_composition = {};
+        //
+
+        BucketList<GraphicsPipeline> graphics = {};
 
         SDL_GPUTexture* render_target = nullptr;
+
+        // @@@ don't use
         SDL_GPUTexture* light_target = nullptr;
         SDL_GPUTexture* depth_target = nullptr;
+        //
 
         TransferBuffer transfer_buffer = {};
         TransferBuffer group_transfer_buffer = {};
@@ -344,7 +357,7 @@ namespace melv
 
         // @todo draw groups and instancing for user defined meshes
 
-        DArray<InstanceData> groupDraw = {};
+        DArray<InstanceData> instanceData = {};
         DArray<DrawGroup> drawGroups = {};
 
         BucketList<GPUTexture> textures = {};
@@ -354,7 +367,7 @@ namespace melv
 
         bool gpu_inited() const
         {
-            return device && graphics.pipeline && render_target;
+            return device && render_target;
         }
 
         bool make_texture_upload(SDL_Surface* surface, TextureUpload* upload);
@@ -378,6 +391,7 @@ namespace melv
         bool set_index_buffer(u32 buffer);
 
         DrawGroupId make_draw_group(Texture texture, int size);
+        int make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment); // -1 on fail
 
         bool upload_common_mesh_data();
 
@@ -477,8 +491,6 @@ namespace melv
         }
     };
 
-    bool create_default_shaders(SDL_GPUDevice* device, DefaultShaders* info);
-
     bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parameters, SDL_GPUDevice* device, SDL_Window* window);
     SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
@@ -504,6 +516,10 @@ namespace melv
 
     void destroy_texture(GPUTexture *texture);
 
+    bool create_default_shaders(SDL_GPUDevice* device, DefaultShaders* shaders);
+    void destroy_default_shaders(SDL_GPUDevice* device, DefaultShaders* shaders);
+
+    // @todo
     Texture render_text(RenderContext& render, String text, Font font, melv::Color color);
     Text create_text(RenderContext& render, String text, Font font, melv::Color color);
 

@@ -20,8 +20,9 @@ namespace melv
     void draw_mesh_buffers(RenderContext& render, MeshDraw& mesh, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
     void draw_mesh_texture(RenderContext& render, MeshDraw& draw);
     void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+    void draw_generic(RenderContext& render, GraphicsPipelineParameters& parameters);
 
-    void draw_quads_texture(RenderContext& render, DrawGroup draw);
+    void draw_quads_texture(RenderContext& render, DrawGroup& group);
 
     // failure if the size of the arrays don't match what's expected
     void generate_quad_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index);
@@ -68,22 +69,31 @@ namespace melv
             return;
         }
 
-        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics.pipeline);
+        GraphicsPipeline& pipelineDefault = context.graphics.get(context.graphics_default);
+        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineDefault.pipeline);
         for (auto draw : context.frameMeshDraw)
         {
             draw_mesh(context, draw);
         }
 
-        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_texture.pipeline);
+        GraphicsPipeline& pipelineTexture = context.graphics.get(context.graphics_texture);
+        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineTexture.pipeline);
         for (auto draw : context.frameMeshDrawTex)
         {
             draw_mesh_texture(context, draw);
         }
 
-        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, context.graphics_instance_texture.pipeline);
+        GraphicsPipeline& pipelineInstanceTexture = context.graphics.get(context.graphics_instance_texture);
+        SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineInstanceTexture.pipeline);
         for (DrawGroup group : context.drawGroups)
         {
             draw_quads_texture(context, group);
+        }
+
+        for (GraphicsPipeline& pipeline : context.graphics)
+        {
+            SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipeline.pipeline);
+            draw_generic(context, pipeline.parameters);
         }
 
         context.end_render_pass();
@@ -97,7 +107,7 @@ namespace melv
         context.instance_buffer.used = 0;
 
         context.frameMeshDraw.discard_data();
-        context.groupDraw.discard_data();
+        context.instanceData.discard_data();
 
         for (auto& group : context.drawGroups)
         {
@@ -477,7 +487,7 @@ namespace melv
             return false;
         }
 
-        SDL_GPUGraphicsPipeline* pipeline_instance_texture = create_gpu_graphics_pipeline(&pipeline_parameters_instance, render, shaders.vertex_instance, shaders.fragmentTexture);
+        SDL_GPUGraphicsPipeline* pipeline_instance_texture = create_gpu_graphics_pipeline(&pipeline_parameters_instance, render, shaders.vertexInstance, shaders.fragmentTexture);
         if (!pipeline_instance_texture)
         {
             log_error("Failed to create graphics pipeline: %s", SDL_GetError());
@@ -578,9 +588,9 @@ namespace melv
             // @todo create light target
         }
 
-        render->graphics = { pipeline_parameters, pipeline };
-        render->graphics_texture = { pipeline_parameters, pipeline_texture };
-        render->graphics_instance_texture = { pipeline_parameters_instance, pipeline_instance_texture };
+        render->graphics_default = render->graphics.add({ pipeline_parameters, pipeline });
+        render->graphics_texture = render->graphics.add({ pipeline_parameters, pipeline_texture });
+        render->graphics_instance_texture = render->graphics.add({ pipeline_parameters_instance, pipeline_instance_texture });
         render->vertex_buffer = { vertex_buffer, GPUBufferVertex, InitVertexBufferSize, 0 };
         render->index_buffer = { index_buffer, GPUBufferIndex, InitIndexBufferSize, 0 };
         render->instance_buffer = { instance_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 };
@@ -596,6 +606,8 @@ namespace melv
             log_error("Couldn't upload mesh data: %s", SDL_GetError());
             return false;
         }
+
+        destroy_default_shaders(render->device, &shaders);
 
         return true;
     }
@@ -676,11 +688,19 @@ namespace melv
         }
 
         shaders->vertex = vertex;
-        shaders->vertex_instance = vertex_instance;
+        shaders->vertexInstance = vertex_instance;
         shaders->fragment = fragment;
         shaders->fragmentTexture = fragment_texture;
 
         return true;
+    }
+
+    void destroy_default_shaders(SDL_GPUDevice* device, DefaultShaders* shaders)
+    {
+        SDL_ReleaseGPUShader(device, shaders->vertex);
+        SDL_ReleaseGPUShader(device, shaders->vertexInstance);
+        SDL_ReleaseGPUShader(device, shaders->fragment);
+        SDL_ReleaseGPUShader(device, shaders->fragmentTexture);
     }
 
     bool RenderContext::set_vertex_buffer(u32 vb)
@@ -1083,7 +1103,7 @@ namespace melv
         {
             for (int i = group.offset; i < group.offset + group.used; i++)
             {
-                memory[i] = render.groupDraw[i];
+                memory[i] = render.instanceData[i];
             }
             for (int i = group.offset + group.used; i < group.offset + group.capacity; i++)
             {
@@ -1097,7 +1117,7 @@ namespace melv
 
     void upload_frame_instance_data(RenderContext& render)
     {
-        if (render.groupDraw.size() > 0)
+        if (render.instanceData.size() > 0)
         {
             SDL_GPUTransferBufferLocation source = {};
             SDL_GPUBufferRegion destination = {};
@@ -1107,7 +1127,7 @@ namespace melv
 
             destination.buffer = render.instance_buffer.buffer;
             destination.offset = 0;
-            destination.size = render.groupDraw.size() * sizeof(InstanceData);
+            destination.size = render.instanceData.size() * sizeof(InstanceData);
 
             SDL_UploadToGPUBuffer(render.frame.copy_pass, &source, &destination, false);
         }
@@ -1260,10 +1280,23 @@ namespace melv
             return DRAW_GROUPID_INVALID;
         }
 
-        groupDraw.ensure_size(newsize);
-        groupDraw.mark_full();
+        instanceData.ensure_size(newsize);
+        instanceData.mark_full();
 
         return drawGroups.add(group);
+    }
+
+    int RenderContext::make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+    {
+        SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&params, this, vertex, fragment);
+        if (!pipeline)
+        {
+            return -1;
+        }
+
+        GraphicsPipeline graphics_pipeline = { params, pipeline };
+
+        return graphics.add(graphics_pipeline);
     }
 
     void queue_draw_mesh(RenderContext& render, MeshDraw& draw)
@@ -1286,10 +1319,10 @@ namespace melv
             return false;
         }
 
-        render.groupDraw[group.offset + group.used] = data;
+        render.instanceData[group.offset + group.used] = data;
         group.used += 1;
 
-        render.groupDraw.mark_full();
+        render.instanceData.mark_full();
 
         return true;
     }
@@ -1367,11 +1400,11 @@ namespace melv
         SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, draw.mesh.index_count, 1, 0, 0, 0);
     }
 
-    void draw_quads_texture(RenderContext& render, DrawGroup group)
+    void draw_quads_texture(RenderContext& render, DrawGroup& group)
     {
         ASSERT(render.frame.render_pass);
 
-        render.set_mvp(&group.matrix, group.matrix_usage);
+        render.set_mvp(group.matrix, group.matrix_usage);
 
         GPUTexture texture = render.textures.get(group.texture.index);
 
@@ -1399,6 +1432,11 @@ namespace melv
         SDL_BindGPUVertexBuffers(render.frame.render_pass, 0, vertex_bindings, 2);
         SDL_BindGPUIndexBuffer(render.frame.render_pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
         SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, 6, group.used, 0, 0, 0);
+    }
+
+    void draw_generic(RenderContext& render, GraphicsPipelineParameters& parameters)
+    {
+
     }
 
     melv::vec2 RenderContext::transformWorld(melv::vec2 p) const
