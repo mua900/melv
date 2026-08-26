@@ -22,7 +22,7 @@ namespace melv {
         }
     };
 
-    using GPUBufferHandle = u32;
+    using BufferHandle = u32;
     using DrawGroupId = u32;
     using GraphicsPipelineId = u32;
 

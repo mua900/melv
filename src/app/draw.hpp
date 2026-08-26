@@ -135,6 +135,17 @@ namespace melv
         {}
     };
 
+    struct DrawGroup
+    {
+        Texture texture = {};
+        int offset = 0;
+        int capacity = 0;
+        int used = 0;  // reset every frame
+
+        mat4x4* matrix = {};
+        DrawMatrixUsage matrix_usage = {};
+    };
+
     struct Draw
     {
         vec3 position = {};
@@ -165,6 +176,16 @@ namespace melv
         u32 vertex_buffer = 0;
         u32 instance_buffer = 0;
         u32 index_buffer = 0;
+        bool use_predefined_buffers = false; // use the ones in the RenderContext and ignore these ones
+        DArray<DrawGroup> groups = {};
+
+        GraphicsPipeline() {}
+        GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, bool predefined_buffers)
+            : parameters(params), pipeline(pline), use_predefined_buffers(predefined_buffers)
+        {}
+        GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, u32 vb, u32 instance, u32 index)
+            : parameters(params), pipeline(pline), vertex_buffer(vb), instance_buffer(instance), index_buffer(index)
+        {}
     };
 
     struct MeshData
@@ -232,17 +253,6 @@ namespace melv
         bool done = false;
     };
 
-    struct DrawGroup
-    {
-        Texture texture = {};
-        int offset = 0;
-        int capacity = 0;
-        int used = 0;  // reset every frame
-
-        mat4x4* matrix = {};
-        DrawMatrixUsage matrix_usage = {};
-    };
-
     enum GPUBufferUsage : u32 {
         GPUBufferVertex = SDL_GPU_BUFFERUSAGE_VERTEX,
         GPUBufferIndex = SDL_GPU_BUFFERUSAGE_INDEX,
@@ -253,6 +263,7 @@ namespace melv
         GPUBufferUsage usage = {};
         u32 size = 0;
         u32 used = 0;
+        bool per_frame = false; // does this hold per frame or persistent data
     };
 
     struct TransferBuffer {
@@ -333,6 +344,10 @@ namespace melv
 
         BucketList<GraphicsPipeline> graphics = {};
 
+        BufferHandle vertex_buffer = {};
+        BufferHandle instance_buffer = {};
+        BufferHandle index_buffer = {};
+
         SDL_GPUTexture* render_target = nullptr;
 
         // @@@ don't use
@@ -347,10 +362,6 @@ namespace melv
 
         // predefined mesh
         MeshReference mesh_common[MeshCount] = {};
-
-        GPUBuffer instance_buffer = {}; // used with draw groups
-        GPUBuffer vertex_buffer = {};
-        GPUBuffer index_buffer = {};
 
         DArray<MeshDraw> frameMeshDraw = {};
         DArray<MeshDraw> frameMeshDrawTex = {};
