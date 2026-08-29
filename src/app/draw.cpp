@@ -71,21 +71,21 @@ namespace melv
 
         GraphicsPipeline& pipelineDefault = context.graphics.get(context.graphics_default);
         SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineDefault.pipeline);
-        for (auto draw : context.frameMeshDraw)
+        for (MeshDraw& draw : context.frameMeshDraw)
         {
             draw_mesh(context, draw);
         }
 
         GraphicsPipeline& pipelineTexture = context.graphics.get(context.graphics_texture);
         SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineTexture.pipeline);
-        for (auto draw : context.frameMeshDrawTex)
+        for (MeshDraw& draw : context.frameMeshDrawTex)
         {
             draw_mesh_texture(context, draw);
         }
 
         GraphicsPipeline& pipelineInstanceTexture = context.graphics.get(context.graphics_instance_texture);
         SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipelineInstanceTexture.pipeline);
-        for (DrawGroup group : context.drawGroups)
+        for (DrawGroup& group : pipelineInstanceTexture.groups)
         {
             draw_quads_texture(context, group);
         }
@@ -93,7 +93,7 @@ namespace melv
         for (GraphicsPipeline& pipeline : context.graphics)
         {
             SDL_BindGPUGraphicsPipeline(context.frame.render_pass, pipeline.pipeline);
-            draw_generic(context, pipeline);
+            // draw_generic(context, pipeline);
         }
 
         context.end_render_pass();
@@ -102,7 +102,7 @@ namespace melv
 
         context.submit_command_buffer();
 
-        for (auto& buffer : context.buffers)
+        for (GPUBuffer& buffer : context.buffers)
         {
             if (buffer.per_frame)
             {
@@ -113,9 +113,12 @@ namespace melv
         context.frameMeshDraw.discard_data();
         context.instanceData.discard_data();
 
-        for (auto& group : context.drawGroups)
+        for (GraphicsPipeline& pipeline : context.graphics)
         {
-            group.used = 0;
+            for (DrawGroup& group : pipeline.groups)
+            {
+                group.used = 0;
+            }
         }
     }
 
@@ -160,6 +163,11 @@ namespace melv
             SDL_CancelGPUCommandBuffer(frame.command_buffer);
             frame.command_buffer = nullptr;
         }
+    }
+
+    DrawGroup& RenderContext::get_draw_group(DrawGroupId id) const
+    {
+        return graphics.get(id.graphics).groups.get(id.draw);
     }
 
     bool RenderContext::start_render_pass() {
@@ -281,19 +289,12 @@ namespace melv
         return true;
     }
 
-    bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters *parameters, SDL_GPUDevice* device, SDL_Window *window)
+    GraphicsPipelineParameters default_graphics_pipeline_parameters()
     {
-        auto texture_format = RenderFormat;
-        if (texture_format == SDL_GPU_TEXTUREFORMAT_INVALID)
-        {
-            log_error("Couldn't get swapchain texture format: %s", SDL_GetError());
-            return false;
-        }
-
-        parameters->format = texture_format;
-        parameters->input = InputVertex;
-
-        return true;
+        GraphicsPipelineParameters parameters;
+        parameters.format = RenderFormat;
+        parameters.input = InputVertex;
+        return parameters;
     }
 
     SDL_GPUGraphicsPipeline* create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
@@ -465,16 +466,8 @@ namespace melv
             return false;
         }
 
-        GraphicsPipelineParameters pipeline_parameters;
-        GraphicsPipelineParameters pipeline_parameters_instance;
-        if (!(
-            get_default_graphics_pipeline_parameters(&pipeline_parameters, render->device, window) &&
-            get_default_graphics_pipeline_parameters(&pipeline_parameters_instance, render->device, window)
-            ))
-        {
-            log_error("Couldn't get default pipeline parameters");
-            return false;
-        }
+        GraphicsPipelineParameters pipeline_parameters = default_graphics_pipeline_parameters();
+        GraphicsPipelineParameters pipeline_parameters_instance = default_graphics_pipeline_parameters();
 
         pipeline_parameters_instance.input = InputInstance;
 
@@ -1103,15 +1096,21 @@ namespace melv
     {
         InstanceData* memory = (InstanceData*) SDL_MapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer, false);
         ASSERT(memory);
-        for (auto& group : render.drawGroups)
+        for (GraphicsPipeline& pipeline : render.graphics)
         {
-            for (int i = group.offset; i < group.offset + group.used; i++)
+            if (pipeline.frame_data)
             {
-                memory[i] = render.instanceData[i];
-            }
-            for (int i = group.offset + group.used; i < group.offset + group.capacity; i++)
-            {
-                memory[i] = {};
+                for (DrawGroup& group : pipeline.groups)
+                {
+                    for (int i = group.offset; i < group.offset + group.used; i++)
+                    {
+                        memory[i] = render.instanceData[i];
+                    }
+                    for (int i = group.offset + group.used; i < group.offset + group.capacity; i++)
+                    {
+                        memory[i] = {};
+                    }
+                }
             }
         }
         SDL_UnmapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer);
@@ -1254,21 +1253,16 @@ namespace melv
         return textures.get(handle.index);
     }
 
-    DrawGroupId RenderContext::make_draw_group(Texture texture, int size)
+    DrawGroupId RenderContext::make_draw_group(GraphicsPipelineId id, Texture texture, int size)
     {
+        GraphicsPipeline& pipeline = graphics.get(id);
         DrawGroup group = {};
         group.texture = texture;
-        if (drawGroups.size() > 0)
-        {
-            auto prev = drawGroups.get_last();
-            group.offset = prev->offset + prev->capacity;
-        }
-        else
-        {
-            group.offset = 0;
-        }
+        group.offset = next_offset;
         group.capacity = size;
         group.used = 0;
+
+        next_offset += group.capacity;
 
         u32 newsize = group.offset + size;
 
@@ -1287,15 +1281,17 @@ namespace melv
         instanceData.ensure_size(newsize);
         instanceData.mark_full();
 
-        return drawGroups.add(group);
+        u32 groupIndex = pipeline.groups.add(group);
+
+        return DrawGroupId(id, groupIndex);
     }
 
-    int RenderContext::make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
+    GraphicsPipelineId RenderContext::make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment)
     {
         SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&params, this, vertex, fragment);
         if (!pipeline)
         {
-            return -1;
+            return GRAPHICS_PIPELINE_INVALID;
         }
 
         GraphicsPipeline graphics_pipeline = GraphicsPipeline(params, pipeline, 0, 0, 0);
@@ -1315,9 +1311,16 @@ namespace melv
         }
     }
 
-    bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId)
+    bool queue_draw_group(RenderContext& render, InstanceData& data, DrawGroupId groupId)
     {
-        DrawGroup& group = render.drawGroups.get_ref(groupId);
+        DrawGroup& group = render.get_draw_group(groupId);
+        queue_draw(render, group, data);
+
+        return true;
+    }
+
+    bool queue_draw(RenderContext& render, DrawGroup& group, InstanceData& data)
+    {
         if (group.capacity < group.used + 1)
         {
             return false;
@@ -1380,7 +1383,7 @@ namespace melv
     {
         ASSERT(render.frame.render_pass);
 
-        GPUTexture texture = render.textures.get(draw.texture.index);
+        GPUTexture& texture = render.textures.get(draw.texture.index);
 
         SDL_GPUTextureSamplerBinding sampler_binding = {};
         sampler_binding.texture = texture.texture;

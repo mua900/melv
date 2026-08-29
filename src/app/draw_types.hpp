@@ -22,12 +22,26 @@ namespace melv {
         }
     };
 
+    struct DrawGroupId
+    {
+        u32 graphics = 0;
+        u32 draw = 0;
+
+        DrawGroupId() {}
+        DrawGroupId(u16 g, u16 d) : graphics(g), draw(d) {}
+
+        bool is_valid() const
+        {
+            return draw != -1;
+        }
+    };
+
     using BufferHandle = u32;
-    using DrawGroupId = u32;
     using GraphicsPipelineId = u32;
 
-    #define TEXTURE_INVALID Texture(-1)
-    #define DRAW_GROUPID_INVALID   u32(-1)
+    #define TEXTURE_INVALID             Texture(-1)
+    #define DRAW_GROUPID_INVALID        DrawGroupId(-1, -1)
+    #define GRAPHICS_PIPELINE_INVALID   u32(-1)
 
     using TextureFormat = SDL_GPUTextureFormat;
 

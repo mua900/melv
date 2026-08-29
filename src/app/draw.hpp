@@ -178,6 +178,7 @@ namespace melv
         u32 index_buffer = 0;
         bool use_predefined_buffers = false; // use the ones in the RenderContext and ignore these ones
         DArray<DrawGroup> groups = {};
+        bool frame_data = false;  // do we need to upload the instance data for this every frame?
 
         GraphicsPipeline() {}
         GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, bool predefined_buffers)
@@ -334,6 +335,7 @@ namespace melv
         SDL_GPUSampler* sampler = nullptr;
 
         GraphicsPipelineId graphics_default = {};
+        // GraphicsPipelineId graphics_instance = {};
         GraphicsPipelineId graphics_texture = {};
         GraphicsPipelineId graphics_instance_texture = {};
 
@@ -369,9 +371,13 @@ namespace melv
         // @todo draw groups and instancing for user defined meshes
 
         DArray<InstanceData> instanceData = {};
-        DArray<DrawGroup> drawGroups = {};
+        u32 next_offset = 0; // the offset after the allocated space for draw groups
+        // DArray<DrawGroup> drawGroups = {};
 
         BucketList<GPUTexture> textures = {};
+
+        // @todo
+        size_t calculate_video_memory_usage() const;
 
         bool resize_transfer_buffer(TransferBuffer& buffer, u32 nsize);
         bool resize_gpu_buffer(GPUBuffer& buffer, u32 nsize);
@@ -401,8 +407,10 @@ namespace melv
         bool set_vertex_buffer(u32 buffer);
         bool set_index_buffer(u32 buffer);
 
-        DrawGroupId make_draw_group(Texture texture, int size);
-        int make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment); // -1 on fail
+        DrawGroupId make_draw_group(GraphicsPipelineId id, Texture texture, int size);
+        GraphicsPipelineId make_graphics_pipeline(GraphicsPipelineParameters& params, SDL_GPUShader* vertex, SDL_GPUShader* fragment); // -1 on fail
+
+        DrawGroup& get_draw_group(DrawGroupId id) const;
 
         bool upload_common_mesh_data();
 
@@ -502,7 +510,7 @@ namespace melv
         }
     };
 
-    bool get_default_graphics_pipeline_parameters(GraphicsPipelineParameters* parameters, SDL_GPUDevice* device, SDL_Window* window);
+    GraphicsPipelineParameters default_graphics_pipeline_parameters();
     SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
     bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
@@ -517,10 +525,12 @@ namespace melv
     DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
     DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
 
+    bool queue_draw(RenderContext& render, DrawGroup& group, InstanceData& data);
+
     // user functions
     void queue_draw_mesh(RenderContext& render, MeshDraw& draw);
     // returns false if there is no space left in the group buffer
-    bool queue_draw_group(RenderContext& render, InstanceData data, DrawGroupId groupId);
+    bool queue_draw_group(RenderContext& render, InstanceData& data, DrawGroupId groupId);
 
     bool loadShader(RenderContext& context, Shader& shader, const char* path);
     bool unloadShader(RenderContext& context, Shader& shader);

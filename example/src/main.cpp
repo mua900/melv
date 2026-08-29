@@ -15,6 +15,8 @@ struct State
 
 	SpriteAnimation animation = {};
 
+	GraphicsPipelineId graphics = {};
+
 	vec2 position[64];
 };
 
@@ -54,7 +56,7 @@ bool initialize(void *userdata, Application *app)
 
 	ASSERT(texture.is_valid());
 
-#if CHANGE_SHADERS
+#if CHANGE_SHADERS // @todo
 	if (!app->render.set_shaders(&app->render.graphics, vertex.shader, fragment.shader))
 	{
 		return false;
@@ -71,13 +73,13 @@ bool initialize(void *userdata, Application *app)
 	}
 #endif
 
-	state->group = app->render.make_draw_group(texture, 1024);
-	if (state->group == DRAW_GROUPID_INVALID)
+	melv::DrawGroupId id = app->render.make_draw_group(app->render.graphics_instance_texture, texture, 1024 * 4);
+	if (!id.is_valid())
 	{
 		return false;
 	}
 
-	melv::DrawGroupId id = app->render.make_draw_group(texture, 1024 * 4);
+	log_info("%d, %d", id.graphics, id.draw);
 
 	TransferData triangle, quad;
 
@@ -162,9 +164,27 @@ bool initialize(void *userdata, Application *app)
 							AnimationFlags::AnimationLoop
 							);
 
+	{
+		GraphicsPipelineParameters params = default_graphics_pipeline_parameters();;
+		params.input = InputInstance;
+		DefaultShaders shaders = {};
+		if (!create_default_shaders(app->render.device, &shaders))
+		{
+			return false;
+		}
+		GraphicsPipelineId graphics = app->render.make_graphics_pipeline(params, shaders.vertexInstance, shaders.fragment);
+		if (graphics == GRAPHICS_PIPELINE_INVALID)
+		{
+			return false;
+		}
+		state->graphics = graphics;
+		destroy_default_shaders(app->render.device, &shaders);
+	}
+
 	state->references = upload_mesh_data(app->render, memory);
 	state->texture = texture;
 	state->animation = anim;
+	state->group = id;
 
 	app->render.end_copy_pass();
 	app->render.submit_command_buffer();
@@ -193,7 +213,6 @@ void draw(void *userdata, Application *app)
 
 	vec2 qscale = vec2(100, 100);
 
-	/*
 	InstanceData q = {};
 	q.sourceOffset = pack_unorm16x2(offset);
 	q.sourceScale = pack_unorm16x2(scale);
@@ -231,10 +250,11 @@ void draw(void *userdata, Application *app)
 		q.y = state->position[i].y;
 		melv::queue_draw_group(app->render, q, state->group);
 	}
-	*/
 
 	InstanceData frame = state->animation.get_frame(vec3(-100, 100, 0.2), 0, vec2(100, 100));
 	melv::queue_draw_group(app->render, frame, state->group);
+
+
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
