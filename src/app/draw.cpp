@@ -252,7 +252,7 @@ namespace melv
 
     bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug)
     {
-        SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL, enableGpuDebug, nullptr);
+        SDL_GPUDevice* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXIL | SDL_GPU_SHADERFORMAT_MSL, enableGpuDebug, nullptr);
         if (!device)
         {
             log_error("Couldn't create gpu device: %s", SDL_GetError());
@@ -575,7 +575,7 @@ namespace melv
 
         if (!depth_target)
         {
-            log_info("Couldn't create depth target: %s", SDL_GetError());
+            log_error("Couldn't create depth target: %s", SDL_GetError());
             return false;
         }
 
@@ -666,6 +666,22 @@ namespace melv
             fragmentInfo.code = fragment_spv;
             fragmentTextureInfo.code_size = fragment_texture_spv_len;
             fragmentTextureInfo.code = fragment_texture_spv;
+        }
+        else if (shaderFormat & SDL_GPU_SHADERFORMAT_MSL)
+        {
+            vertexInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+            vertexInstanceInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+            fragmentInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+            fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+
+            vertexInfo.code_size = vertex_msl_len;
+            vertexInfo.code = vertex_msl;
+            vertexInstanceInfo.code_size = vertex_instance_msl_len;
+            vertexInstanceInfo.code = vertex_instance_msl;
+            fragmentInfo.code_size = fragment_msl_len;
+            fragmentInfo.code = fragment_msl;
+            fragmentTextureInfo.code_size = fragment_texture_msl_len;
+            fragmentTextureInfo.code = fragment_texture_msl;
         }
         else
         {

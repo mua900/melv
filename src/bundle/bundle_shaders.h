@@ -15,4 +15,11 @@
 #include "vertex_light_spv.h"
 #include "fragment_light_spv.h"
 
+#include "vertex_msl.h"
+#include "vertex_instance_msl.h"
+#include "fragment_msl.h"
+#include "fragment_texture_msl.h"
+#include "vertex_light_msl.h"
+#include "fragment_light_msl.h"
+
 #endif // BUNDLE_SHADERS

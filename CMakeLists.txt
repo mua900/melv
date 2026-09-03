@@ -49,12 +49,22 @@ add_library(melv STATIC
 	src/bundle/bundle_shaders.h
 	src/bundle/vertex_spv.h
 	src/bundle/vertex_dxil.h
+	src/bundle/vertex_msl.h
 	src/bundle/vertex_instance_spv.h
 	src/bundle/vertex_instance_dxil.h
+	src/bundle/vertex_instance_msl.h
+	src/bundle/vertex_light_spv.h
+	src/bundle/vertex_light_dxil.h
+	src/bundle/vertex_light_msl.h
 	src/bundle/fragment_spv.h
 	src/bundle/fragment_dxil.h
+	src/bundle/fragment_msl.h
 	src/bundle/fragment_texture_spv.h
 	src/bundle/fragment_texture_dxil.h
+	src/bundle/fragment_texture_msl.h
+	src/bundle/fragment_light_spv.h
+	src/bundle/fragment_light_dxil.h
+	src/bundle/fragment_light_msl.h
 )
 
 option(BUILD_EXAMPLE_PROGRAM "Build the example program" OFF)
