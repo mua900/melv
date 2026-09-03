@@ -111,7 +111,7 @@ namespace melv
         }
 
         context.frameMeshDraw.discard_data();
-        context.instanceData.discard_data();
+        context.instanceData.mark_empty();
 
         for (GraphicsPipeline& pipeline : context.graphics)
         {
@@ -167,7 +167,7 @@ namespace melv
 
     DrawGroup& RenderContext::get_draw_group(DrawGroupId id) const
     {
-        return graphics.get(id.graphics).groups.get(id.draw);
+        return graphics.get(id.graphics).groups.get_ref(id.draw);
     }
 
     bool RenderContext::start_render_pass() {
@@ -1278,8 +1278,8 @@ namespace melv
             return DRAW_GROUPID_INVALID;
         }
 
-        instanceData.ensure_size(newsize);
-        instanceData.mark_full();
+        this->instanceData.ensure_size(newsize);
+        this->instanceData.mark_full();
 
         u32 groupIndex = pipeline.groups.add(group);
 
@@ -1637,13 +1637,12 @@ namespace melv
         out_index[(NVERTICES - 1) * 3 + 2] = 1;
     }
 
-    bool unloadShader(RenderContext& context, Shader& shader)
+    void unloadShader(RenderContext& context, Shader& shader)
     {
         SDL_ReleaseGPUShader(context.device, shader.shader);
-        return true;
     }
 
-    bool loadShader(RenderContext& context, Shader& shader, const char* path)
+    ShaderLoadResult loadShader(RenderContext& context, Shader& shader, const char* path)
     {
         SDL_GPUShaderFormat format = SDL_GPU_SHADERFORMAT_SPIRV;
         SDL_GPUShaderStage shaderStage = SDL_GPUShaderStage(shader.stage);
@@ -1651,7 +1650,7 @@ namespace melv
         BinaryData code = {};
         if (!load_file(path, code)) {
             log_error("Could not load shader %s", path);
-            return false;
+            return SHADER_LOAD_FAIL;
         }
 
         String extension = string_get_extension(String(path));
@@ -1662,6 +1661,12 @@ namespace melv
         else if (string_compare(extension, String("spv")))
         {
             format = SDL_GPU_SHADERFORMAT_SPIRV;
+        }
+
+        SDL_GPUShaderFormat expectedFormat = SDL_GetGPUShaderFormats(context.device);
+        if (!(expectedFormat & format))
+        {
+            return SHADER_LOAD_INCOMPATIBLE_FORMAT;
         }
 
         SDL_GPUShaderCreateInfo info = {};
@@ -1678,12 +1683,12 @@ namespace melv
         SDL_GPUShader* shaderObj = SDL_CreateGPUShader(context.device, &info);
         if (!shaderObj) {
             log_error("%s", SDL_GetError());
-            return false;
+            return SHADER_LOAD_FAIL;
         }
 
         shader.shader = shaderObj;
 
-        return true;
+        return SHADER_LOAD_SUCCESS;
     }
 
     u16 pack_unorm16(float x, float range)

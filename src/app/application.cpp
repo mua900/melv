@@ -213,8 +213,8 @@ namespace melv
         {
             if (!(catalog.assets[i].flags & ASSET_IS_LAZY))
             {
-                AssetId id = get_asset_at_index(i, catalog);
-                if (!id.is_valid())
+                AssetLoadResult result = load_asset_at_index(i, catalog);
+                if (result == AssetFail)
                 {
                     auto asset_name = catalog.get_asset_name_at_index(i);
                     SCOPE_STRING(asset_name, name);

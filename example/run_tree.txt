@@ -3,4 +3,9 @@ shader file Fragment shader/binary/fragment.spv stage=fragment
 shader file VertexInstance shader/binary/vertex_instance.spv nUniforms=1
 shader file FragTexture shader/binary/fragment_texture.spv stage=fragment nSamplers=1 nTextures=1
 
+shader file Vertex shader/binary/vertex.dxil stage=vertex nUniforms=1
+shader file Fragment shader/binary/fragment.dxil stage=fragment
+shader file VertexInstance shader/binary/vertex_instance.dxil nUniforms=1
+shader file FragTexture shader/binary/fragment_texture.dxil stage=fragment nSamplers=1 nTextures=1
+
 image file TestImg image/test.png

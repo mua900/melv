@@ -58,7 +58,17 @@ add_library(melv STATIC
 )
 
 option(BUILD_EXAMPLE_PROGRAM "Build the example program" OFF)
+
 if (BUILD_EXAMPLE_PROGRAM)
+	# For multi-config generators (Visual Studio, Xcode)
+	foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
+	    string(TOUPPER ${CONFIG} CONFIG_UPPER)
+
+	    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_BINARY_DIR}/bin/${CONFIG})
+	    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_BINARY_DIR}/lib/${CONFIG})
+	    # set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} ${CMAKE_BINARY_DIR}/lib/${CONFIG})
+	endforeach()
+
 	add_executable(
 		example
 		example/src/main.cpp

@@ -332,7 +332,11 @@ namespace melv
         int active_vertex_buffer = 0;
         int active_index_buffer = 0;
 
+        // @todo user
         SDL_GPUSampler* sampler = nullptr;
+
+        // the intention here is to provide something that does the basic things you could want to do
+        // but still provide hooks to lower level things if the user wants them
 
         GraphicsPipelineId graphics_default = {};
         // GraphicsPipelineId graphics_instance = {};
@@ -370,9 +374,8 @@ namespace melv
 
         // @todo draw groups and instancing for user defined meshes
 
-        DArray<InstanceData> instanceData = {};
+        LinearBuffer<InstanceData> instanceData = {};
         u32 next_offset = 0; // the offset after the allocated space for draw groups
-        // DArray<DrawGroup> drawGroups = {};
 
         BucketList<GPUTexture> textures = {};
 
@@ -532,8 +535,13 @@ namespace melv
     // returns false if there is no space left in the group buffer
     bool queue_draw_group(RenderContext& render, InstanceData& data, DrawGroupId groupId);
 
-    bool loadShader(RenderContext& context, Shader& shader, const char* path);
-    bool unloadShader(RenderContext& context, Shader& shader);
+    using ShaderLoadResult = u32;
+    #define SHADER_LOAD_SUCCESS                 0
+    #define SHADER_LOAD_FAIL                    BIT(0)
+    #define SHADER_LOAD_INCOMPATIBLE_FORMAT     BIT(1)
+
+    ShaderLoadResult loadShader(RenderContext& context, Shader& shader, const char* path);
+    void unloadShader(RenderContext& context, Shader& shader);
 
     void destroy_texture(GPUTexture *texture);
 

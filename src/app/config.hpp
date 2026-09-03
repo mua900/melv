@@ -5,5 +5,6 @@
 #define MELV_DEVELOPER 0
 
 #define GRAPHICS_DEBUG 0
+#define ASSET_DEBUG 1
 
 #endif // CONFIG_HPP

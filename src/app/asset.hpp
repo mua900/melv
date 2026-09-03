@@ -284,6 +284,16 @@ namespace melv
     // useful when iterating through the assets and you already know the index
     AssetId get_asset_at_index(int index, AssetCatalog& catalog);
 
+    enum AssetLoadResult
+    {
+        AssetSuccess = 0,
+        AssetFail    = 1,
+        AssetIncompatible = 2,
+    };
+
+    AssetLoadResult load_asset(String name, AssetCatalog& catalog);
+    AssetLoadResult load_asset_at_index(int index, AssetCatalog& catalog);
+
     // @todo maybe add an intermediate step that loads the file to memory but doesn't process it yet like load svg text or font but don't yet rasterize it.
     // if memory usage becomes a problem
 

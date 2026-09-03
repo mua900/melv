@@ -190,8 +190,8 @@ namespace melv
         int m_cursor = 0;
         int m_selection_point = 0;
 
-        float mouse_x;
-        float mouse_y;
+        float mouse_x = 0;
+        float mouse_y = 0;
 
         float m_font_size = 0.0;
         Texture m_texture = {};  // cached texture the text is rendered on, updated every text input event

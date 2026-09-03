@@ -5,16 +5,18 @@
 
 #include <SDL3_image/SDL_image.h>
 
+#include "config.hpp"
+
 namespace melv
 {
 
-    bool load_asset(int index, AssetCatalog& catalog);
+    AssetLoadResult load_asset_helper(int index, AssetCatalog& catalog);
     bool unload_asset(AssetId id, AssetCatalog& catalog, bool reset_generation = true);
 
     SDL_EnumerationResult load_asset_callback(void* userdata, const char* dirname, const char* fname);
     SDL_EnumerationResult unload_asset_callback(void* userdata, const char* dirname, const char* fname);
 
-    bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context);
+    AssetLoadResult load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context);
     void unload_asset_file(Asset& asset, AssetLoadContext& load_context, bool reset_generation = true);
 
     bool parse_image_attribute(String attribute, Texture& texture);
@@ -450,7 +452,7 @@ namespace melv
         unload_asset(id, *this, false);
 
         get_to_asset_path_string(path, asset_path);
-        return load_asset(id.id, *this);
+        return load_asset_at_index(id.id, *this);
     }
 
     bool AssetCatalog::reload_asset_at_index(int index)
@@ -463,7 +465,7 @@ namespace melv
 
         unload_asset(asset.identifier, *this, false);
 
-        return load_asset(asset.identifier.id, *this);
+        return load_asset_at_index(asset.identifier.id, *this);
     }
 
     AssetId get_asset(String name, AssetCatalog& catalog)
@@ -476,7 +478,7 @@ namespace melv
             {
                 if (!asset.identifier.is_valid())
                 {
-                    load_asset(index, catalog);
+                    load_asset_at_index(index, catalog);
                 }
 
                 return catalog.assets[index].identifier;
@@ -499,13 +501,31 @@ namespace melv
 
         if (!catalog.assets[index].identifier.is_valid())
         {
-            load_asset(index, catalog);
+            load_asset_at_index(index, catalog);
         }
 
         return catalog.assets[index].identifier;
     }
 
-    bool load_asset(int index, AssetCatalog& catalog)
+    AssetLoadResult load_asset(String name, AssetCatalog& catalog)
+    {
+        int index = 0;
+        for (auto& asset : catalog.assets)
+        {
+            String asset_name = catalog.catalog.get_string(asset.name);
+            if (string_compare(asset_name, name))
+            {
+                return load_asset_at_index(index, catalog);
+            }
+
+            index += 1;
+        }
+
+        log_error("Couldn't find requested asset with name to load: %.*s", name.size, name.data);
+        return AssetFail;
+    }
+
+    AssetLoadResult load_asset_at_index(int index, AssetCatalog& catalog)
     {
         AssetLoadContext& load_context = catalog.load_context;
         auto asset_path = catalog.catalog.get_string(catalog.assets[index].path);
@@ -516,70 +536,90 @@ namespace melv
 
             if (!SDL_EnumerateDirectory(catalog.path.c_string(), load_asset_callback, &catalog)) {
                 log_error("Couldn't load assets in folder: %.*s", asset_path.size, asset_path.data);
-                return false;
+                return AssetFail;
             }
 
             catalog.assets[index].identifier.generation += 1;
-            return true;
+            return AssetSuccess;
         }
         else {
-            bool load = load_asset_file(catalog.path, catalog.assets[index], catalog.load_context);
-            if (!load)
-            {
-                log_error("Couldn't load asset: %.*s", asset_path.size, asset_path.data);
-                return false;
-            }
-
-            catalog.assets[index].identifier.generation += 1;
-            return true;
+            AssetLoadResult load = load_asset_file(catalog.path, catalog.assets[index], catalog.load_context);
+            if (load == AssetSuccess) catalog.assets[index].identifier.generation += 1;
+            return load;
         }
     }
 
-    bool load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context)
+    AssetLoadResult load_asset_file(String_Builder& path, Asset& asset, AssetLoadContext& load_context)
     {
         switch (asset.kind)
         {
             case ASSET_KIND_IMAGE: {
                 if (!load_context.render->load_gpu_texture(path.c_string(), asset.data.image))
                 {
-                    return false;
+                    return AssetFail;
                 }
-                return true;
+#if ASSET_DEBUG
+                log_info("Loaded image: %s", path.c_string());
+#endif // ASSET_DEBUG
+
+                return AssetSuccess;
             }
             case ASSET_KIND_AUDIO: {
                 MIX_Audio* audio = MIX_LoadAudio(load_context.audio->mixer, path.c_string(), true);
                 if (audio == nullptr)
                 {
                     asset.identifier.id = -1;
-                    return false;
+                    return AssetFail;
                 }
 
                 asset.data.audio = audio;
 
-                return true;
+#if ASSET_DEBUG
+                log_info("Loaded audio: %s", path.c_string());
+#endif // ASSET_DEBUG
+
+                return AssetSuccess;
             }
             case ASSET_KIND_FONT: {
                 bool success = load_font_file(&asset.data.font, path.c_string(), asset.data.font.size);
                 if (!success)
                 {
                     asset.identifier.id = -1;
-                    return false;
+                    return AssetFail;
                 }
 
-                return true;
+#if ASSET_DEBUG
+                log_info("Loaded font: %s", path.c_string());
+#endif // ASSET_DEBUG
+
+                return AssetSuccess;
             }
             case ASSET_KIND_SHADER: {
-                bool success = loadShader(*load_context.render, asset.data.shader, path.c_string());
-                if (!success)
+                ShaderLoadResult result = loadShader(*load_context.render, asset.data.shader, path.c_string());
+                switch (result)
                 {
-                    asset.identifier.id = -1;
-                    return false;
-                }
+                    case SHADER_LOAD_SUCCESS:
+                    {
+#if ASSET_DEBUG
+                        log_info("Loaded shader: %s", path.c_string());
+#endif // ASSET_DEBUG
 
-                return true;
+                        return AssetSuccess;
+                    }
+                    case SHADER_LOAD_FAIL:
+                    {
+                        asset.identifier.id = -1;
+                        return AssetFail;
+                    }
+                    case SHADER_LOAD_INCOMPATIBLE_FORMAT:
+                    {
+                        asset.identifier.id = -1;
+                        return AssetIncompatible;
+                    }
+                }
             }
             default: {
-                return false;
+                panic("Invalid asset kind");
             }
         }
     }
@@ -607,9 +647,13 @@ namespace melv
         int amount = catalog->path.append_path(String(fname));
 
         // we could make this recursize but maybe not necessary
-        if (!load_asset_file(catalog->path, asset, catalog->load_context)) {
+        AssetLoadResult result = load_asset_file(catalog->path, asset, catalog->load_context);
+        if (result == AssetFail) {
             log_error("Couldn't load asset: %s/%s", dirname, fname);
             return SDL_ENUM_FAILURE;
+        }
+        else if (result == AssetIncompatible) {
+            return SDL_ENUM_CONTINUE;
         }
 
         catalog->path.remove(amount);
