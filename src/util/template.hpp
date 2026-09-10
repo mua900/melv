@@ -104,7 +104,7 @@ public:
 			return begin();
 		}
 
-		return m_data + m_size;
+		return m_data + m_capacity;
 	}
 
 	const T* begin() const {
@@ -117,7 +117,7 @@ public:
 			return begin();
 		}
 
-		return m_data + m_size;
+		return m_data + m_capacity;
 	}
 };
 

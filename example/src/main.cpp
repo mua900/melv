@@ -157,8 +157,9 @@ bool initialize(void *userdata, Application *app)
 
 	GPUTexture& gpu_tex = app->render.get_texture(texture);
 	float anim_frame_size = 128;
+	auto atlas = TextureAtlas(texture, anim_frame_size, anim_frame_size, gpu_tex.width / anim_frame_size, gpu_tex.height / anim_frame_size);
 	SpriteAnimation anim = make_sprite_animation(
-							TextureAtlas(texture, anim_frame_size, anim_frame_size, gpu_tex.width / anim_frame_size, gpu_tex.height / anim_frame_size),
+							atlas,
 							4,
 							0.2,
 							AnimationFlags::AnimationLoop
