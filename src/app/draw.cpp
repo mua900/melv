@@ -585,9 +585,9 @@ namespace melv
             // @todo create light target
         }
 
-        render->graphics_default = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline, true));
-        render->graphics_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline_texture, true));
-        render->graphics_instance_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters_instance, pipeline_instance_texture, true));
+        render->graphics_default = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline, true, true));
+        render->graphics_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline_texture, true, true));
+        render->graphics_instance_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters_instance, pipeline_instance_texture, true, true));
         render->vertex_buffer = render->buffers.add({ vertex_buffer, GPUBufferVertex, InitVertexBufferSize, 0 });
         render->index_buffer = render->buffers.add({ index_buffer, GPUBufferIndex, InitIndexBufferSize, 0 });
         render->instance_buffer = render->buffers.add({ instance_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 });

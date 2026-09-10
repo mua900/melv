@@ -27,12 +27,12 @@ public:
 
 	void mark_full()
 	{
-		flags |= BufferIsEmpty;
+		flags &= ~ BufferIsEmpty;
 	}
 
 	void mark_empty()
 	{
-		flags &= ~ BufferIsEmpty;
+		flags |= BufferIsEmpty;
 	}
 
 	void reset()

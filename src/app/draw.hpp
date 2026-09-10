@@ -181,8 +181,8 @@ namespace melv
         bool frame_data = false;  // do we need to upload the instance data for this every frame?
 
         GraphicsPipeline() {}
-        GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, bool predefined_buffers)
-            : parameters(params), pipeline(pline), use_predefined_buffers(predefined_buffers)
+        GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, bool predefined_buffers, bool frame)
+            : parameters(params), pipeline(pline), use_predefined_buffers(predefined_buffers), frame_data(frame)
         {}
         GraphicsPipeline(GraphicsPipelineParameters& params, SDL_GPUGraphicsPipeline* pline, u32 vb, u32 instance, u32 index)
             : parameters(params), pipeline(pline), vertex_buffer(vb), instance_buffer(instance), index_buffer(index)
