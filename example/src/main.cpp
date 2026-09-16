@@ -79,8 +79,6 @@ bool initialize(void *userdata, Application *app)
 		return false;
 	}
 
-	log_info("%d, %d", id.graphics, id.draw);
-
 	TransferData triangle, quad;
 
 	float scale = 100;
@@ -254,8 +252,6 @@ void draw(void *userdata, Application *app)
 
 	InstanceData frame = state->animation.get_frame(vec3(-100, 100, 0.2), 0, vec2(100, 100));
 	melv::queue_draw_group(app->render, frame, state->group);
-
-
 }
 
 bool handleEvent(SDL_Event event, void *userdata, Application* app)
@@ -323,6 +319,8 @@ void updateFunc(void *userdata, Application *app)
 	state->number = dt;
 
 	state->animation.step(dt);
+
+	log_info("%zu", app->render.calculate_resource_video_memory_usage());
 }
 
 void fixedUpdate(void *userdata, Application *app)

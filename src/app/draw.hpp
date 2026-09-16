@@ -17,6 +17,7 @@ namespace melv
     // @todo
     // normal maps
     // lighting
+    // models
 
     struct RenderContext;
 
@@ -176,8 +177,8 @@ namespace melv
         u32 vertex_buffer = 0;
         u32 instance_buffer = 0;
         u32 index_buffer = 0;
-        bool use_predefined_buffers = false; // use the ones in the RenderContext and ignore these ones
         DArray<DrawGroup> groups = {};
+        bool use_predefined_buffers = false; // use the ones in the RenderContext and ignore these ones
         bool frame_data = false;  // do we need to upload the instance data for this every frame?
 
         GraphicsPipeline() {}
@@ -379,8 +380,7 @@ namespace melv
 
         BucketList<GPUTexture> textures = {};
 
-        // @todo
-        size_t calculate_video_memory_usage() const;
+        size_t calculate_resource_video_memory_usage() const;
 
         bool resize_transfer_buffer(TransferBuffer& buffer, u32 nsize);
         bool resize_gpu_buffer(GPUBuffer& buffer, u32 nsize);

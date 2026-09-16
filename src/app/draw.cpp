@@ -1007,9 +1007,35 @@ namespace melv
         tex.texture = ptr;
         tex.width = width;
         tex.height = height;
+        tex.format = textureInfo.format;
+        tex.sampler = 0; // @todo @Hardcode
 
         texture.index = textures.add(tex);
         return true;
+    }
+
+    size_t RenderContext::calculate_resource_video_memory_usage() const
+    {
+        size_t sum = 0;
+
+        for (auto& buffer : buffers)
+        {
+            sum += buffer.size;
+        }
+
+        size_t render_texture_size = SDL_CalculateGPUTextureFormatSize(RenderFormat, RenderTargetWidth, RenderTargetHeight, 1);
+        size_t light_texture_size = 0; // SDL_CalculateGPUTextureFormatSize(); // @todo
+        size_t depth_texture_size = SDL_CalculateGPUTextureFormatSize(DepthFormat, RenderTargetWidth, RenderTargetHeight, 1);
+        sum += render_texture_size;
+        sum += light_texture_size;
+        sum += depth_texture_size;
+
+        for (auto& texture : textures)
+        {
+            sum += SDL_CalculateGPUTextureFormatSize(texture.format, texture.width, texture.height, 1);
+        }
+
+        return sum;
     }
 
     bool RenderContext::resize_transfer_buffer(TransferBuffer& buffer, u32 nsize)
