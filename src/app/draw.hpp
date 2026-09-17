@@ -380,6 +380,7 @@ namespace melv
 
         BucketList<GPUTexture> textures = {};
 
+        // the sum of allocated buffers and textures
         size_t calculate_resource_video_memory_usage() const;
 
         bool resize_transfer_buffer(TransferBuffer& buffer, u32 nsize);

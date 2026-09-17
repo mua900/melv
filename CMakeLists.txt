@@ -45,6 +45,8 @@ add_library(melv STATIC
 	src/app/action_set.hpp
 	src/app/action_set.cpp
 	src/app/config.hpp
+	src/app/platform.hpp
+	src/app/platform.cpp
 
 	src/bundle/bundle_shaders.h
 	src/bundle/vertex_spv.h
@@ -130,12 +132,6 @@ add_subdirectory(vendor/SDL_image EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/SDL_mixer EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/SDL_ttf EXCLUDE_FROM_ALL)
 add_subdirectory(vendor/SDL_net EXCLUDE_FROM_ALL)
-
-target_include_directories(melv PUBLIC vendor/SDL/include/)
-target_include_directories(melv PUBLIC vendor/SDL_image/include/)
-target_include_directories(melv PUBLIC vendor/SDL_mixer/include)
-target_include_directories(melv PUBLIC vendor/SDL_ttf/include/)
-target_include_directories(melv PUBLIC vendor/SDL_net/include/)
 
 target_link_libraries(
 	melv
