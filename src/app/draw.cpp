@@ -597,6 +597,7 @@ namespace melv
         render->sampler = sampler;
         render->transfer_buffer = { transfer_buffer, transferInfo.size };
         render->group_transfer_buffer = { group_transfer_buffer, transferInfo.size };
+        render->doLighting = conf->doLights;
 
         if (!render->upload_common_mesh_data())
         {
@@ -1703,6 +1704,10 @@ namespace melv
         else if (string_compare(extension, String("spv")))
         {
             format = SDL_GPU_SHADERFORMAT_SPIRV;
+        }
+        else if (string_compare(extension, String("msl")))
+        {
+            format = SDL_GPU_SHADERFORMAT_MSL;
         }
 
         SDL_GPUShaderFormat expectedFormat = SDL_GetGPUShaderFormats(context.device);

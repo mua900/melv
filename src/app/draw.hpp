@@ -380,6 +380,8 @@ namespace melv
 
         BucketList<GPUTexture> textures = {};
 
+        bool doLighting = false;
+
         // the sum of allocated buffers and textures
         size_t calculate_resource_video_memory_usage() const;
 

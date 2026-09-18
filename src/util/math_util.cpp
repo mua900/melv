@@ -193,13 +193,38 @@ void mat4mul(mat4x4* dst, mat4x4* left, mat4x4* right)
 // https://learnwebgl.brown37.net/08_projections/projections_ortho.html
 mat4x4 orthographic_projection_matrix(float left, float right, float bottom, float top, float near, float far)
 {
-    return mat4x4{
+    return mat4x4 {
         2.0f / (right - left),  0,                      0,                      -(right + left) / (right - left),
         0,                      2.0f / (top - bottom),  0,                      -(top + bottom) / (top - bottom),
         0,                      0,                      1.0f / (far - near),   -near / (far - near),
         0,                      0,                      0,                      1.0
     };
 }
+
+// https://learnwebgl.brown37.net/08_projections/projections_perspective.html
+mat4x4 frustum_matrix(float left, float right, float bottom, float top, float near, float far)
+{
+    float diff_x = right - left;
+    float diff_y = top - bottom;
+    float diff_z = far - near;
+    return mat4x4 {
+        (2 * near) / diff_x, 0,                   0,                    -near * (right + left) / diff_x,
+        0,                   (2 * near) / diff_y, 0,                    -near * (top + bottom) / diff_y,
+        0,                   0,                  -(far + near) / diff_z, (2 * far * near) / (-diff_z),
+        0,                   0,                  -1,                     0
+    };
+}
+
+mat4x4 perspective_projection_matrix(float fovy, float aspect, float near, float far)
+{
+    float top = near * std::tanf(fovy/2);
+    float bottom = -top;
+    float right = top * aspect;
+    float left = -right;
+
+    return frustum_matrix(left, right, bottom, top, near, far);
+}
+
 
 mat4x4 camera_matrix(vec2 position, vec2 scale)
 {

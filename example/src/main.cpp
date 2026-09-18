@@ -148,7 +148,7 @@ bool initialize(void *userdata, Application *app)
 
 	if (!app->render.start_copy_pass())
 	{
-		log_info("Couldn't start copy pass");
+		log_error("Couldn't start copy pass");
 		app->render.submit_command_buffer();
 		return false;
 	}
@@ -230,7 +230,6 @@ void draw(void *userdata, Application *app)
 	p.z = 0;
 
 	melv::queue_draw_group(app->render, p, state->group);
-
 	melv::queue_draw_group(app->render, q, state->group);
 
 	q.y += 200;
@@ -319,8 +318,6 @@ void updateFunc(void *userdata, Application *app)
 	state->number = dt;
 
 	state->animation.step(dt);
-
-	log_info("%zu", app->render.calculate_resource_video_memory_usage());
 }
 
 void fixedUpdate(void *userdata, Application *app)

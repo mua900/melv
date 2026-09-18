@@ -261,6 +261,8 @@ void mat4mul(mat4x4* dst, mat4x4* left, mat4x4* right);
 
 mat4x4 identity_matrix();
 mat4x4 orthographic_projection_matrix(float left, float right, float bottom, float top, float near, float far);
+mat4x4 perspective_projection_matrix(float fovy, float aspect, float near, float far);
+mat4x4 frustum_matrix(float left, float right, float bottom, float top, float near, float far); // perspective
 // @todo rotation
 mat4x4 camera_matrix(vec2 position, vec2 scale);
 
