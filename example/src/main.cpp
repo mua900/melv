@@ -180,6 +180,13 @@ bool initialize(void *userdata, Application *app)
 		destroy_default_shaders(app->render.device, &shaders);
 	}
 
+	PointLight light = {
+		100, 100,
+		1, 100
+	};
+
+	app->render.lights.add(light);
+
 	state->references = upload_mesh_data(app->render, memory);
 	state->texture = texture;
 	state->animation = anim;
@@ -349,6 +356,7 @@ int main()
 
 	InitConfiguration conf = melv::get_default_init_configuration();
 	conf.render.gpuDebug = true;
+	conf.render.doLights = true;
 
 	if (!app.initialize(conf))
 	{

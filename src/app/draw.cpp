@@ -22,6 +22,8 @@ namespace melv
     void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
     void draw_generic(RenderContext& render, GraphicsPipeline& pipeline);
 
+    // to draw quads or point lights
+    void draw_quads(RenderContext& render, DrawGroup& group, SDL_GPURenderPass* pass, int instance_buffer);
     void draw_quads_texture(RenderContext& render, DrawGroup& group);
 
     // failure if the size of the arrays don't match what's expected
@@ -47,6 +49,7 @@ namespace melv
 
         if (!context.start_copy_pass())
         {
+            context.cancel_command_buffer();
             return;
         }
 
@@ -54,18 +57,9 @@ namespace melv
 
         context.end_copy_pass();
 
-        SDL_GPUTexture* swapchain = nullptr;
-        u32 swapchain_width = 0;
-        u32 swapchain_height = 0;
-        SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
-
-        if (!swapchain)
-        {
-            return;
-        }
-
         if (!context.start_render_pass())
         {
+            context.cancel_command_buffer();
             return;
         }
 
@@ -98,7 +92,66 @@ namespace melv
 
         context.end_render_pass();
 
-        context.copy_to_swapchain(swapchain, swapchain_width, swapchain_height);
+        SDL_GPUTexture* swapchain = nullptr;
+        u32 swapchain_width = 0;
+        u32 swapchain_height = 0;
+        SDL_WaitAndAcquireGPUSwapchainTexture(context.frame.command_buffer, window, &swapchain, &swapchain_width, &swapchain_height);
+
+        if (!swapchain)
+        {
+            context.cancel_command_buffer();
+            return;
+        }
+
+        if (context.doLighting)
+        {
+            if (!context.start_copy_pass())
+            {
+                context.cancel_command_buffer();
+                return;
+            }
+
+            // @todo upload light data
+
+            context.end_copy_pass();
+
+            if (!context.start_light_pass())
+            {
+                context.cancel_command_buffer();
+                return;
+            }
+
+            DrawGroup lightGroup = {
+                TEXTURE_INVALID,
+                0,
+                context.lights.size(),
+                context.lights.size(),
+                nullptr,
+                MatrixDontUse
+            };
+            GraphicsPipeline& pipelineLight = context.graphics.get(context.graphics_light);
+            SDL_BindGPUGraphicsPipeline(context.frame.light_pass, pipelineLight.pipeline);
+            draw_quads(context, lightGroup, context.frame.light_pass, context.light_buffer);
+
+            context.end_light_pass();
+
+            if (!context.start_composition_pass(swapchain))
+            {
+                context.cancel_command_buffer();
+                return;
+            }
+
+            GraphicsPipeline& pipelineComposition = context.graphics.get(context.graphics_composition);
+            SDL_BindGPUGraphicsPipeline(context.frame.light_pass, pipelineComposition.pipeline);
+            // @todo
+
+            context.end_composition_pass();
+        }
+        else
+        {
+            // copy render target to swapchain
+            context.copy_to_swapchain(swapchain, swapchain_width, swapchain_height);
+        }
 
         context.submit_command_buffer();
 
@@ -210,6 +263,68 @@ namespace melv
         ASSERT(frame.render_pass);
         SDL_EndGPURenderPass(frame.render_pass);
         frame.render_pass = nullptr;
+    }
+
+    bool RenderContext::start_light_pass() {
+        SDL_GPURenderPass* light_pass = nullptr;
+
+        SDL_GPUColorTargetInfo color_targets[1] = {};
+        color_targets[0].texture = light_target;
+        color_targets[0].mip_level = 0;
+        color_targets[0].layer_or_depth_plane = 0;
+        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(light_clear_color) };
+        color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
+        color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
+        color_targets[0].resolve_texture = nullptr;
+        color_targets[0].resolve_mip_level = 0;
+        color_targets[0].resolve_layer = 0;
+        color_targets[0].cycle = true;
+        color_targets[0].cycle_resolve_texture = false;
+
+        light_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
+
+        set_mvp(nullptr, MatrixDontUse);
+
+        frame.light_pass = light_pass;
+        return light_pass ? true : false;
+    }
+
+    void RenderContext::end_light_pass() {
+        ASSERT(frame.light_pass);
+        SDL_EndGPURenderPass(frame.light_pass);
+        frame.light_pass = nullptr;
+    }
+
+    bool RenderContext::start_composition_pass(SDL_GPUTexture *swapchain) {
+        SDL_GPURenderPass* composition_pass = nullptr;
+
+        // @todo
+
+        SDL_GPUColorTargetInfo color_targets[1] = {};
+        color_targets[0].texture = swapchain;
+        color_targets[0].mip_level = 0;
+        color_targets[0].layer_or_depth_plane = 0;
+        color_targets[0].clear_color = SDL_FColor { COLOR_ARG(light_clear_color) };
+        color_targets[0].load_op = SDL_GPU_LOADOP_CLEAR;
+        color_targets[0].store_op = SDL_GPU_STOREOP_STORE;
+        color_targets[0].resolve_texture = nullptr;
+        color_targets[0].resolve_mip_level = 0;
+        color_targets[0].resolve_layer = 0;
+        color_targets[0].cycle = true;
+        color_targets[0].cycle_resolve_texture = false;
+
+        composition_pass = SDL_BeginGPURenderPass(frame.command_buffer, color_targets, 1, nullptr);
+
+        set_mvp(nullptr, MatrixDontUse);
+
+        frame.composition_pass = composition_pass;
+        return composition_pass ? true : false;
+    }
+
+    void RenderContext::end_composition_pass() {
+        ASSERT(frame.composition_pass);
+        SDL_EndGPURenderPass(frame.composition_pass);
+        frame.composition_pass = nullptr;
     }
 
     void RenderContext::copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height)
@@ -582,7 +697,21 @@ namespace melv
         SDL_GPUTexture* light_target = nullptr;
         if (conf->doLights)
         {
-            // @todo create light target
+            SDL_GPUTextureCreateInfo lightTargetCI = {};
+            lightTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
+            lightTargetCI.format = RenderFormat;
+            lightTargetCI.usage = SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER;
+            lightTargetCI.width = RenderTargetWidth;
+            lightTargetCI.height = RenderTargetHeight;
+            lightTargetCI.layer_count_or_depth = 1;
+            lightTargetCI.num_levels = 1;
+            lightTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
+            light_target = SDL_CreateGPUTexture(render->device, &lightTargetCI);
+            if (!light_target)
+            {
+                log_error("Couldn't create light target: %s", SDL_GetError());
+                return false;
+            }
         }
 
         render->graphics_default = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline, true, true));
@@ -1450,13 +1579,36 @@ namespace melv
         SDL_DrawGPUIndexedPrimitives(render.frame.render_pass, draw.mesh.index_count, 1, 0, 0, 0);
     }
 
+    void draw_quads(RenderContext& render, DrawGroup& group, SDL_GPURenderPass* pass, int instance_buffer)
+    {
+        ASSERT(pass);
+
+        render.set_mvp(group.matrix, group.matrix_usage);
+
+        SDL_GPUBufferBinding vertex_bindings[2] = {};
+        SDL_GPUBufferBinding index_binding = {};
+
+        vertex_bindings[0].buffer = render.buffers[render.vertex_buffer].buffer;
+        vertex_bindings[0].offset = 0;
+
+        vertex_bindings[1].buffer = render.buffers[instance_buffer].buffer;
+        vertex_bindings[1].offset  = 0;
+
+        index_binding.buffer = render.buffers[render.index_buffer].buffer;
+        index_binding.offset = 0;
+
+        SDL_BindGPUVertexBuffers(pass, 0, vertex_bindings, 2);
+        SDL_BindGPUIndexBuffer(pass, &index_binding, SDL_GPU_INDEXELEMENTSIZE_16BIT);
+        SDL_DrawGPUIndexedPrimitives(pass, 6, group.used, 0, 0, 0);
+    }
+
     void draw_quads_texture(RenderContext& render, DrawGroup& group)
     {
         ASSERT(render.frame.render_pass);
 
         render.set_mvp(group.matrix, group.matrix_usage);
 
-        GPUTexture texture = render.textures.get(group.texture.index);
+        GPUTexture& texture = render.textures.get(group.texture.index);
 
         SDL_GPUTextureSamplerBinding sampler_binding = {};
         sampler_binding.texture = texture.texture;

@@ -57,6 +57,15 @@ namespace melv
     const int InputAttributeCountInstance = 8;
     const int InputAttributeCountMax = melv::max(InputAttributeCountVertex, InputAttributeCountInstance);
 
+    // @todo other light sources
+    struct PointLight
+    {
+        float x = 0;
+        float y = 0;
+        float radius = 0;
+        float brightness = 0;
+    };
+
     struct Vertex {
         float x = 0;
         float y = 0;
@@ -276,6 +285,8 @@ namespace melv
     struct FrameContext {
         SDL_GPUCommandBuffer* command_buffer = nullptr;
         SDL_GPURenderPass* render_pass = nullptr;
+        SDL_GPURenderPass* light_pass = nullptr;
+        SDL_GPURenderPass* composition_pass = nullptr;
         SDL_GPUCopyPass* copy_pass = nullptr;
     };
 
@@ -320,6 +331,7 @@ namespace melv
     	const Camera* camera = {};
 
         Colorf clear_color = {};
+        Colorf light_clear_color = {};  // take it for base or ambient light
 
         SDL_GPUDevice* device = nullptr;
 
@@ -354,6 +366,7 @@ namespace melv
         BufferHandle vertex_buffer = {};
         BufferHandle instance_buffer = {};
         BufferHandle index_buffer = {};
+        BufferHandle light_buffer = {};
 
         SDL_GPUTexture* render_target = nullptr;
 
@@ -379,6 +392,8 @@ namespace melv
         u32 next_offset = 0; // the offset after the allocated space for draw groups
 
         BucketList<GPUTexture> textures = {};
+
+        DArray<PointLight> lights = {};
 
         bool doLighting = false;
 
@@ -408,6 +423,12 @@ namespace melv
 
         bool start_copy_pass();
         void end_copy_pass();
+
+        bool start_light_pass();
+        void end_light_pass();
+
+        bool start_composition_pass(SDL_GPUTexture* swapchain);
+        void end_composition_pass();
 
         u32 allocate_gpu_buffer(GPUBufferUsage usage, u32 size);
         bool set_vertex_buffer(u32 buffer);
