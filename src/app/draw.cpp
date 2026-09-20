@@ -44,9 +44,12 @@ namespace melv
             return;
         }
 
-        if (!copy_frame_light_data(context))
+        if (context.doLighting)
         {
-            return;
+            if (!copy_frame_light_data(context))
+            {
+                return;
+            }
         }
 
         if (!context.get_command_buffer())
@@ -61,6 +64,11 @@ namespace melv
         }
 
         upload_frame_instance_data(context);
+
+        if (context.doLighting)
+        {
+            upload_frame_light_data(context);
+        }
 
         context.end_copy_pass();
 
@@ -112,16 +120,6 @@ namespace melv
 
         if (context.doLighting)
         {
-            if (!context.start_copy_pass())
-            {
-                context.cancel_command_buffer();
-                return;
-            }
-
-            upload_frame_light_data(context);
-
-            context.end_copy_pass();
-
             if (!context.start_light_pass())
             {
                 context.cancel_command_buffer();
@@ -654,8 +652,10 @@ namespace melv
 
         GraphicsPipelineParameters pipeline_parameters = default_graphics_pipeline_parameters();
         GraphicsPipelineParameters pipeline_parameters_instance = default_graphics_pipeline_parameters();
+        GraphicsPipelineParameters pipeline_parameters_light = default_graphics_pipeline_parameters();
 
         pipeline_parameters_instance.input = InputInstance;
+        pipeline_parameters_light.input = InputLight;
 
         SDL_GPUGraphicsPipeline* pipeline = create_gpu_graphics_pipeline(&pipeline_parameters, render, shaders.vertex, shaders.fragment);
         if (!pipeline) {
@@ -677,6 +677,17 @@ namespace melv
             return false;
         }
 
+        SDL_GPUGraphicsPipeline* pipeline_light = nullptr;
+        if (conf->doLights)
+        {
+            pipeline_light = create_gpu_graphics_pipeline(&pipeline_parameters_light, render, shaders.vertexLight, shaders.fragmentLight);
+            if (!pipeline_light)
+            {
+                log_error("Failed to create graphics pipeline: %s", SDL_GetError());
+                return false;
+            }
+        }
+
         SDL_GPUTransferBufferCreateInfo transferInfo = {};
         transferInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
         transferInfo.size = InitTransferBufferSize;
@@ -693,10 +704,16 @@ namespace melv
         SDL_GPUBufferCreateInfo vertexBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, InitVertexBufferSize };
         SDL_GPUBufferCreateInfo indexBufferCI = { SDL_GPU_BUFFERUSAGE_INDEX, InitIndexBufferSize };
         SDL_GPUBufferCreateInfo instanceBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, InitInstanceBufferSize };
+        SDL_GPUBufferCreateInfo lightBufferCI = { SDL_GPU_BUFFERUSAGE_VERTEX, InitInstanceBufferSize };
 
         SDL_GPUBuffer* vertex_buffer = SDL_CreateGPUBuffer(render->device, &vertexBufferCI);
         SDL_GPUBuffer* index_buffer = SDL_CreateGPUBuffer(render->device, &indexBufferCI);
         SDL_GPUBuffer* instance_buffer = SDL_CreateGPUBuffer(render->device, &instanceBufferCI);
+        SDL_GPUBuffer *light_buffer = nullptr;
+        if (conf->doLights)
+        {
+            light_buffer = SDL_CreateGPUBuffer(render->device, &lightBufferCI);
+        }
 
         if (!(vertex_buffer && index_buffer && instance_buffer))
         {
@@ -789,9 +806,11 @@ namespace melv
         render->graphics_default = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline, true, true));
         render->graphics_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline_texture, true, true));
         render->graphics_instance_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters_instance, pipeline_instance_texture, true, true));
+        render->graphics_light = render->graphics.add(GraphicsPipeline(pipeline_parameters_light, pipeline_light, true, true));
         render->vertex_buffer = render->buffers.add({ vertex_buffer, GPUBufferVertex, InitVertexBufferSize, 0 });
         render->index_buffer = render->buffers.add({ index_buffer, GPUBufferIndex, InitIndexBufferSize, 0 });
         render->instance_buffer = render->buffers.add({ instance_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 });
+        render->light_buffer = render->buffers.add({ light_buffer, GPUBufferVertex, InitInstanceBufferSize, 0 });
         render->render_target = render_target;
         render->light_target = light_target;
         render->depth_target = depth_target;
@@ -816,21 +835,29 @@ namespace melv
     {
         SDL_GPUShaderCreateInfo vertexInfo = {};
         SDL_GPUShaderCreateInfo vertexInstanceInfo = {};
+        SDL_GPUShaderCreateInfo vertexLightInfo = {};
         SDL_GPUShaderCreateInfo fragmentInfo = {};
         SDL_GPUShaderCreateInfo fragmentTextureInfo = {};
+        SDL_GPUShaderCreateInfo fragmentLightInfo = {};
 
         vertexInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+        vertexInstanceInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
+        vertexLightInfo.stage = SDL_GPU_SHADERSTAGE_VERTEX;
         fragmentInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
         fragmentTextureInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
+        fragmentLightInfo.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
 
         vertexInfo.entrypoint = "main";
         vertexInstanceInfo.entrypoint = "main";
+        vertexLightInfo.entrypoint = "main";
         fragmentInfo.entrypoint = "main";
         fragmentTextureInfo.entrypoint = "main";
+        fragmentLightInfo.entrypoint = "main";
 
         // mvp
         vertexInfo.num_uniform_buffers = 1;
         vertexInstanceInfo.num_uniform_buffers = 1;
+        vertexLightInfo.num_uniform_buffers = 1;
 
         fragmentTextureInfo.num_storage_textures = 1;
         fragmentTextureInfo.num_samplers = 1;
@@ -842,49 +869,67 @@ namespace melv
         {
             vertexInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
             vertexInstanceInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+            vertexLightInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
             fragmentInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
             fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
+            fragmentLightInfo.format = SDL_GPU_SHADERFORMAT_DXIL;
 
             vertexInfo.code_size = vertex_dxil_len;
             vertexInfo.code = vertex_dxil;
             vertexInstanceInfo.code_size = vertex_instance_dxil_len;
             vertexInstanceInfo.code = vertex_instance_dxil;
+            vertexLightInfo.code_size = vertex_light_dxil_len;
+            vertexLightInfo.code = vertex_light_dxil;
             fragmentInfo.code_size = fragment_dxil_len;
             fragmentInfo.code = fragment_dxil;
             fragmentTextureInfo.code_size = fragment_texture_dxil_len;
             fragmentTextureInfo.code = fragment_texture_dxil;
+            fragmentLightInfo.code_size = fragment_light_dxil_len;
+            fragmentLightInfo.code = fragment_light_dxil;
         }
         else if (shaderFormat & SDL_GPU_SHADERFORMAT_SPIRV)
         {
             vertexInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             vertexInstanceInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+            vertexLightInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             fragmentInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
             fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
+            fragmentLightInfo.format = SDL_GPU_SHADERFORMAT_SPIRV;
 
             vertexInfo.code_size = vertex_spv_len;
             vertexInfo.code = vertex_spv;
             vertexInstanceInfo.code_size = vertex_instance_spv_len;
             vertexInstanceInfo.code = vertex_instance_spv;
+            vertexLightInfo.code_size = vertex_light_spv_len;
+            vertexLightInfo.code = vertex_light_spv;
             fragmentInfo.code_size = fragment_spv_len;
             fragmentInfo.code = fragment_spv;
             fragmentTextureInfo.code_size = fragment_texture_spv_len;
             fragmentTextureInfo.code = fragment_texture_spv;
+            fragmentLightInfo.code_size = fragment_light_spv_len;
+            fragmentLightInfo.code = fragment_light_spv;
         }
         else if (shaderFormat & SDL_GPU_SHADERFORMAT_MSL)
         {
             vertexInfo.format = SDL_GPU_SHADERFORMAT_MSL;
             vertexInstanceInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+            vertexLightInfo.format = SDL_GPU_SHADERFORMAT_MSL;
             fragmentInfo.format = SDL_GPU_SHADERFORMAT_MSL;
             fragmentTextureInfo.format = SDL_GPU_SHADERFORMAT_MSL;
+            fragmentLightInfo.format = SDL_GPU_SHADERFORMAT_MSL;
 
             vertexInfo.code_size = vertex_msl_len;
             vertexInfo.code = vertex_msl;
             vertexInstanceInfo.code_size = vertex_instance_msl_len;
             vertexInstanceInfo.code = vertex_instance_msl;
+            vertexLightInfo.code_size = vertex_light_msl_len;
+            vertexLightInfo.code = vertex_light_msl;
             fragmentInfo.code_size = fragment_msl_len;
             fragmentInfo.code = fragment_msl;
             fragmentTextureInfo.code_size = fragment_texture_msl_len;
             fragmentTextureInfo.code = fragment_texture_msl;
+            fragmentLightInfo.code_size = fragment_light_msl_len;
+            fragmentLightInfo.code = fragment_light_msl;
         }
         else
         {
@@ -894,10 +939,12 @@ namespace melv
 
         SDL_GPUShader *vertex = SDL_CreateGPUShader(device, &vertexInfo);
         SDL_GPUShader *vertex_instance = SDL_CreateGPUShader(device, &vertexInstanceInfo);
+        SDL_GPUShader *vertex_light = SDL_CreateGPUShader(device, &vertexLightInfo);
         SDL_GPUShader *fragment = SDL_CreateGPUShader(device, &fragmentInfo);
         SDL_GPUShader *fragment_texture = SDL_CreateGPUShader(device, &fragmentTextureInfo);
+        SDL_GPUShader *fragment_light = SDL_CreateGPUShader(device, &fragmentLightInfo);
 
-        if (!(vertex && vertex_instance && fragment && fragment_texture))
+        if (!(vertex && vertex_instance && fragment && fragment_texture && vertex_light && fragment_light))
         {
             log_error("%s", SDL_GetError());
             return false;
@@ -907,6 +954,8 @@ namespace melv
         shaders->vertexInstance = vertex_instance;
         shaders->fragment = fragment;
         shaders->fragmentTexture = fragment_texture;
+        shaders->vertexLight = vertex_light;
+        shaders->fragmentLight = fragment_light;
 
         return true;
     }
@@ -1394,7 +1443,7 @@ namespace melv
             index += 1;
         }
 
-        SDL_UnmapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer);
+        SDL_UnmapGPUTransferBuffer(render.device, render.light_transfer_buffer.buffer);
 
         return true;
     }

@@ -466,7 +466,6 @@ namespace melv
 
         void set_mvp(mat4x4* mat, DrawMatrixUsage usage);
 
-        // camera transforms on the cpu
         melv::vec2 transformWorld(melv::vec2 p) const;
         melv::vec2 transformScreen(melv::vec2 p) const;
         melv::Rectangle transform_rectangle(melv::Rectangle r) const;
