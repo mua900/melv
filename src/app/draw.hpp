@@ -17,7 +17,7 @@ namespace melv
     // @todo
     // normal maps
     // lighting
-    // models
+    // models (multiple meshes can make up a model)
 
     struct RenderContext;
 
@@ -51,20 +51,13 @@ namespace melv
 
     const int VBufferDescriptionCountVertex = 1;
     const int VBufferDescriptionCountInstance = 2;
-    const int VBufferDescriptionCountMax = melv::max(VBufferDescriptionCountVertex, VBufferDescriptionCountInstance);
+    const int VBufferDescriptionCountLight = 2;
+    const int VBufferDescriptionCountMax = melv::max(VBufferDescriptionCountLight, melv::max(VBufferDescriptionCountVertex, VBufferDescriptionCountInstance));
 
     const int InputAttributeCountVertex = 3;
     const int InputAttributeCountInstance = 8;
-    const int InputAttributeCountMax = melv::max(InputAttributeCountVertex, InputAttributeCountInstance);
-
-    // @todo other light sources
-    struct PointLight
-    {
-        float x = 0;
-        float y = 0;
-        float radius = 0;
-        float brightness = 0;
-    };
+    const int InputAttributeCountLight = 6;
+    const int InputAttributeCountMax = melv::max(InputAttributeCountLight, melv::max(InputAttributeCountVertex, InputAttributeCountInstance));
 
     struct Vertex {
         float x = 0;
@@ -132,6 +125,17 @@ namespace melv
         u32 sourceScale = 0;  // x, y
     };
 
+    // @todo other light sources
+    struct PointLight
+    {
+        float x = 0;
+        float y = 0;
+        float z = 0;
+        float radius = 0;
+        float brightness = 0;
+        u32 color = 0;
+    };
+
     struct InstanceDraw
     {
         InstanceData data = {};
@@ -168,8 +172,9 @@ namespace melv
 
     enum VertexInputType
     {
-        InputVertex,
-        InputInstance,
+        InputVertex,   // Vertex
+        InputInstance, // VertexInstance + InstanceData
+        InputLight,    // VertexInstance + PointLight
     };
 
     struct GraphicsPipelineParameters
@@ -186,7 +191,10 @@ namespace melv
         u32 vertex_buffer = 0;
         u32 instance_buffer = 0;
         u32 index_buffer = 0;
+
+        // @todo cleanup this isn't used for lights
         DArray<DrawGroup> groups = {};
+
         bool use_predefined_buffers = false; // use the ones in the RenderContext and ignore these ones
         bool frame_data = false;  // do we need to upload the instance data for this every frame?
 
@@ -377,6 +385,7 @@ namespace melv
 
         TransferBuffer transfer_buffer = {};
         TransferBuffer group_transfer_buffer = {};
+        TransferBuffer light_transfer_buffer = {};
 
         FrameContext frame = {};
 
@@ -453,7 +462,7 @@ namespace melv
 
         bool set_shaders(GraphicsPipeline* gp, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
-        void copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height);
+        void copy_to_swapchain(SDL_GPUTexture *texture, SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height);
 
         void set_mvp(mat4x4* mat, DrawMatrixUsage usage);
 
@@ -551,6 +560,9 @@ namespace melv
 
     DArray<MeshReference> upload_mesh_data(RenderContext& context, TransferData& data);
     DArray<MeshReference> upload_mesh_data_buffers(RenderContext& context, TransferData& data, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
+
+    bool add_point_light(RenderContext& render, PointLight& light);
+    bool add_point_lights(RenderContext& render, PointLight *lights, int num_lights);
 
     bool queue_draw(RenderContext& render, DrawGroup& group, InstanceData& data);
 

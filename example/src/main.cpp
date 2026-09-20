@@ -181,11 +181,12 @@ bool initialize(void *userdata, Application *app)
 	}
 
 	PointLight light = {
-		100, 100,
-		1, 100
+		100, 100, 0,
+		100, 1,
+		melv::colorToHex(Colorf(1,1,1,1))
 	};
 
-	app->render.lights.add(light);
+	add_point_light(app->render, light);
 
 	state->references = upload_mesh_data(app->render, memory);
 	state->texture = texture;

@@ -32,12 +32,19 @@ namespace melv
 
     bool copy_frame_instance_data(RenderContext& render);
     void upload_frame_instance_data(RenderContext& render);
+    bool copy_frame_light_data(RenderContext& render);
+    void upload_frame_light_data(RenderContext& render);
 
     const int RenderTargetWidth = 1440;
     const int RenderTargetHeight = 810;
 
     void render_present(RenderContext& context, SDL_Window* window) {
         if (!copy_frame_instance_data(context))
+        {
+            return;
+        }
+
+        if (!copy_frame_light_data(context))
         {
             return;
         }
@@ -111,7 +118,7 @@ namespace melv
                 return;
             }
 
-            // @todo upload light data
+            upload_frame_light_data(context);
 
             context.end_copy_pass();
 
@@ -135,22 +142,27 @@ namespace melv
 
             context.end_light_pass();
 
-            if (!context.start_composition_pass(swapchain))
+            context.copy_to_swapchain(context.light_target, swapchain, swapchain_width, swapchain_height);
+
+            if (false)
             {
-                context.cancel_command_buffer();
-                return;
+                if (!context.start_composition_pass(swapchain))
+                {
+                    context.cancel_command_buffer();
+                    return;
+                }
+
+                GraphicsPipeline& pipelineComposition = context.graphics.get(context.graphics_composition);
+                SDL_BindGPUGraphicsPipeline(context.frame.light_pass, pipelineComposition.pipeline);
+                // @todo
+
+                context.end_composition_pass();
             }
-
-            GraphicsPipeline& pipelineComposition = context.graphics.get(context.graphics_composition);
-            SDL_BindGPUGraphicsPipeline(context.frame.light_pass, pipelineComposition.pipeline);
-            // @todo
-
-            context.end_composition_pass();
         }
         else
         {
             // copy render target to swapchain
-            context.copy_to_swapchain(swapchain, swapchain_width, swapchain_height);
+            context.copy_to_swapchain(context.render_target, swapchain, swapchain_width, swapchain_height);
         }
 
         context.submit_command_buffer();
@@ -327,10 +339,10 @@ namespace melv
         frame.composition_pass = nullptr;
     }
 
-    void RenderContext::copy_to_swapchain(SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height)
+    void RenderContext::copy_to_swapchain(SDL_GPUTexture *texture, SDL_GPUTexture* swapchain, u32 swapchain_width, u32 swapchain_height)
     {
         SDL_GPUBlitRegion rt_region = {};
-        rt_region.texture = render_target;
+        rt_region.texture = texture;
         rt_region.x = 0;
         rt_region.y = 0;
         rt_region.w = RenderTargetWidth;
@@ -447,7 +459,7 @@ namespace melv
                 InputAttributeCountVertex                          /**< The number of vertex attribute descriptions in the above array. */
             };
         }
-        else
+        else if (parameters->input == InputInstance)
         {
             vertex_buffer_description[0].slot = 0;
             vertex_buffer_description[0].pitch = sizeof(VertexInstance);
@@ -512,10 +524,68 @@ namespace melv
                 InputAttributeCountInstance                          /**< The number of vertex attribute descriptions in the above array. */
             };
         }
+        else if (parameters->input == InputLight)
+        {
+            vertex_buffer_description[0].slot = 0;
+            vertex_buffer_description[0].pitch = sizeof(VertexInstance);
+            vertex_buffer_description[0].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+
+            vertex_buffer_description[1].slot = 1;
+            vertex_buffer_description[1].pitch = sizeof(PointLight);
+            vertex_buffer_description[1].input_rate = SDL_GPU_VERTEXINPUTRATE_INSTANCE;
+
+            // vertex position
+            vertex_attributes[0].location = 0;
+            vertex_attributes[0].buffer_slot = 0;
+            vertex_attributes[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+            vertex_attributes[0].offset = 0;
+
+            // @todo we don't actually need them for lights
+            // uv
+            vertex_attributes[1].location = 1;
+            vertex_attributes[1].buffer_slot = 0;
+            vertex_attributes[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+            vertex_attributes[1].offset = sizeof(float) * 2;
+
+            // light position
+            vertex_attributes[2].location = 2;
+            vertex_attributes[2].buffer_slot = 1;
+            vertex_attributes[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3;
+            vertex_attributes[2].offset = 0;
+
+            // radius
+            vertex_attributes[3].location = 3;
+            vertex_attributes[3].buffer_slot = 1;
+            vertex_attributes[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+            vertex_attributes[3].offset = OFFSETOF(PointLight, radius);
+
+            // brightness
+            vertex_attributes[4].location = 4;
+            vertex_attributes[4].buffer_slot = 1;
+            vertex_attributes[4].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+            vertex_attributes[4].offset = OFFSETOF(PointLight, brightness);
+
+            // color
+            vertex_attributes[5].location = 5;
+            vertex_attributes[5].buffer_slot = 1;
+            vertex_attributes[5].format = SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM;
+            vertex_attributes[5].offset = OFFSETOF(PointLight, color);
+
+            vertex_input = {
+                vertex_buffer_description,  /**< A pointer to an array of vertex buffer descriptions. */
+                VBufferDescriptionCountLight,                          /**< The number of vertex buffer descriptions in the above array. */
+                vertex_attributes,                   /**< A pointer to an array of vertex attribute descriptions. */
+                InputAttributeCountLight                          /**< The number of vertex attribute descriptions in the above array. */
+            };
+        }
+        else
+        {
+            panic("Invalid graphics pipeline vertex input format");
+        }
 
         SDL_GPURasterizerState rasterizer = {};
         rasterizer.fill_mode = SDL_GPU_FILLMODE_FILL;         /**< Whether polygons will be filled in or drawn as lines. */
-        rasterizer.cull_mode = SDL_GPU_CULLMODE_NONE;         /**< The facing direction in which triangles will be culled. */
+        rasterizer.cull_mode = SDL_GPU_CULLMODE_BACK;         /**< The facing direction in which triangles will be culled. */
         rasterizer.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;       /**< The vertex winding that will cause a triangle to be determined as front-facing. */
         // rasterizer.depth_bias_constant_factor;  /**< A scalar factor controlling the depth value added to each fragment. */
         // rasterizer.depth_bias_clamp;            /**< The maximum depth bias of a fragment. */
@@ -523,6 +593,7 @@ namespace melv
         // rasterizer.enable_depth_bias;            /**< true to bias fragment depth values. */
         rasterizer.enable_depth_clip = true;            /**< true to enable depth clip, false to enable depth clamp. */
 
+        // @todo add this to parameters
         SDL_GPUMultisampleState multisample = {};
         multisample.sample_count = SDL_GPU_SAMPLECOUNT_1;  /**< The number of samples to be used in rasterization. */
         multisample.sample_mask = 0;               /**< Reserved for future use. Must be set to 0. */
@@ -611,8 +682,9 @@ namespace melv
         transferInfo.size = InitTransferBufferSize;
         SDL_GPUTransferBuffer* transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
         SDL_GPUTransferBuffer* group_transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
+        SDL_GPUTransferBuffer* light_transfer_buffer = SDL_CreateGPUTransferBuffer(render->device, &transferInfo);
 
-        if (!(transfer_buffer && group_transfer_buffer))
+        if (!(transfer_buffer && group_transfer_buffer && light_transfer_buffer))
         {
             log_error("Couldn't create transfer buffer");
             return false;
@@ -726,6 +798,7 @@ namespace melv
         render->sampler = sampler;
         render->transfer_buffer = { transfer_buffer, transferInfo.size };
         render->group_transfer_buffer = { group_transfer_buffer, transferInfo.size };
+        render->light_transfer_buffer = { light_transfer_buffer, transferInfo.size };
         render->doLighting = conf->doLights;
 
         if (!render->upload_common_mesh_data())
@@ -1194,7 +1267,7 @@ namespace melv
     {
         if (buffer.size < nsize)
         {
-    #ifdef GRAPHICS_DEBUG
+    #if GRAPHICS_DEBUG
             log_info("Resize GPU buffer");
     #endif
             SDL_GPUBufferCreateInfo ci = { buffer.usage, nsize };
@@ -1303,6 +1376,42 @@ namespace melv
             destination.buffer = render.buffers[render.instance_buffer].buffer;
             destination.offset = 0;
             destination.size = render.instanceData.size() * sizeof(InstanceData);
+
+            SDL_UploadToGPUBuffer(render.frame.copy_pass, &source, &destination, false);
+        }
+    }
+
+    bool copy_frame_light_data(RenderContext& render)
+    {
+        PointLight* memory = (PointLight*) SDL_MapGPUTransferBuffer(render.device, render.light_transfer_buffer.buffer, false);
+        ASSERT(memory);
+        GraphicsPipeline& pipeline = render.graphics[render.graphics_light];
+
+        u32 index = 0;
+        for (auto& light : render.lights)
+        {
+            memory[index] = light;
+            index += 1;
+        }
+
+        SDL_UnmapGPUTransferBuffer(render.device, render.group_transfer_buffer.buffer);
+
+        return true;
+    }
+
+    void upload_frame_light_data(RenderContext& render)
+    {
+        if (render.lights.size() > 0)
+        {
+            SDL_GPUTransferBufferLocation source = {};
+            SDL_GPUBufferRegion destination = {};
+
+            source.transfer_buffer = render.light_transfer_buffer.buffer;
+            source.offset = 0;
+
+            destination.buffer = render.buffers[render.light_buffer].buffer;
+            destination.offset = 0;
+            destination.size = render.lights.size() * sizeof(PointLight);
 
             SDL_UploadToGPUBuffer(render.frame.copy_pass, &source, &destination, false);
         }
@@ -1469,6 +1578,45 @@ namespace melv
         GraphicsPipeline graphics_pipeline = GraphicsPipeline(params, pipeline, 0, 0, 0);
 
         return graphics.add(graphics_pipeline);
+    }
+
+    bool add_point_light(RenderContext& render, PointLight& light)
+    {
+        size_t memory_req = (render.lights.size() + 1) * sizeof(PointLight);
+        if (!render.resize_transfer_buffer(render.light_transfer_buffer, memory_req))
+        {
+            return false;
+        }
+
+        if (!render.resize_gpu_buffer(render.buffers[render.light_buffer], memory_req))
+        {
+            return false;
+        }
+
+        render.lights.add(light);
+        return true;
+    }
+
+    bool add_point_lights(RenderContext& render, PointLight *lights, int num_lights)
+    {
+        size_t memory_req = (render.lights.size() + num_lights) * sizeof(PointLight);
+        if (!render.resize_transfer_buffer(render.light_transfer_buffer, memory_req))
+        {
+            return false;
+        }
+
+        if (!render.resize_gpu_buffer(render.buffers[render.light_buffer], memory_req))
+        {
+            return false;
+        }
+
+        render.lights.ensure_size(render.lights.size() + num_lights);
+        for (int i = 0; i < num_lights; i++)
+        {
+            render.lights.add(lights[i]);
+        }
+
+        return true;
     }
 
     void queue_draw_mesh(RenderContext& render, MeshDraw& draw)
@@ -1781,11 +1929,11 @@ namespace melv
         out_vertex[3] = VertexInstance(0.5, 0.5, 1, 0);
 
         out_index[0] = 0;
-        out_index[1] = 3;
-        out_index[2] = 1;
+        out_index[1] = 1;
+        out_index[2] = 3;
         out_index[3] = 0;
-        out_index[4] = 2;
-        out_index[5] = 3;
+        out_index[4] = 3;
+        out_index[5] = 2;
     }
 
     void generate_circle_mesh(DArray<VertexInstance>& out_vertex, DArray<u16>& out_index)
