@@ -416,10 +416,11 @@ namespace melv
         return true;
     }
 
-    GraphicsPipelineParameters default_graphics_pipeline_parameters()
+    GraphicsPipelineParameters get_default_graphics_pipeline_parameters()
     {
-        GraphicsPipelineParameters parameters;
+        GraphicsPipelineParameters parameters = {};
         parameters.format = RenderFormat;
+        parameters.depth_format = SDL_GPU_TEXTUREFORMAT_INVALID;
         parameters.input = InputVertex;
         return parameters;
     }
@@ -626,8 +627,8 @@ namespace melv
         SDL_GPUGraphicsPipelineTargetInfo target_info = {};
         target_info.color_target_descriptions = color_target_description;  /**< A pointer to an array of color target descriptions. */
         target_info.num_color_targets = ARRAY_SIZE(color_target_description);                                        /**< The number of color target descriptions in the above array. */
-        target_info.depth_stencil_format = DepthFormat;
-        target_info.has_depth_stencil_target = true;                                   /**< true specifies that the pipeline uses a depth-stencil target. */
+        target_info.depth_stencil_format = parameters->depth_format;
+        target_info.has_depth_stencil_target = (parameters->depth_format != SDL_GPU_TEXTUREFORMAT_INVALID);
 
         SDL_GPUGraphicsPipelineCreateInfo pipelineInfo = {};
         pipelineInfo.vertex_shader = vertex;
@@ -652,9 +653,12 @@ namespace melv
             return false;
         }
 
-        GraphicsPipelineParameters pipeline_parameters = default_graphics_pipeline_parameters();
-        GraphicsPipelineParameters pipeline_parameters_instance = default_graphics_pipeline_parameters();
-        GraphicsPipelineParameters pipeline_parameters_light = default_graphics_pipeline_parameters();
+        GraphicsPipelineParameters pipeline_parameters = get_default_graphics_pipeline_parameters();
+        GraphicsPipelineParameters pipeline_parameters_instance = get_default_graphics_pipeline_parameters();
+        GraphicsPipelineParameters pipeline_parameters_light = get_default_graphics_pipeline_parameters();
+
+        pipeline_parameters.depth_format = DepthFormat;
+        pipeline_parameters_instance.depth_format = DepthFormat;
 
         pipeline_parameters_instance.input = InputInstance;
         pipeline_parameters_light.input = InputLight;
@@ -747,6 +751,14 @@ namespace melv
 
         SDL_GPUTexture *render_target = nullptr;
         {
+            // to suppress a d3d12 warning
+            // it will still be there if the user overwrites this value though
+            SDL_PropertiesID renderTargetProperties = SDL_CreateProperties();
+            SDL_SetFloatProperty(renderTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_R_FLOAT", ClearColorDefault.r);
+            SDL_SetFloatProperty(renderTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_G_FLOAT", ClearColorDefault.g);
+            SDL_SetFloatProperty(renderTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_B_FLOAT", ClearColorDefault.b);
+            SDL_SetFloatProperty(renderTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_A_FLOAT", ClearColorDefault.a);
+
             SDL_GPUTextureCreateInfo renderTargetCI = {};
             renderTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
             renderTargetCI.format = RenderFormat;
@@ -757,6 +769,8 @@ namespace melv
             renderTargetCI.num_levels = 1;
             renderTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
             render_target = SDL_CreateGPUTexture(render->device, &renderTargetCI);
+
+            SDL_DestroyProperties(renderTargetProperties);
         }
 
         if (!render_target)
@@ -767,6 +781,10 @@ namespace melv
 
         SDL_GPUTexture *depth_target = nullptr;
         {
+            // to suppress a d3d12 warning
+            SDL_PropertiesID depthTargetProperties = SDL_CreateProperties();
+            SDL_SetFloatProperty(depthTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_DEPTH_FLOAT", 1);
+
             SDL_GPUTextureCreateInfo depthTargetCI = {};
             depthTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
             depthTargetCI.format = DepthFormat; // D16
@@ -777,6 +795,8 @@ namespace melv
             depthTargetCI.num_levels = 1;
             depthTargetCI.sample_count = SDL_GPU_SAMPLECOUNT_1;
             depth_target = SDL_CreateGPUTexture(render->device, &depthTargetCI);
+
+            SDL_DestroyProperties(depthTargetProperties);
         }
 
         if (!depth_target)
@@ -788,6 +808,14 @@ namespace melv
         SDL_GPUTexture* light_target = nullptr;
         if (conf->doLights)
         {
+            // to suppress a d3d12 warning
+            // it will still be there if the user overwrites this value though
+            SDL_PropertiesID lightTargetProperties = SDL_CreateProperties();
+            SDL_SetFloatProperty(lightTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_R_FLOAT", LightClearColorDefault.r);
+            SDL_SetFloatProperty(lightTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_G_FLOAT", LightClearColorDefault.g);
+            SDL_SetFloatProperty(lightTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_B_FLOAT", LightClearColorDefault.b);
+            SDL_SetFloatProperty(lightTargetProperties, "SDL_PROP_GPU_TEXTURE_CREATE_D3D12_CLEAR_A_FLOAT", LightClearColorDefault.a);
+
             SDL_GPUTextureCreateInfo lightTargetCI = {};
             lightTargetCI.type = SDL_GPU_TEXTURETYPE_2D;
             lightTargetCI.format = RenderFormat;
@@ -803,7 +831,12 @@ namespace melv
                 log_error("Couldn't create light target: %s", SDL_GetError());
                 return false;
             }
+
+            SDL_DestroyProperties(lightTargetProperties);
         }
+
+        render->clear_color = ClearColorDefault;
+        render->light_clear_color = LightClearColorDefault;
 
         render->graphics_default = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline, true, true));
         render->graphics_texture = render->graphics.add(GraphicsPipeline(pipeline_parameters, pipeline_texture, true, true));

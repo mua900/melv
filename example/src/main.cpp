@@ -20,14 +20,12 @@ struct State
 	vec2 position[64];
 };
 
-#define CHANGE_SHADERS 0
-
 bool initialize(void *userdata, Application *app)
 {
 	srand(time(0));
 
 	State* state = (State*) userdata;
-	app->render.clear_color = Colorf(0.1, 0.2, 0.2);
+	// app->render.clear_color = Colorf(0.1, 0.2, 0.2);
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -41,37 +39,11 @@ bool initialize(void *userdata, Application *app)
 		state->position[i] = vec2(x, y);
 	}
 
-	AssetId vertexId = get_asset(String("Vertex"), app->catalog);
-	AssetId vertexInstId = get_asset(String("VertexInstance"), app->catalog);
-	AssetId fragmentId = get_asset(String("Fragment"), app->catalog);
-	AssetId fragmentTexId = get_asset(String("FragTexture"), app->catalog);
 	AssetId texId = get_asset(String("TestImg"), app->catalog);
-
-	Shader vertex = app->catalog.get_shader(vertexId);
-	Shader fragment = app->catalog.get_shader(fragmentId);
-	Shader vertexInst = app->catalog.get_shader(vertexInstId);
-	Shader fragmentTex = app->catalog.get_shader(fragmentTexId);
 
 	Texture texture = app->catalog.get_image(texId);
 
 	ASSERT(texture.is_valid());
-
-#if CHANGE_SHADERS // @todo
-	if (!app->render.set_shaders(&app->render.graphics, vertex.shader, fragment.shader))
-	{
-		return false;
-	}
-
-	if (!app->render.set_shaders(&app->render.graphics_texture, vertex.shader, fragmentTex.shader))
-	{
-		return false;
-	}
-
-	if (!app->render.set_shaders(&app->render.graphics_instance_texture, vertexInst.shader, fragmentTex.shader))
-	{
-		return false;
-	}
-#endif
 
 	melv::DrawGroupId id = app->render.make_draw_group(app->render.graphics_instance_texture, texture, 1024 * 4);
 	if (!id.is_valid())
@@ -164,7 +136,7 @@ bool initialize(void *userdata, Application *app)
 							);
 
 	{
-		GraphicsPipelineParameters params = default_graphics_pipeline_parameters();;
+		GraphicsPipelineParameters params = get_default_graphics_pipeline_parameters();;
 		params.input = InputInstance;
 		DefaultShaders shaders = {};
 		if (!create_default_shaders(app->render.device, &shaders))
@@ -306,8 +278,8 @@ void handleInput(void* userdata, Application* app)
 
 	if ((vec2(100, 100) - mouse_pos).magnitude() < 100)
 	{
-		app->render.clear_color.r += 0.01;
-		app->render.clear_color.r = fmodf(app->render.clear_color.r, 0.8f);
+		// app->render.clear_color.r += 0.01;
+		// app->render.clear_color.r = fmodf(app->render.clear_color.r, 0.8f);
 
 		app->active_camera.position.x += 0.8 * app->active_camera.zoom;
 		app->active_camera.zoom += 0.02;
@@ -357,7 +329,7 @@ int main()
 
 	InitConfiguration conf = melv::get_default_init_configuration();
 	conf.render.gpuDebug = true;
-	conf.render.doLights = true;
+	conf.render.doLights = false;
 
 	if (!app.initialize(conf))
 	{

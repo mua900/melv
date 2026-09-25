@@ -27,6 +27,9 @@ namespace melv
         bool gpuDebug = false;
     };
 
+    const Colorf ClearColorDefault = Colorf(0.5, 0.6, 0.5);
+    const Colorf LightClearColorDefault = Colorf(0, 0, 0);
+
     // change if you want
     const int InitTransferBufferSize = 16 * 1024;
     const int InitVertexBufferSize = 1024;
@@ -181,6 +184,7 @@ namespace melv
     {
         VertexInputType input = {};
         SDL_GPUTextureFormat format = {};
+        SDL_GPUTextureFormat depth_format = {};
     };
 
     struct GraphicsPipeline
@@ -542,7 +546,7 @@ namespace melv
         }
     };
 
-    GraphicsPipelineParameters default_graphics_pipeline_parameters();
+    GraphicsPipelineParameters get_default_graphics_pipeline_parameters();
     SDL_GPUGraphicsPipeline *create_gpu_graphics_pipeline(GraphicsPipelineParameters* parameters, RenderContext* render, SDL_GPUShader* vertex, SDL_GPUShader* fragment);
 
     bool initialize_render_context(RenderContext* render, SDL_Window* window, bool enableGpuDebug);
