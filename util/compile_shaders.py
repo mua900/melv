@@ -6,6 +6,14 @@ import shutil
 from typing import List
 from pathlib import Path
 
+def to_spirv_cross_stage_name(stage_name : str) -> str:
+    if stage_name == "vertex":
+        return "vert"
+    elif stage_name == "fragment":
+        return "frag"
+    elif stage_name == "compute":
+        return "comp"
+
 def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
     stage_argument = ""
     if shader_stage == "vertex":
@@ -19,15 +27,16 @@ def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
     shader_model = "_6_0"
     target = stage_argument + shader_model
 
-    dxc_available = shutil.which("dxc") is not None
-    shader_cross_available = shutil.which("shadercross") is not None
+    dxc_available : bool = shutil.which("dxc") is not None
+    spirv_cross_available : bool = shutil.which("spirv-cross") is not None
+    shader_cross_available : bool = shutil.which("shadercross") is not None
 
     for shader in shaders:
         path = Path(shader).stem
 
-        spv_out : str = directory + "binary/" + path + ".spv"
-        dxil_out : str = directory + "binary/" + path + ".dxil"
-        msl_out : str = directory + "binary/" + path + ".msl"
+        spv_out : str = directory + "/" + path + ".spv"
+        dxil_out : str = directory + "/" + path + ".dxil"
+        msl_out : str = directory + "/" + path + ".msl"
 
         command_spv : str
         command_dxil : str
@@ -40,6 +49,8 @@ def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
         elif dxc_available:
             command_spv = ["dxc", "-spirv", "-T", target, "-E", "main", shader, "-Fo", spv_out]
             command_dxil = ["dxc", "-T", target, "-E", "main", shader, "-Fo", dxil_out]
+            if spirv_cross_available:
+                command_msl = ["spirv-cross", "--msl", spv_out, "--stage", to_spirv_cross_stage_name(shader_stage), "--output", msl_out]
 
         print(command_spv)
         print(command_dxil)
@@ -48,17 +59,22 @@ def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
         subprocess.run(command_dxil, check=True)
         subprocess.run(command_spv, check=True)
 
-        if shader_cross_available:
+        if shader_cross_available or (dxc_available and spirv_cross_available):
             subprocess.run(command_msl, check=True)
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('directory')
     parser.add_argument('-vertex', action="append")
     parser.add_argument('-fragment', action="append")
 
     args = parser.parse_args()
 
-    directory : str = os.path.dirname(os.path.normpath(__file__)) + "/"
+    if not args.directory:
+        print("Please provide the output directory for shaders")
+        return
+
+    directory : str = args.directory
 
     if args.vertex:
         compile_shaders(args.vertex, "vertex", directory)

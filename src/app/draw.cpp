@@ -22,6 +22,8 @@ namespace melv
     void draw_mesh_texture_buffers(RenderContext& render, MeshDraw& draw, GPUBuffer& vertex_buffer, GPUBuffer& index_buffer);
     void draw_generic(RenderContext& render, GraphicsPipeline& pipeline);
 
+    void draw_shape();
+
     // to draw quads or point lights
     void draw_quads(RenderContext& render, DrawGroup& group, SDL_GPURenderPass* pass, int instance_buffer);
     void draw_quads_texture(RenderContext& render, DrawGroup& group);
@@ -1078,15 +1080,15 @@ namespace melv
         DArray<VertexInstance> circle = {};
         DArray<u16> circle_indices = {};
 
-        MeshReference mesh[MeshCount] = {};
+        MeshReference mesh[ShapeCount] = {};
 
         generate_quad_mesh(quad, quad_indices);
         generate_circle_mesh(circle, circle_indices);
 
-        mesh[MeshQuad].vertex_count = quad.size();
-        mesh[MeshQuad].index_count = quad_indices.size();
-        mesh[MeshCircle].vertex_count = circle.size();
-        mesh[MeshCircle].index_count = circle_indices.size();
+        mesh[ShapeQuad].vertex_count = quad.size();
+        mesh[ShapeQuad].index_count = quad_indices.size();
+        mesh[ShapeCircle].vertex_count = circle.size();
+        mesh[ShapeCircle].index_count = circle_indices.size();
 
         size_t offset = 0;
         size_t vertex_offset = 0;
@@ -1094,26 +1096,26 @@ namespace melv
         u8 *memory = (u8*) SDL_MapGPUTransferBuffer(device, transfer_buffer.buffer, false);
 
         // vertex
-        mesh[MeshQuad].vertex_offset = vertex_offset;
+        mesh[ShapeQuad].vertex_offset = vertex_offset;
         auto size = sizeof(VertexInstance) * quad.size();
         memcpy(memory + offset, quad.data(), size);
         offset += size;
         vertex_offset += size;
 
-        mesh[MeshCircle].vertex_offset = vertex_offset;
+        mesh[ShapeCircle].vertex_offset = vertex_offset;
         size = sizeof(VertexInstance) * circle.size();
         memcpy(memory + offset, circle.data(), size);
         offset += size;
         vertex_offset += size;
 
         // index
-        mesh[MeshQuad].index_offset = index_offset;
+        mesh[ShapeQuad].index_offset = index_offset;
         size = sizeof(u16) * quad_indices.size();
         memcpy(memory + offset, quad_indices.data(), size);
         offset += size;
         index_offset += size;
 
-        mesh[MeshCircle].index_offset = index_offset;
+        mesh[ShapeCircle].index_offset = index_offset;
         size = sizeof(u16) * circle_indices.size();
         memcpy(memory + offset, circle_indices.data(), size);
         offset += size;
@@ -1167,7 +1169,7 @@ namespace melv
         circle.reset();
         circle_indices.reset();
 
-        for (int i = 0; i < MeshCount; i++)
+        for (int i = 0; i < ShapeCount; i++)
         {
             mesh_common[i] = mesh[i];
         }

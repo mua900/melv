@@ -321,14 +321,11 @@ namespace melv
         SDL_GPUShader* fragmentLight = {};
     };
 
-    enum MeshCommon
+    enum Shape
     {
-        MeshQuad,
-        // @todo not used
-        MeshCircle,
-        // @todo more builtin shapes
-
-        MeshCount
+        ShapeQuad,
+        ShapeCircle,
+        ShapeCount
     };
 
     struct RenderContext {
@@ -390,7 +387,7 @@ namespace melv
         FrameContext frame = {};
 
         // predefined mesh
-        MeshReference mesh_common[MeshCount] = {};
+        MeshReference mesh_common[ShapeCount] = {};
 
         DArray<MeshDraw> frameMeshDraw = {};
         DArray<MeshDraw> frameMeshDrawTex = {};
