@@ -14,7 +14,7 @@ def to_spirv_cross_stage_name(stage_name : str) -> str:
     elif stage_name == "compute":
         return "comp"
 
-def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
+def compile_shaders(shaders : List[str], shader_stage : str, directory : Path):
     stage_argument = ""
     if shader_stage == "vertex":
         stage_argument = "vs"
@@ -34,9 +34,9 @@ def compile_shaders(shaders : List[str], shader_stage : str, directory : str):
     for shader in shaders:
         path = Path(shader).stem
 
-        spv_out : str = directory + "/" + path + ".spv"
-        dxil_out : str = directory + "/" + path + ".dxil"
-        msl_out : str = directory + "/" + path + ".msl"
+        spv_out : Path = directory / f"{path}.spv"
+        dxil_out : Path = directory / f"{path}.dxil"
+        msl_out : Path = directory / f"{path}.msl"
 
         command_spv : str
         command_dxil : str
@@ -74,7 +74,7 @@ def main():
         print("Please provide the output directory for shaders")
         return
 
-    directory : str = args.directory
+    directory : Path = Path(args.directory)
 
     if args.vertex:
         compile_shaders(args.vertex, "vertex", directory)
